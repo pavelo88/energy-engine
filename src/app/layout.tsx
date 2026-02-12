@@ -26,8 +26,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#030712",
-  colorScheme: "dark",
+  themeColor: [{ media: '(prefers-color-scheme: light)', color: '#FFFFFF' }, { media: '(prefers-color-scheme: dark)', color: '#030712' }],
+  colorScheme: "light dark",
 };
 
 
@@ -46,8 +46,8 @@ export default function RootLayout({
       </head>
       <body className="font-body bg-background text-foreground antialiased">
         <ThemeProvider
-            defaultTheme="dark"
-            enableSystem={false}
+            defaultTheme="light"
+            enableSystem={true}
         >
             <AnimatedBackground />
             {children}

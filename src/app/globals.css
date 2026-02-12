@@ -87,6 +87,6 @@
 
 @layer utilities {
   .tech-glass {
-    @apply bg-gray-900/40 border border-cyan-500/20 rounded-xl backdrop-blur-sm shadow-lg;
+    @apply bg-card/40 border border-primary/20 rounded-xl backdrop-blur-sm shadow-lg;
   }
 }

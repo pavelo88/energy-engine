@@ -1,6 +1,6 @@
 import { getWebContent } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Mail, Phone, Bot } from 'lucide-react';
+import { ArrowRight, Mail, Phone, Bot, Linkedin, MapPin, Instagram, Facebook } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -32,7 +32,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
-       <header className="sticky top-0 z-50 w-full border-b border-cyan-500/20 bg-background/80 backdrop-blur-sm">
+       <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/80 backdrop-blur-sm">
         <div className="container h-16 flex items-center">
           <Link className="flex items-center gap-2" href="#">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
@@ -61,7 +61,7 @@ export default async function Home() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-64 bg-primary/10 blur-3xl -z-20 rounded-full" />
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
               {hero.titulo.split(' ').map((word, i) => (
-                <span key={i} className={i >= 2 ? "text-primary" : "text-white"}>{word} </span>
+                <span key={i} className={i >= 2 ? "text-primary" : ""}>{word} </span>
               ))}
             </h1>
             <p className="max-w-3xl text-lg md:text-xl text-foreground/60 mb-8">
@@ -81,30 +81,6 @@ export default async function Home() {
             </div>
         </section>
 
-        <section id="servicios" className="container py-24 sm:py-32">
-          <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">Nuestras <span className="text-primary">Capacidades</span></h2>
-            <p className="mt-4 text-lg text-foreground/60">
-              Soluciones integrales para la operación, mantenimiento y optimización de activos críticos.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {servicios.map((servicio) => (
-                <Card key={servicio.titulo} className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-cyan-500/20">
-                  <CardHeader className="p-4">
-                    <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-cyan-500/20">
-                       <BlueprintBackground type={servicio.icono} />
-                    </div>
-                    <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow p-4 pt-0">
-                    <p className="text-foreground/70 text-sm">{servicio.descripcion}</p>
-                  </CardContent>
-                </Card>
-              ))}
-          </div>
-        </section>
-
         <section id="experiencia" className="w-full py-24 sm:py-32 bg-card">
           <div className="container">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -115,16 +91,40 @@ export default async function Home() {
                     </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <div className="p-8 rounded-xl border border-cyan-500/20 bg-background/50 text-center">
+                    <div className="p-8 rounded-xl border border-primary/20 bg-background/50 text-center">
                         <span className="text-5xl font-bold text-primary font-orbitron">{stats_publicas.activos_totales.toLocaleString()}+</span>
                         <p className="text-lg mt-2 text-foreground/60">Activos Gestionados</p>
                     </div>
-                    <div className="p-8 rounded-xl border border-cyan-500/20 bg-background/50 text-center">
+                    <div className="p-8 rounded-xl border border-primary/20 bg-background/50 text-center">
                         <span className="text-5xl font-bold text-primary font-orbitron">{stats_publicas.intervenciones_exitosas.toLocaleString()}+</span>
                         <p className="text-lg mt-2 text-foreground/60">Intervenciones Exitosas</p>
                     </div>
                 </div>
             </div>
+          </div>
+        </section>
+
+        <section id="servicios" className="container py-24 sm:py-32">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">Nuestras <span className="text-primary">Capacidades</span></h2>
+            <p className="mt-4 text-lg text-foreground/60">
+              Soluciones integrales para la operación, mantenimiento y optimización de activos críticos.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {servicios.map((servicio) => (
+                <Card key={servicio.titulo} className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20">
+                  <CardHeader className="p-4">
+                    <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-primary/20">
+                       <BlueprintBackground type={servicio.icono} />
+                    </div>
+                    <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-grow p-4 pt-0">
+                    <p className="text-foreground/70 text-sm">{servicio.descripcion}</p>
+                  </CardContent>
+                </Card>
+              ))}
           </div>
         </section>
 
@@ -153,53 +153,79 @@ export default async function Home() {
         </section>
         
         <section id="contacto" className="container py-24 sm:py-32">
-            <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">Contacta con <span className="text-primary">Nosotros</span></h2>
-              <p className="mt-4 text-lg text-foreground/60">
-                ¿Listo para optimizar tu mantenimiento? Solicita una demostración o envíanos tu consulta.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-8 max-w-5xl mx-auto">
-              <div className="md:col-span-2 space-y-6">
-                  <a href="https://wa.me/34000000000" target="_blank" rel="noopener noreferrer" className="flex items-start gap-4 tech-glass p-6 hover:border-primary/50 transition-colors">
-                    <Phone className="w-8 h-8 text-primary mt-1" />
-                    <div>
-                      <h3 className="font-bold text-lg font-orbitron">Habla con un experto</h3>
-                      <p className="text-sm text-foreground/60">Obtén respuestas inmediatas a través de WhatsApp.</p>
-                      <span className="text-primary font-bold mt-2 inline-block">Iniciar Chat</span>
-                    </div>
-                  </a>
-                  <a href="mailto:contacto@energy-engine.es" className="flex items-start gap-4 tech-glass p-6 hover:border-primary/50 transition-colors">
-                    <Mail className="w-8 h-8 text-primary mt-1" />
-                    <div>
-                      <h3 className="font-bold text-lg font-orbitron">Envíanos un Email</h3>
-                      <p className="text-sm text-foreground/60">Ideal para consultas detalladas y adjuntar documentos.</p>
-                      <span className="text-primary font-bold mt-2 inline-block">contacto@energy-engine.es</span>
-                    </div>
-                  </a>
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
+              Contacta con <span className="text-primary">Nosotros</span>
+            </h2>
+            <p className="mt-4 text-lg text-foreground/60">
+              ¿Listo para optimizar tu mantenimiento? Solicita una demostración o envíanos tu consulta.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+            <form action={saveContactMessage} className="tech-glass p-8 space-y-6 rounded-lg">
+              <h3 className="font-bold text-xl font-orbitron text-primary">Déjanos un mensaje</h3>
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-sm font-medium text-primary/80">Nombre Completo</label>
+                <Input id="name" name="name" required placeholder="Tu nombre" className="bg-background/50"/>
               </div>
-              <form action={saveContactMessage} className="md:col-span-3 tech-glass p-8 space-y-6">
-                <h3 className="font-bold text-xl font-orbitron">O déjanos un mensaje</h3>
-                 <div className="space-y-2">
-                    <label htmlFor="name" className="text-sm font-medium text-primary">Nombre Completo</label>
-                    <Input id="name" name="name" required placeholder="Tu nombre" className="bg-background/50"/>
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-sm font-medium text-primary/80">Correo Electrónico</label>
+                <Input id="email" name="email" type="email" required placeholder="tu@email.com" className="bg-background/50"/>
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="message" className="text-sm font-medium text-primary/80">Mensaje</label>
+                <Textarea id="message" name="message" required placeholder="¿En qué podemos ayudarte?" rows={4} className="bg-background/50"/>
+              </div>
+              <Button type="submit" className="w-full font-bold">Enviar Consulta</Button>
+            </form>
+            <div className="space-y-6 flex flex-col justify-center">
+              <div className="tech-glass p-6 rounded-lg">
+                <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Datos de Contacto</h3>
+                <div className="space-y-4">
+                  <a href="https://wa.me/34000000000" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
+                    <Phone className="w-6 h-6 text-primary" />
+                    <div>
+                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">+34 000 000 000</p>
+                      <p className="text-sm text-foreground/60">Habla con un experto vía WhatsApp.</p>
+                    </div>
+                  </a>
+                  <a href="mailto:contacto@energy-engine.es" className="flex items-center gap-4 group">
+                    <Mail className="w-6 h-6 text-primary" />
+                    <div>
+                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">contacto@energy-engine.es</p>
+                      <p className="text-sm text-foreground/60">Para consultas detalladas.</p>
+                    </div>
+                  </a>
+                  <div className="flex items-center gap-4 group">
+                    <MapPin className="w-6 h-6 text-primary" />
+                    <div>
+                      <p className="font-semibold text-foreground">Madrid, España</p>
+                      <p className="text-sm text-foreground/60">Oficinas centrales.</p>
+                    </div>
+                  </div>
                 </div>
-                 <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-medium text-primary">Correo Electrónico</label>
-                    <Input id="email" name="email" type="email" required placeholder="tu@email.com" className="bg-background/50"/>
+              </div>
+              <div className="tech-glass p-6 rounded-lg">
+                <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Redes Sociales</h3>
+                <div className="flex gap-4">
+                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                      <a href="#" aria-label="LinkedIn"><Linkedin /></a>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                      <a href="#" aria-label="Facebook"><Facebook /></a>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                      <a href="#" aria-label="Instagram"><Instagram /></a>
+                    </Button>
                 </div>
-                 <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm font-medium text-primary">Mensaje</label>
-                    <Textarea id="message" name="message" required placeholder="¿En qué podemos ayudarte?" rows={4} className="bg-background/50"/>
-                </div>
-                <Button type="submit" className="w-full font-bold">Enviar Consulta</Button>
-              </form>
+              </div>
             </div>
+          </div>
         </section>
 
       </main>
 
-      <footer className="border-t border-cyan-500/20">
+      <footer className="border-t border-primary/20">
         <div className="container flex flex-col md:flex-row items-center justify-between py-8">
             <p className="text-sm text-foreground/60">&copy; 2024 Energy Engine España. Todos los derechos reservados.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
