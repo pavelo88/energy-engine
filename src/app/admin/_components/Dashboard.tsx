@@ -6,20 +6,20 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChar
 import { useEffect, useState } from "react";
 import type { Asset, Report } from "@/lib/types";
 import { getAssets, getReports } from "@/lib/data";
-import { AlertCircle, CheckCircle, MapPin, Tool, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle, MapPin, Wrench, TriangleAlert } from "lucide-react";
 
 const COLORS = {
-  Operativo: '#22c55e', // green-500
-  Alerta: '#f97316', // orange-500
-  Mantenimiento: '#3b82f6', // blue-500
-  PAR: '#ef4444', // red-500
+  Operativo: 'hsl(var(--chart-2))',
+  Alerta: 'hsl(var(--chart-5))',
+  Mantenimiento: 'hsl(var(--accent))',
+  PAR: 'hsl(var(--destructive))',
   OFE: '#a855f7', // purple-500
 };
 
 const STATUS_ICONS = {
   Operativo: <CheckCircle className="h-4 w-4 text-green-500" />,
   Alerta: <TriangleAlert className="h-4 w-4 text-orange-500" />,
-  Mantenimiento: <Tool className="h-4 w-4 text-blue-500" />,
+  Mantenimiento: <Wrench className="h-4 w-4 text-blue-500" />,
   PAR: <AlertCircle className="h-4 w-4 text-red-500" />,
   OFE: <AlertCircle className="h-4 w-4 text-purple-500" />,
 }
