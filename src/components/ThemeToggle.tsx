@@ -5,9 +5,19 @@ import { Moon, Sun } from "lucide-react"
 import { useTheme } from "@/components/ThemeProvider"
 
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function ThemeToggle() {
   const { resolvedTheme, setTheme } = useTheme()
+  const [mounted, setMounted] = React.useState(false)
+
+  React.useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted || !resolvedTheme) {
+    return <Skeleton className="h-10 w-10" />
+  }
 
   return (
     <Button

@@ -173,29 +173,3 @@ export default async function Home() {
     </div>
   );
 }
-
-// Add animation styles for the new page design
-const animationStyles = `
-@keyframes fade-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.animate-fade-in-up {
-  animation: fade-in-up 0.8s ease-out forwards;
-  animation-delay: var(--delay, 0s);
-  opacity: 0;
-}
-`;
-
-// A simple way to inject CSS-in-JS for the animations
-const style = document.createElement('style');
-style.innerHTML = animationStyles;
-if (typeof window !== 'undefined') {
-    document.head.appendChild(style);
-}
