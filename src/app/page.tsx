@@ -72,7 +72,7 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        <section className="relative w-full pt-12 md:pt-24 lg:pt-32 xl:pt-48">
+        <section className="relative w-full h-dvh">
           {heroImage && (
              <Image
              alt="Hero background"
@@ -84,9 +84,9 @@ export default async function Home() {
            />
           )}
           <div className="absolute inset-0 bg-primary/70 -z-10" />
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center space-y-4 text-center">
-              <div className="space-y-2 text-primary-foreground">
+          <div className="container px-4 md:px-6 h-full flex flex-col items-center justify-center text-center">
+            <div className="space-y-4">
+              <div className="space-y-2 text-white">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl font-headline">
                   {hero.titulo}
                 </h1>
