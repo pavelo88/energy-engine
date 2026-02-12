@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
+import { InstallPwaButton } from '@/components/InstallPwaButton';
 
 export default function AdminHeader() {
   const { user, roles, setUserRole, loading } = useAuth();
@@ -33,6 +34,7 @@ export default function AdminHeader() {
       </h1>
 
       <div className="ml-auto flex items-center gap-4">
+        <InstallPwaButton />
         {loading || !user ? (
           <Skeleton className="h-8 w-8 rounded-full" />
         ) : (
