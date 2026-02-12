@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -7,7 +8,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import type { Asset, InspectionStatus, Report, User } from '@/lib/types';
+import type { Asset, InspectionStatus, Report, User, Airport } from '@/lib/types';
 import { getAssets, addReport } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +27,7 @@ export default function InspectionForm() {
     const { toast } = useToast();
 
     const [assets, setAssets] = useState<Asset[]>([]);
+    const [airports, setAirports] = useState<Airport[]>([]);
     const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
     const [inspectionData, setInspectionData] = useState<Record<string, InspectionStatus>>({});
     const [isInspecting, setIsInspecting] = useState(false);
@@ -36,7 +38,11 @@ export default function InspectionForm() {
     const [hasSigned, setHasSigned] = useState(false);
 
     useEffect(() => {
-        getAssets().then(setAssets);
+        getAssets().then(loadedAssets => {
+            setAssets(loadedAssets);
+            const uniqueAirports = [...new Set(loadedAssets.map(a => a.id_aeropuerto))];
+            setAirports(uniqueAirports);
+        });
     }, []);
 
     const selectedAsset = assets.find(a => a.id_bien === selectedAssetId);
@@ -123,7 +129,7 @@ export default function InspectionForm() {
                                     <SelectValue placeholder="Buscar por ID, sector..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {['VLC', 'MAD'].map(airport => (
+                                    {airports.map(airport => (
                                         <SelectGroup key={airport}>
                                             <SelectLabel>{airport}</SelectLabel>
                                             {assets.filter(a => a.id_aeropuerto === airport).map(asset => (
@@ -240,3 +246,5 @@ export default function InspectionForm() {
         </div>
     );
 }
+
+    
