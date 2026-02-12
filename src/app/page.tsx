@@ -1,7 +1,5 @@
-import Image from 'next/image';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { getWebContent } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Button } from '@/components/ui/button';
 import {
   Briefcase,
   Lightbulb,
@@ -9,45 +7,40 @@ import {
   Wrench,
   TrendingUp,
   HardHat,
+  ArrowDown,
+  LayoutPanelLeft ,
+  Mail,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import type { ComponentType } from 'react';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { Badge } from '@/components/ui/badge';
+import Link from 'next/link';
 
 // A helper to map icon strings to actual components
 const iconMap: { [key: string]: ComponentType<LucideProps> } = {
-  Briefcase: Briefcase,
-  Lightbulb: Lightbulb,
-  ShieldCheck: ShieldCheck,
-  Wrench: Wrench,
-  TrendingUp: TrendingUp,
-  HardHat: HardHat,
+  Briefcase,
+  Lightbulb,
+  ShieldCheck,
+  Wrench,
+  TrendingUp,
+  HardHat,
+  LayoutPanelLeft,
 };
+
+const navLinks = [
+  { href: '#servicios', label: 'Servicios' },
+  { href: '#experiencia', label: 'Experiencia' },
+  { href: '#nosotros', label: 'Nosotros' },
+];
 
 export default async function Home() {
   const webContent = await getWebContent();
-  const heroImage = PlaceHolderImages.find((img) => img.id === 'hero-image');
-
+  
   if (!webContent) {
     return (
-      <div className="flex flex-col min-h-screen">
-        <header className="px-4 lg:px-6 h-14 flex items-center bg-primary text-primary-foreground">
-          <h1 className="font-headline text-lg font-bold">AssetTrack AI</h1>
-        </header>
-        <main className="flex-1 animate-pulse">
-          <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gray-200"></section>
-          <section className="w-full py-12 md:py-24 lg:py-32 bg-background">
-            <div className="container px-4 md:px-6">
-              <div className="grid gap-6 items-center">
-                <div className="flex flex-col justify-center space-y-4 text-center">
-                  <div className="space-y-2">
-                    <div className="h-8 w-1/2 mx-auto bg-gray-300 rounded"></div>
-                    <div className="h-6 w-3/4 mx-auto bg-gray-300 rounded"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        </main>
+       <div className="flex items-center justify-center h-screen bg-background text-foreground">
+        <p>Cargando contenido...</p>
       </div>
     );
   }
@@ -55,115 +48,154 @@ export default async function Home() {
   const { hero, servicios, stats_publicas } = webContent;
 
   return (
-    <div className="flex flex-col min-h-dvh bg-background">
-      <header className="px-4 lg:px-6 h-14 flex items-center bg-card shadow-sm fixed top-0 w-full z-50 backdrop-blur-sm bg-opacity-80">
-        <div className="flex items-center justify-between w-full">
-            <a className="flex items-center justify-center" href="#">
+    <div className="flex flex-col min-h-dvh bg-background dark:bg-grid-white/[0.05] bg-grid-black/[0.05]">
+       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container h-14 flex items-center">
+          <div className="flex items-center gap-4">
+            <a className="flex items-center gap-2" href="#">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
-                <span className="sr-only">AssetTrack AI</span>
+                <span className="font-bold font-headline">AssetTrack AI</span>
             </a>
-            <h1 className="text-xl font-headline font-bold text-primary">Energy Engine España</h1>
-            <nav className="hidden lg:flex gap-4 sm:gap-6">
-                <a className="text-sm font-medium hover:underline underline-offset-4" href="/admin">
-                Admin Panel
-                </a>
-            </nav>
+          </div>
+          <nav className="ml-auto hidden md:flex items-center gap-6 text-sm font-medium">
+            {navLinks.map(link => (
+              <a key={link.href} className="transition-colors hover:text-foreground/80 text-foreground/60" href={link.href}>
+                {link.label}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2 ml-auto md:ml-4">
+             <Link href="/admin">
+                <Button variant="outline" className="hidden sm:flex">
+                    Panel de Admin
+                </Button>
+            </Link>
+            <ThemeToggle />
+          </div>
         </div>
       </header>
 
       <main className="flex-1">
-        <section className="relative w-full h-dvh">
-          {heroImage && (
-             <Image
-             alt="Hero background"
-             src={heroImage.imageUrl}
-             fill
-             priority
-             className="object-cover -z-10"
-             data-ai-hint={heroImage.imageHint}
-           />
-          )}
-          <div className="absolute inset-0 bg-primary/70 -z-10" />
-          <div className="container px-4 md:px-6 h-full flex flex-col items-center justify-center text-center">
-            <div className="space-y-4">
-              <div className="space-y-2 text-white">
-                <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl font-headline">
-                  {hero.titulo}
-                </h1>
-                <p className="mx-auto max-w-[700px] text-lg md:text-xl">
-                  {hero.subitulo}
-                </p>
-              </div>
+        <section id="home" className="container flex flex-col items-center justify-center text-center min-h-[calc(100vh-3.5rem)] relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-64 bg-primary/20 blur-3xl -z-10 rounded-full" />
+            <Badge variant="outline" className="mb-6 animate-fade-in-up">
+                <span className="relative flex h-2 w-2 mr-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                </span>
+                Impulsado por IA Generativa
+            </Badge>
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold font-headline tracking-tighter mb-4 animate-fade-in-up" style={{"--delay": "0.2s"} as React.CSSProperties}>
+              {hero.titulo}
+            </h1>
+            <p className="max-w-3xl text-lg md:text-xl text-foreground/60 mb-8 animate-fade-in-up" style={{"--delay": "0.4s"} as React.CSSProperties}>
+              {hero.subitulo}
+            </p>
+            <div className="flex gap-4 animate-fade-in-up" style={{"--delay": "0.6s"} as React.CSSProperties}>
+                <a href="#servicios">
+                    <Button size="lg">Conoce más <ArrowDown className="ml-2" /></Button>
+                </a>
+                <Link href="/admin">
+                    <Button size="lg" variant="secondary">Acceder al Panel</Button>
+                </Link>
             </div>
+        </section>
+
+        <section id="servicios" className="container py-24 sm:py-32">
+          <div className="text-center max-w-2xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tighter">Servicios de Mantenimiento Integral</h2>
+            <p className="mt-4 text-lg text-foreground/60">
+              Ofrecemos soluciones completas para garantizar la operatividad y eficiencia de sus activos críticos, minimizando el tiempo de inactividad.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {servicios.map((servicio) => {
+              const Icon = iconMap[servicio.icono] || Wrench;
+              return (
+                <div key={servicio.titulo} className="p-8 rounded-lg border bg-card/50 transition-all hover:border-primary/50 hover:-translate-y-1">
+                  <Icon className="w-10 h-10 text-primary mb-4" />
+                  <h3 className="text-xl font-bold font-headline mb-2">{servicio.titulo}</h3>
+                  <p className="text-foreground/60">{servicio.descripcion}</p>
+                </div>
+              );
+            })}
           </div>
         </section>
 
-        <section id="servicios" className="w-full py-12 md:py-24 lg:py-32 bg-background">
-          <div className="container grid items-center gap-6 px-4 md:px-6 lg:grid-cols-2 lg:gap-10">
-            <div className="space-y-4">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">
-                Servicios de Mantenimiento Integral
-              </h2>
-              <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Ofrecemos soluciones completas para garantizar la operatividad y eficiencia de sus activos críticos.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {servicios.map((servicio) => {
-                const Icon = iconMap[servicio.icono] || Wrench;
-                return (
-                  <Card key={servicio.titulo}>
-                    <CardHeader className="flex flex-row items-center gap-4">
-                      <Icon className="w-8 h-8 text-accent" />
-                      <CardTitle className="font-headline">{servicio.titulo}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">{servicio.descripcion}</p>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+        <section id="experiencia" className="w-full py-24 sm:py-32 bg-muted/50 dark:bg-background">
+          <div className="container">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tighter">Nuestra Experiencia en Cifras</h2>
+                    <p className="mt-4 text-lg text-foreground/60 max-w-lg">
+                        Resultados que demuestran nuestro compromiso y eficacia en el campo, respaldados por datos y miles de horas de servicio.
+                    </p>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                    <div className="p-8 rounded-lg border bg-background">
+                        <span className="text-5xl font-bold text-primary font-headline">{stats_publicas.activos_totales.toLocaleString()}+</span>
+                        <p className="text-lg mt-2 text-foreground/60">Activos Gestionados</p>
+                    </div>
+                    <div className="p-8 rounded-lg border bg-background">
+                        <span className="text-5xl font-bold text-primary font-headline">{stats_publicas.intervenciones_exitosas.toLocaleString()}+</span>
+                        <p className="text-lg mt-2 text-foreground/60">Intervenciones Exitosas</p>
+                    </div>
+                </div>
             </div>
           </div>
+        </section>
+        
+        <section id="nosotros" className="container py-24 sm:py-32 text-center">
+            <h2 className="text-3xl md:text-4xl font-bold font-headline tracking-tighter">¿Listo para optimizar tu mantenimiento?</h2>
+            <p className="mt-4 text-lg text-foreground/60 max-w-2xl mx-auto">
+                Contacta con nosotros para una demostración y descubre cómo AssetTrack AI puede transformar la gestión de tus activos.
+            </p>
+             <div className="flex gap-4 justify-center mt-8">
+                <Button size="lg" asChild>
+                    <a href="mailto:contacto@energy-engine.es">
+                        <Mail className="mr-2" /> Contactar
+                    </a>
+                </Button>
+            </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-          <div className="container grid items-center justify-center gap-4 px-4 text-center md:px-6">
-            <div className="space-y-3">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl font-headline">
-                Nuestra Experiencia en Cifras
-              </h2>
-              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Resultados que demuestran nuestro compromiso y eficacia en el campo.
-              </p>
-            </div>
-            <div className="mx-auto w-full max-w-sm space-y-2">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col items-center justify-center space-y-1 rounded-lg bg-card p-4 shadow-sm">
-                  <span className="text-4xl font-bold text-primary">{stats_publicas.activos_totales.toLocaleString()}</span>
-                  <span className="text-sm text-muted-foreground">Activos Gestionados</span>
-                </div>
-                <div className="flex flex-col items-center justify-center space-y-1 rounded-lg bg-card p-4 shadow-sm">
-                  <span className="text-4xl font-bold text-primary">{stats_publicas.intervenciones_exitosas.toLocaleString()}</span>
-                  <span className="text-sm text-muted-foreground">Intervenciones Exitosas</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
 
-      <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">&copy; 2024 Energy Engine España. Todos los derechos reservados.</p>
-        <nav className="sm:ml-auto flex gap-4 sm:gap-6">
-          <a className="text-xs hover:underline underline-offset-4" href="#">
-            Términos de Servicio
-          </a>
-          <a className="text-xs hover:underline underline-offset-4" href="#">
-            Privacidad
-          </a>
-        </nav>
+      <footer className="border-t">
+        <div className="container flex flex-col md:flex-row items-center justify-between py-8">
+            <p className="text-sm text-foreground/60">&copy; 2024 Energy Engine España. Todos los derechos reservados.</p>
+            <div className="flex gap-4 mt-4 md:mt-0">
+                <a className="text-sm transition-colors hover:text-foreground/80 text-foreground/60" href="#">Términos</a>
+                <a className="text-sm transition-colors hover:text-foreground/80 text-foreground/60" href="#">Privacidad</a>
+            </div>
+        </div>
       </footer>
     </div>
   );
+}
+
+// Add animation styles for the new page design
+const animationStyles = `
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.8s ease-out forwards;
+  animation-delay: var(--delay, 0s);
+  opacity: 0;
+}
+`;
+
+// A simple way to inject CSS-in-JS for the animations
+const style = document.createElement('style');
+style.innerHTML = animationStyles;
+if (typeof window !== 'undefined') {
+    document.head.appendChild(style);
 }
