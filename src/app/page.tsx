@@ -39,10 +39,10 @@ export default async function Home() {
     );
   }
 
-  const { hero, servicios, stats_publicas, trusted_brands } = webContent;
-
-  const safeStats = Array.isArray(stats_publicas) ? stats_publicas : [];
-  const safeBrands = Array.isArray(trusted_brands) ? trusted_brands : [];
+  const { hero, servicios } = webContent;
+  // Ensure stats_publicas and trusted_brands are arrays to prevent errors
+  const safeStats = Array.isArray(webContent.stats_publicas) ? webContent.stats_publicas : [];
+  const safeBrands = Array.isArray(webContent.trusted_brands) ? webContent.trusted_brands : [];
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
@@ -71,45 +71,46 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        <section id="home" className="container relative py-24 md:py-32 min-h-[calc(100vh-4rem)] flex items-center">
-            <div className="grid lg:grid-cols-2 gap-16 items-center w-full">
-              <div className="flex flex-col text-center lg:text-left">
-                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
-                  {hero.titulo.split(' ').map((word, i) => (
-                      <span key={i} className={i > 0 ? "text-primary" : ""}>{word} </span>
-                  ))}
-                  </h1>
-                  <p className="max-w-xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto lg:mx-0">
-                  {hero.subitulo}
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4 mx-auto lg:mx-0">
-                      <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold" asChild>
-                        <a href="#servicios">
-                            Explorar Servicios <ArrowRight className="ml-2" />
-                        </a>
-                      </Button>
-                      <Button size="lg" variant="secondary" asChild>
-                        <Link href="/admin">
-                            Acceder al Panel
-                        </Link>
-                      </Button>
-                  </div>
-              </div>
-              <div className="grid grid-cols-2 gap-x-8 gap-y-12">
-                  {safeStats.map((stat) => {
-                    const Icon = iconMap[stat.icon] || HardHat;
-                    return (
-                      <div key={stat.label} className="flex items-center gap-4">
-                        <Icon className="w-8 h-8 text-primary" />
-                        <div>
-                          <p className="text-4xl font-bold font-orbitron text-primary">{stat.value}</p>
-                          <p className="text-sm uppercase tracking-wider text-foreground/60">{stat.label}</p>
-                        </div>
-                      </div>
-                    )
-                  })}
-              </div>
+        <section id="home" className="container relative py-24 md:py-32 min-h-[calc(100vh-4rem)] flex items-center justify-center text-center">
+            <div className="flex flex-col items-center">
+                <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
+                {hero.titulo.split(' ').map((word, i) => (
+                    <span key={i} className={i > 1 ? "text-primary" : ""}>{word} </span>
+                ))}
+                </h1>
+                <p className="max-w-2xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto">
+                {hero.subitulo}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 mx-auto">
+                    <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold" asChild>
+                      <a href="#servicios">
+                          Explorar Servicios <ArrowRight className="ml-2" />
+                      </a>
+                    </Button>
+                    <Button size="lg" variant="secondary" asChild>
+                      <Link href="/admin">
+                          Acceder al Panel
+                      </Link>
+                    </Button>
+                </div>
             </div>
+        </section>
+
+        <section id="experiencia" className="container pb-24 sm:pb-32">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 tech-glass p-8 rounded-xl">
+              {safeStats.map((stat) => {
+                const Icon = iconMap[stat.icon] || HardHat;
+                return (
+                  <div key={stat.label} className="flex flex-col items-center text-center gap-2">
+                    <Icon className="w-8 h-8 text-primary" />
+                    <div>
+                      <p className="text-4xl font-bold font-orbitron text-primary">{stat.value}</p>
+                      <p className="text-sm uppercase tracking-wider text-foreground/60">{stat.label}</p>
+                    </div>
+                  </div>
+                )
+              })}
+          </div>
         </section>
 
         <section id="servicios" className="container py-24 sm:py-32">
@@ -119,19 +120,21 @@ export default async function Home() {
               Soluciones integrales para la operación, mantenimiento y optimización de activos críticos.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex flex-wrap justify-center gap-8">
             {servicios.map((servicio) => (
-                <Card key={servicio.titulo} className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20">
-                  <CardHeader className="p-4">
-                    <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-primary/20">
-                       <BlueprintBackground type={servicio.icono} />
-                    </div>
-                    <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow p-4 pt-0">
-                    <p className="text-foreground/70 text-sm">{servicio.descripcion}</p>
-                  </CardContent>
-                </Card>
+                <div key={servicio.titulo} className="w-full sm:w-1/2 lg:w-1/3 flex">
+                    <Card className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 w-full">
+                    <CardHeader className="p-4">
+                        <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-primary/20">
+                        <BlueprintBackground type={servicio.icono} />
+                        </div>
+                        <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="flex-grow p-4 pt-0">
+                        <p className="text-foreground/70 text-sm">{servicio.descripcion}</p>
+                    </CardContent>
+                    </Card>
+                </div>
               ))}
           </div>
         </section>
