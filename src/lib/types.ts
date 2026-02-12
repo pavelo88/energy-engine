@@ -73,4 +73,5 @@ export interface WebContent {
     activos_totales: number;
     intervenciones_exitosas: number;
   };
+  trusted_brands: string[];
 }

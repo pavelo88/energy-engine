@@ -137,7 +137,7 @@ export default async function Home() {
               </div>
               <Carousel opts={{ align: "start", loop: true }} className="w-full">
                 <CarouselContent>
-                  {trusted_brands.map((brand, index) => (
+                  {(trusted_brands || []).map((brand, index) => (
                     <CarouselItem key={index} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
                       <div className="p-1">
                         <div className="flex aspect-video items-center justify-center p-6 tech-glass h-24">
