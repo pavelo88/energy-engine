@@ -1,5 +1,5 @@
 import { db } from '@/lib/firebase/config';
-import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import type { User, Asset, Report, WebContent, UserRole } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 
@@ -59,36 +59,53 @@ export async function getWebContent(): Promise<WebContent> {
                 imagen_id: 'hero-image'
             },
             servicios: [
-                { icono: 'Wrench', titulo: 'Mantenimiento Predictivo', descripcion: 'Anticipamos fallos antes de que ocurran, utilizando IA y análisis de datos.' },
-                { icono: 'ShieldCheck', titulo: 'Inspecciones de Cumplimiento', descripcion: 'Garantizamos que todos los activos cumplan con las normativas más estrictas.' },
-                { icono: 'Lightbulb', titulo: 'Auditorías Energéticas', descripcion: 'Optimizamos el consumo para reducir costes y el impacto ambiental.' },
-                { icono: 'TrendingUp', titulo: 'Gestión de Activos', descripcion: 'Ciclo de vida completo, desde la instalación hasta el reemplazo estratégico.' },
+                { icono: 'mantenimiento', titulo: 'Mantenimiento Predictivo y Correctivo', descripcion: 'Anticipamos fallos antes de que ocurran, utilizando IA para análisis de datos y optimización de rendimiento energético.' },
+                { icono: 'inspeccion', titulo: 'Inspecciones Técnicas Avanzadas', descripcion: 'Garantizamos que todos los activos cumplan con las normativas más estrictas mediante escaneo y auditoría digital.' },
+                { icono: 'gestion', titulo: 'Gestión Inteligente de Activos', descripcion: 'Control del ciclo de vida completo del activo, desde la instalación hasta el reemplazo estratégico basado en datos.' },
+                { icono: 'soporte', titulo: 'Soporte y Asistencia 24/7', descripcion: 'Servicio de asistencia técnica los 365 días del año con cobertura nacional para resolver cualquier anomalía.' },
+                { icono: 'auditoria', titulo: 'Auditorías y Optimización Energética', descripcion: 'Optimizamos el consumo para reducir costes y el impacto ambiental en grandes infraestructuras y plantas de cogeneración.' },
+                { icono: 'suministro', titulo: 'Suministro Urgente de Componentes', descripcion: 'Aseguramos la provisión de todo tipo de recambios y componentes críticos en tiempo récord para minimizar la inactividad.' },
             ],
             stats_publicas: {
                 activos_totales: 1250,
                 intervenciones_exitosas: 40000
-            }
+            },
+            trusted_brands: [
+                "AENA", "SIEMENS", "BOSCH", "VANDERLANDE", "FERROVIAL", "ACCIONA", "IBERIA", "PELCO", "AVIGILON"
+            ]
         };
     }
 }
 
 export async function updateWebContent(newContent: WebContent): Promise<WebContent> {
     const docRef = doc(db, 'web_content', 'config_principal');
-    // Using setDoc with merge:true is safer as it creates the doc if it doesn't exist.
     await setDoc(docRef, newContent, { merge: true });
     return newContent;
 }
 
 export async function addReport(report: Report): Promise<Report> {
-    // Add the report to the 'reports' collection
     const reportsCollection = collection(db, 'reports');
     await setDoc(doc(reportsCollection, report.id_informe), report);
 
-    // Update the corresponding asset's status
     const assetRef = doc(db, 'assets', report.id_bien);
     await updateDoc(assetRef, {
         estado: report.estado
     });
 
     return report;
+}
+
+
+export async function saveContactMessage(formData: { name: string; email: string; message: string; }) {
+  try {
+    const contactsCollection = collection(db, 'contact_messages');
+    await addDoc(contactsCollection, {
+      ...formData,
+      timestamp: serverTimestamp(),
+    });
+    return { success: true, message: "Mensaje enviado con éxito." };
+  } catch (error) {
+    console.error("Error saving contact message:", error);
+    return { success: false, message: "No se pudo enviar el mensaje. Inténtalo de nuevo." };
+  }
 }
