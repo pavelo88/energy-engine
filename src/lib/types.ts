@@ -1,3 +1,4 @@
+
 import type { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'admin' | 'gerente' | 'inspector';
@@ -69,9 +70,10 @@ export interface WebContent {
     titulo: string;
     descripcion: string;
   }>;
-  stats_publicas: {
-    activos_totales: number;
-    intervenciones_exitosas: number;
-  };
+  stats_publicas: Array<{
+    icon: string;
+    value: string;
+    label: string;
+  }>;
   trusted_brands: string[];
 }

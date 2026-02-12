@@ -1,3 +1,4 @@
+
 import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import type { User, Asset, Report, WebContent, UserRole } from './types';
@@ -54,8 +55,8 @@ export async function getWebContent(): Promise<WebContent> {
         return {
             id: 'config_principal',
             hero: {
-                titulo: 'Ingeniería Energética de Vanguardia',
-                subitulo: 'Maximizando la eficiencia y fiabilidad de activos críticos en infraestructuras clave.',
+                titulo: 'Protegemos su INFRAESTRUCTURA',
+                subitulo: 'Soluciones integrales de mantenimiento predictivo, ingeniería y automatización industrial para activos críticos.',
                 imagen_id: 'hero-image'
             },
             servicios: [
@@ -66,10 +67,12 @@ export async function getWebContent(): Promise<WebContent> {
                 { icono: 'auditoria', titulo: 'Auditorías y Optimización Energética', descripcion: 'Optimizamos el consumo para reducir costes y el impacto ambiental en grandes infraestructuras y plantas de cogeneración.' },
                 { icono: 'suministro', titulo: 'Suministro Urgente de Componentes', descripcion: 'Aseguramos la provisión de todo tipo de recambios y componentes críticos en tiempo récord para minimizar la inactividad.' },
             ],
-            stats_publicas: {
-                activos_totales: 1250,
-                intervenciones_exitosas: 40000
-            },
+            stats_publicas: [
+              { icon: 'Zap', value: '500+', label: 'PROYECTOS' },
+              { icon: 'Globe', value: '15+', label: 'AÑOS EXP.' },
+              { icon: 'Shield', value: '99.7%', label: 'UPTIME' },
+              { icon: 'Clock', value: '24/7', label: 'SOPORTE' }
+            ],
             trusted_brands: [
                 "AENA", "SIEMENS", "BOSCH", "VANDERLANDE", "FERROVIAL", "ACCIONA", "IBERIA", "PELCO", "AVIGILON"
             ]

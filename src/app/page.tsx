@@ -1,6 +1,7 @@
+
 import { getWebContent } from '@/lib/data';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Mail, Phone, Bot, Linkedin, MapPin, Instagram, Facebook } from 'lucide-react';
+import { ArrowRight, Mail, Phone, Shield, Linkedin, MapPin, Instagram, Facebook, HardHat, Zap, Globe, Clock } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
@@ -9,16 +10,26 @@ import { BlueprintBackground } from '@/components/ServiceIllustrations';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { saveContactMessage } from '@/app/actions';
+import Image from 'next/image';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 const navLinks = [
   { href: '#servicios', label: 'Servicios' },
-  { href: '#experiencia', label: 'Experiencia' },
   { href: '#clientes', label: 'Clientes' },
   { href: '#contacto', label: 'Contacto' },
 ];
 
+const iconMap: { [key: string]: React.ElementType } = {
+  Zap,
+  Globe,
+  Shield,
+  Clock,
+  HardHat, // Fallback
+};
+
 export default async function Home() {
   const webContent = await getWebContent();
+  const contactMapImage = PlaceHolderImages.find(p => p.id === 'contact-map');
   
   if (!webContent) {
     return (
@@ -29,6 +40,9 @@ export default async function Home() {
   }
 
   const { hero, servicios, stats_publicas, trusted_brands } = webContent;
+
+  const safeStats = Array.isArray(stats_publicas) ? stats_publicas : [];
+  const safeBrands = Array.isArray(trusted_brands) ? trusted_brands : [];
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
@@ -57,51 +71,45 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        <section id="home" className="container flex flex-col items-center justify-center text-center relative pt-24 pb-32">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-64 bg-primary/10 blur-3xl -z-20 rounded-full" />
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
-              {hero.titulo.split(' ').map((word, i) => (
-                <span key={i} className={i >= 2 ? "text-primary" : ""}>{word} </span>
-              ))}
-            </h1>
-            <p className="max-w-3xl text-lg md:text-xl text-foreground/60 mb-8">
-              {hero.subitulo}
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold" asChild>
-                  <a href="#servicios">
-                    Explorar Servicios <ArrowRight className="ml-2" />
-                  </a>
-                </Button>
-                <Button size="lg" variant="secondary" asChild>
-                  <Link href="/admin">
-                    Acceder al Panel
-                  </Link>
-                </Button>
+        <section id="home" className="container relative py-24 md:py-32 min-h-[calc(100vh-4rem)] flex items-center">
+            <div className="grid lg:grid-cols-2 gap-16 items-center w-full">
+              <div className="flex flex-col text-center lg:text-left">
+                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
+                  {hero.titulo.split(' ').map((word, i) => (
+                      <span key={i} className={i > 0 ? "text-primary" : ""}>{word} </span>
+                  ))}
+                  </h1>
+                  <p className="max-w-xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto lg:mx-0">
+                  {hero.subitulo}
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-4 mx-auto lg:mx-0">
+                      <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold" asChild>
+                        <a href="#servicios">
+                            Explorar Servicios <ArrowRight className="ml-2" />
+                        </a>
+                      </Button>
+                      <Button size="lg" variant="secondary" asChild>
+                        <Link href="/admin">
+                            Acceder al Panel
+                        </Link>
+                      </Button>
+                  </div>
+              </div>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-12">
+                  {safeStats.map((stat) => {
+                    const Icon = iconMap[stat.icon] || HardHat;
+                    return (
+                      <div key={stat.label} className="flex items-center gap-4">
+                        <Icon className="w-8 h-8 text-primary" />
+                        <div>
+                          <p className="text-4xl font-bold font-orbitron text-primary">{stat.value}</p>
+                          <p className="text-sm uppercase tracking-wider text-foreground/60">{stat.label}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+              </div>
             </div>
-        </section>
-
-        <section id="experiencia" className="w-full py-24 sm:py-32 bg-card">
-          <div className="container">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div>
-                    <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase">Nuestra <span className="text-primary">Experiencia</span></h2>
-                    <p className="mt-4 text-lg text-foreground/60 max-w-lg">
-                        Resultados que demuestran nuestro compromiso y eficacia, respaldados por datos y miles de horas de servicio.
-                    </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <div className="p-8 rounded-xl border border-primary/20 bg-background/50 text-center">
-                        <span className="text-5xl font-bold text-primary font-orbitron">{stats_publicas.activos_totales.toLocaleString()}+</span>
-                        <p className="text-lg mt-2 text-foreground/60">Activos Gestionados</p>
-                    </div>
-                    <div className="p-8 rounded-xl border border-primary/20 bg-background/50 text-center">
-                        <span className="text-5xl font-bold text-primary font-orbitron">{stats_publicas.intervenciones_exitosas.toLocaleString()}+</span>
-                        <p className="text-lg mt-2 text-foreground/60">Intervenciones Exitosas</p>
-                    </div>
-                </div>
-            </div>
-          </div>
         </section>
 
         <section id="servicios" className="container py-24 sm:py-32">
@@ -128,7 +136,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="clientes" className="py-24 sm:py-32">
+        <section id="clientes" className="py-24 sm:py-32 bg-card">
           <div className="container">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-12">Aliados <span className="text-primary">Tecnológicos</span></h2>
             <div className="relative">
@@ -137,7 +145,7 @@ export default async function Home() {
               </div>
               <Carousel opts={{ align: "start", loop: true }} className="w-full">
                 <CarouselContent>
-                  {(trusted_brands || []).map((brand, index) => (
+                  {safeBrands.map((brand, index) => (
                     <CarouselItem key={index} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
                       <div className="p-1">
                         <div className="flex aspect-video items-center justify-center p-6 tech-glass h-24">
@@ -178,47 +186,54 @@ export default async function Home() {
               </div>
               <Button type="submit" className="w-full font-bold">Enviar Consulta</Button>
             </form>
-            <div className="space-y-6 flex flex-col justify-center">
-              <div className="tech-glass p-6 rounded-lg">
-                <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Datos de Contacto</h3>
-                <div className="space-y-4">
-                  <a href="https://wa.me/34000000000" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
-                    <Phone className="w-6 h-6 text-primary" />
-                    <div>
-                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">+34 000 000 000</p>
-                      <p className="text-sm text-foreground/60">Habla con un experto vía WhatsApp.</p>
+            <div className="space-y-6 flex flex-col">
+                <div className="tech-glass p-6 rounded-lg flex-grow flex flex-col">
+                    <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Datos de Contacto</h3>
+                    <div className="space-y-4 mb-6">
+                        <a href="https://wa.me/34000000000" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
+                            <Phone className="w-6 h-6 text-primary" />
+                            <div>
+                                <p className="font-semibold text-foreground group-hover:text-primary transition-colors">+34 000 000 000</p>
+                                <p className="text-sm text-foreground/60">Habla con un experto.</p>
+                            </div>
+                        </a>
+                        <a href="mailto:contacto@energy-engine.es" className="flex items-center gap-4 group">
+                            <Mail className="w-6 h-6 text-primary" />
+                            <div>
+                                <p className="font-semibold text-foreground group-hover:text-primary transition-colors">contacto@energy-engine.es</p>
+                                <p className="text-sm text-foreground/60">Para consultas detalladas.</p>
+                            </div>
+                        </a>
                     </div>
-                  </a>
-                  <a href="mailto:contacto@energy-engine.es" className="flex items-center gap-4 group">
-                    <Mail className="w-6 h-6 text-primary" />
-                    <div>
-                      <p className="font-semibold text-foreground group-hover:text-primary transition-colors">contacto@energy-engine.es</p>
-                      <p className="text-sm text-foreground/60">Para consultas detalladas.</p>
+                    <div className="relative aspect-video w-full mt-auto rounded-md overflow-hidden border border-primary/20">
+                      {contactMapImage ? (
+                          <Image src={contactMapImage.imageUrl} alt="Mapa de ubicación" fill className="object-cover" data-ai-hint={contactMapImage.imageHint} />
+                      ) : (
+                          <div className="w-full h-full bg-muted flex items-center justify-center">
+                              <MapPin className="w-12 h-12 text-muted-foreground" />
+                          </div>
+                      )}
+                       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
+                       <div className="absolute bottom-4 left-4">
+                         <p className="font-semibold text-foreground">Madrid, España</p>
+                         <p className="text-sm text-foreground/60">Oficinas centrales.</p>
+                       </div>
                     </div>
-                  </a>
-                  <div className="flex items-center gap-4 group">
-                    <MapPin className="w-6 h-6 text-primary" />
-                    <div>
-                      <p className="font-semibold text-foreground">Madrid, España</p>
-                      <p className="text-sm text-foreground/60">Oficinas centrales.</p>
-                    </div>
-                  </div>
                 </div>
-              </div>
-              <div className="tech-glass p-6 rounded-lg">
-                <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Redes Sociales</h3>
-                <div className="flex gap-4">
-                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                      <a href="#" aria-label="LinkedIn"><Linkedin /></a>
-                    </Button>
-                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                      <a href="#" aria-label="Facebook"><Facebook /></a>
-                    </Button>
-                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                      <a href="#" aria-label="Instagram"><Instagram /></a>
-                    </Button>
+                 <div className="tech-glass p-6 rounded-lg">
+                    <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Redes Sociales</h3>
+                    <div className="flex gap-4">
+                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                        <a href="#" aria-label="LinkedIn"><Linkedin /></a>
+                        </Button>
+                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                        <a href="#" aria-label="Facebook"><Facebook /></a>
+                        </Button>
+                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                        <a href="#" aria-label="Instagram"><Instagram /></a>
+                        </Button>
+                    </div>
                 </div>
-              </div>
             </div>
           </div>
         </section>

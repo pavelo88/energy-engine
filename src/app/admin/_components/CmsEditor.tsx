@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -125,6 +126,31 @@ export default function CmsEditor() {
 
             <Card>
                 <CardHeader>
+                    <CardTitle>Estadísticas (Sección Hero)</CardTitle>
+                    <CardDescription>Los 4 contadores que se muestran en la sección principal.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {content.stats_publicas.map((stat, index) => (
+                         <div key={index} className="p-4 border rounded-md space-y-2">
+                             <div className="space-y-1">
+                                 <Label>Icono (Lucide: Zap, Globe, Shield, Clock)</Label>
+                                 <Input value={stat.icon} onChange={e => handleInputChange('stats_publicas', 'icon', e.target.value, index)} />
+                             </div>
+                             <div className="space-y-1">
+                                 <Label>Valor (ej. 500+)</Label>
+                                 <Input value={stat.value} onChange={e => handleInputChange('stats_publicas', 'value', e.target.value, index)} />
+                             </div>
+                              <div className="space-y-1">
+                                 <Label>Etiqueta (ej. PROYECTOS)</Label>
+                                 <Input value={stat.label} onChange={e => handleInputChange('stats_publicas', 'label', e.target.value, index)} />
+                             </div>
+                         </div>
+                    ))}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
                     <div className="flex justify-between items-center">
                         <div>
                             <CardTitle>Servicios</CardTitle>
@@ -145,7 +171,7 @@ export default function CmsEditor() {
                                     <Input value={service.titulo} onChange={e => handleInputChange('servicios', 'titulo', e.target.value, index)} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label>Icono (Lucide)</Label>
+                                    <Label>Icono (Palabra clave para ilustración)</Label>
                                     <Input value={service.icono} onChange={e => handleInputChange('servicios', 'icono', e.target.value, index)} />
                                 </div>
                             </div>
@@ -157,23 +183,7 @@ export default function CmsEditor() {
                     ))}
                 </CardContent>
             </Card>
-            
-            <Card>
-                <CardHeader>
-                    <CardTitle>Estadísticas Públicas</CardTitle>
-                    <CardDescription>Contadores que se muestran públicamente.</CardDescription>
-                </CardHeader>
-                <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="stats-activos">Activos Totales</Label>
-                        <Input id="stats-activos" type="number" value={content.stats_publicas.activos_totales} onChange={e => handleInputChange('stats_publicas', 'activos_totales', parseInt(e.target.value, 10))} />
-                    </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="stats-intervenciones">Intervenciones Exitosas</Label>
-                        <Input id="stats-intervenciones" type="number" value={content.stats_publicas.intervenciones_exitosas} onChange={e => handleInputChange('stats_publicas', 'intervenciones_exitosas', parseInt(e.target.value, 10))} />
-                    </div>
-                </CardContent>
-            </Card>
+
         </div>
     );
 }
