@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'AssetTrack AI | Energy Engine España',
     short_name: 'AssetTrack AI',
     description: 'Plataforma de mantenimiento predictivo y gestión de activos impulsada por IA.',
-    start_url: '/',
+    start_url: '/admin',
     display: 'standalone',
     background_color: '#09090b',
     theme_color: '#09090b',
