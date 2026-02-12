@@ -2,8 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, HelpCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export function InstallPwaButton() {
   const [installPrompt, setInstallPrompt] = useState<Event | null>(null);
@@ -41,14 +47,32 @@ export function InstallPwaButton() {
     setInstallPrompt(null); // The prompt can only be used once
   };
 
-  if (!installPrompt) {
-    return null; // Don't render the button if the app can't be installed
-  }
-
   return (
-    <Button variant="outline" size="sm" onClick={handleInstallClick}>
-      <Download className="mr-2 h-4 w-4" />
-      Instalar App
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {/* Wrapper div to allow tooltip on disabled button */}
+          <div> 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleInstallClick}
+              disabled={!installPrompt}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Instalar App
+            </Button>
+          </div>
+        </TooltipTrigger>
+        {!installPrompt && (
+          <TooltipContent>
+            <p className="flex items-center gap-2">
+              <HelpCircle className="h-4 w-4" />
+              <span>La app no se puede instalar o ya está instalada.</span>
+            </p>
+          </TooltipContent>
+        )}
+      </Tooltip>
+    </TooltipProvider>
   );
 }

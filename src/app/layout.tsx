@@ -25,7 +25,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#09090B",
+  themeColor: "#FFFFFF",
+  colorScheme: "light dark",
 };
 
 
@@ -44,8 +45,7 @@ export default function RootLayout({
       </head>
       <body className="font-body bg-background text-foreground antialiased">
         <ThemeProvider
-            defaultTheme="dark"
-            enableSystem
+            defaultTheme="light"
         >
             {children}
             <Toaster />

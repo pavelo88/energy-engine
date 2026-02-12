@@ -1,38 +1,39 @@
 import { getWebContent } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import {
-  Briefcase,
-  Lightbulb,
-  ShieldCheck,
-  Wrench,
-  TrendingUp,
-  HardHat,
   ArrowDown,
-  LayoutPanelLeft ,
   Mail,
 } from 'lucide-react';
-import type { LucideProps } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from "@/components/ui/carousel";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { MaintIllustration, InspectIllustration, AuditIllustration, MgmtIllustration } from '@/components/ServiceIllustrations';
 
-// A helper to map icon strings to actual components
-const iconMap: { [key: string]: ComponentType<LucideProps> } = {
-  Briefcase,
-  Lightbulb,
-  ShieldCheck,
-  Wrench,
-  TrendingUp,
-  HardHat,
-  LayoutPanelLeft,
+const illustrationMap: { [key: string]: ComponentType<{ className?: string }> } = {
+  'Mantenimiento Predictivo': MaintIllustration,
+  'Inspecciones de Cumplimiento': InspectIllustration,
+  'Auditorías Energéticas': AuditIllustration,
+  'Gestión de Activos': MgmtIllustration,
 };
+
 
 const navLinks = [
   { href: '#servicios', label: 'Servicios' },
   { href: '#experiencia', label: 'Experiencia' },
+  { href: '#clientes', label: 'Clientes' },
   { href: '#nosotros', label: 'Nosotros' },
 ];
+
+const trustedBrands = [
+  "AENA", "SIEMENS", "BOSCH", "VANDERLANDE", "FERROVIAL", "ACCIONA", "IBERIA"
+]
 
 export default async function Home() {
   const webContent = await getWebContent();
@@ -48,7 +49,7 @@ export default async function Home() {
   const { hero, servicios, stats_publicas } = webContent;
 
   return (
-    <div className="flex flex-col min-h-dvh bg-background dark:bg-grid-white/[0.05] bg-grid-black/[0.05]">
+    <div className="flex flex-col min-h-dvh bg-background bg-grid-black/[0.05] dark:bg-black dark:bg-grid-white/[0.05]">
        <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container h-14 flex items-center">
           <div className="flex items-center gap-4">
@@ -77,7 +78,7 @@ export default async function Home() {
 
       <main className="flex-1">
         <section id="home" className="container flex flex-col items-center justify-center text-center min-h-[calc(100vh-3.5rem)] relative">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-64 bg-primary/20 blur-3xl -z-10 rounded-full" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-4xl h-64 bg-primary/10 dark:bg-primary/20 blur-3xl -z-10 rounded-full" />
             <Badge variant="outline" className="mb-6 animate-fade-in-up">
                 <span className="relative flex h-2 w-2 mr-2">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -108,21 +109,27 @@ export default async function Home() {
               Ofrecemos soluciones completas para garantizar la operatividad y eficiencia de sus activos críticos, minimizando el tiempo de inactividad.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
             {servicios.map((servicio) => {
-              const Icon = iconMap[servicio.icono] || Wrench;
+              const Illustration = illustrationMap[servicio.titulo] || MaintIllustration;
               return (
-                <div key={servicio.titulo} className="p-8 rounded-lg border bg-card/50 transition-all hover:border-primary/50 hover:-translate-y-1">
-                  <Icon className="w-10 h-10 text-primary mb-4" />
-                  <h3 className="text-xl font-bold font-headline mb-2">{servicio.titulo}</h3>
-                  <p className="text-foreground/60">{servicio.descripcion}</p>
-                </div>
+                <Card key={servicio.titulo} className="p-2 transition-all hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 flex flex-col">
+                  <CardHeader>
+                    <div className="flex justify-center items-center h-48 mb-4 bg-muted/30 rounded-lg">
+                      <Illustration className="w-32 h-32 text-primary" />
+                    </div>
+                    <CardTitle className="text-xl font-bold font-headline mb-2">{servicio.titulo}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <p className="text-foreground/60">{servicio.descripcion}</p>
+                  </CardContent>
+                </Card>
               );
             })}
           </div>
         </section>
 
-        <section id="experiencia" className="w-full py-24 sm:py-32 bg-muted/50 dark:bg-background">
+        <section id="experiencia" className="w-full py-24 sm:py-32 bg-muted/50 dark:bg-muted/10">
           <div className="container">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
@@ -132,16 +139,35 @@ export default async function Home() {
                     </p>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                    <div className="p-8 rounded-lg border bg-background">
+                    <div className="p-8 rounded-lg border bg-background shadow-sm">
                         <span className="text-5xl font-bold text-primary font-headline">{stats_publicas.activos_totales.toLocaleString()}+</span>
                         <p className="text-lg mt-2 text-foreground/60">Activos Gestionados</p>
                     </div>
-                    <div className="p-8 rounded-lg border bg-background">
+                    <div className="p-8 rounded-lg border bg-background shadow-sm">
                         <span className="text-5xl font-bold text-primary font-headline">{stats_publicas.intervenciones_exitosas.toLocaleString()}+</span>
                         <p className="text-lg mt-2 text-foreground/60">Intervenciones Exitosas</p>
                     </div>
                 </div>
             </div>
+          </div>
+        </section>
+
+        <section id="clientes" className="py-24 sm:py-32">
+          <div className="container">
+            <h2 className="text-center text-3xl md:text-4xl font-bold font-headline tracking-tighter mb-12">Marcas que confían en nosotros</h2>
+            <Carousel opts={{ align: "start", loop: true }} className="w-full">
+              <CarouselContent>
+                {trustedBrands.map((brand, index) => (
+                  <CarouselItem key={index} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
+                    <div className="p-1">
+                      <div className="flex aspect-video items-center justify-center p-6 bg-muted/30 rounded-lg">
+                        <span className="text-2xl font-semibold text-foreground/60 font-headline">{brand}</span>
+                      </div>
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+            </Carousel>
           </div>
         </section>
         
