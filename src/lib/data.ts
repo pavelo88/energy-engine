@@ -134,12 +134,24 @@ export async function updateWebContent(newContent: WebContent): Promise<WebConte
 
 export async function syncReportToFirestore(report: Report): Promise<void> {
   console.log(`Syncing report ${report.id_informe} to Firestore.`);
-  const reportsCollection = collection(db, 'reports');
-  await setDoc(doc(reportsCollection, report.id_informe), report);
+  
+  // Clone the report to avoid mutating the original object
+  const reportToSync = { ...report };
 
-  const assetRef = doc(db, 'assets', report.id_bien);
+  if (reportToSync.photoEvidenceDataUrl) {
+    // TODO: Implement Firebase Storage upload.
+    // For now, we will log a warning and remove the data URL to prevent
+    // exceeding Firestore's document size limit.
+    console.warn(`Report ${report.id_informe} has photo evidence, but storage upload is not implemented. The photo will not be saved.`);
+    delete reportToSync.photoEvidenceDataUrl;
+  }
+
+  const reportsCollection = collection(db, 'reports');
+  await setDoc(doc(reportsCollection, reportToSync.id_informe), reportToSync);
+
+  const assetRef = doc(db, 'assets', reportToSync.id_bien);
   await updateDoc(assetRef, {
-      estado: report.estado
+      estado: reportToSync.estado
   });
   console.log(`Report ${report.id_informe} and asset status synced to Firestore.`);
 }

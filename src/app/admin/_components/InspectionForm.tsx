@@ -13,6 +13,7 @@ import { getAssets, addReport } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Play, StopCircle, MapPin, Camera, Signature, Loader2 } from 'lucide-react';
+import Image from 'next/image';
 
 const inspectionPoints: Record<Asset['categoria'], string[]> = {
     'Energía': ['Nivel de aceite', 'Sistema eléctrico', 'Batería', 'Filtro de aire', 'Nivel de refrigerante'],
@@ -34,7 +35,7 @@ export default function InspectionForm() {
     const [startTime, setStartTime] = useState<number | null>(null);
     const [location, setLocation] = useState<{ lat: number, lng: number } | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [photoEvidence, setPhotoEvidence] = useState<File | null>(null);
+    const [photoEvidence, setPhotoEvidence] = useState<string | null>(null);
     const [hasSigned, setHasSigned] = useState(false);
 
     useEffect(() => {
@@ -99,6 +100,7 @@ export default function InspectionForm() {
             core_issue: "Revisión periódica",
             recommended_actions: "Seguir plan de mantenimiento",
             potential_impact: "N/A",
+            photoEvidenceDataUrl: photoEvidence || undefined,
         };
 
         try {
@@ -113,6 +115,19 @@ export default function InspectionForm() {
         }
     };
     
+    const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (loadEvent) => {
+                setPhotoEvidence(loadEvent.target?.result as string);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            setPhotoEvidence(null);
+        }
+    };
+
     return (
         <div className="space-y-6">
             <Card>
@@ -210,12 +225,12 @@ export default function InspectionForm() {
                                     <h4 className="font-semibold">Adjuntar Foto de Evidencia</h4>
                                     <p className="text-sm text-muted-foreground">Requerido para componentes marcados como OFE.</p>
                                 </div>
-                                <Input type="file" accept="image/*" className="hidden" id="photo-upload" onChange={(e) => setPhotoEvidence(e.target.files?.[0] || null)}/>
+                                <Input type="file" accept="image/*" className="hidden" id="photo-upload" onChange={handlePhotoChange}/>
                                 <Button asChild variant="outline">
                                     <Label htmlFor="photo-upload">{photoEvidence ? "Cambiar Foto" : "Seleccionar Foto"}</Label>
                                 </Button>
                              </div>
-                             {photoEvidence && <p className="text-sm text-muted-foreground">Archivo seleccionado: {photoEvidence.name}</p>}
+                             {photoEvidence && <Image src={photoEvidence} alt="Vista previa de la evidencia" width={64} height={64} className="h-16 w-16 object-cover rounded-md border" />}
                         </CardFooter>
                     )}
 

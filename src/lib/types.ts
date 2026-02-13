@@ -56,6 +56,7 @@ export interface Report {
   recommended_actions?: string;
   potential_impact?: string;
   estado: AssetStatus;
+  photoEvidenceDataUrl?: string;
 }
 
 export interface WebContent {
