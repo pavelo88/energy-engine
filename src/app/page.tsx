@@ -136,7 +136,7 @@ export default async function Home() {
                       className="brand-ring-item" 
                       style={{ transform: `rotateY(${angle}deg) translateZ(${radius}px)` }}
                     >
-                      <div className="tech-glass flex items-center justify-center p-6 h-20 w-48 bg-background/80">
+                      <div className="tech-glass flex items-center justify-center p-6 h-20 w-48">
                         <span className="text-2xl font-semibold text-foreground/80 font-orbitron">{brand}</span>
                       </div>
                     </div>
