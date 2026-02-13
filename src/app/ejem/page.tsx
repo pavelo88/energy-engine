@@ -70,7 +70,7 @@ export default function App() {
   // Setea la fecha del reporte solo en el cliente para evitar errores de hidratación
   useEffect(() => {
     if (view === 'summary') {
-      setReportDate(new Date().toLocaleDateString());
+      setReportDate(new Date().toLocaleDateString('es-ES'));
     }
   }, [view]);
 
