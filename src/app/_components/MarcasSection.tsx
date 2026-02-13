@@ -73,13 +73,12 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
                                 className="absolute left-1/2 top-1/2 flex items-center justify-center tech-glass font-orbitron font-bold transition-all"
                                 style={{
                                     // Para ajustar el ancho de la etiqueta, cambia los valores de 'width' aquí
-                                    width: isMobile ? "140px" : "190px", 
+                                    width: isMobile ? "120px" : "160px", 
                                     height: isMobile ? "70px" : "85px",
                                     marginLeft: isMobile ? "-70px" : "-95px", 
                                     marginTop: isMobile ? "-35px" : "-42.5px", 
                                     fontSize: isMobile ? "1rem" : "1.4rem",
                                     transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
-                                    backfaceVisibility: 'hidden',
                                 }}
                             >
                                 <span className="text-foreground/90">{brand}</span>
