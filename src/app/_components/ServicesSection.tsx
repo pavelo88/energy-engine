@@ -28,7 +28,7 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
              <MobileServicesCarousel servicios={servicios} />
           </div>
           
-          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {servicios.map((servicio) => (
                 <div key={servicio.titulo} className="flex">
                     <Card className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 w-full">

@@ -24,7 +24,6 @@ export default function CmsEditor() {
             setLoading(true);
             const data = await getWebContent();
             
-            // Ensure stats_publicas is always an array with default values if missing
             if (!data.stats_publicas || !Array.isArray(data.stats_publicas) || data.stats_publicas.length === 0) {
                 data.stats_publicas = [
                   { icon: 'Zap', value: '500+', label: 'PROYECTOS' },
@@ -32,6 +31,10 @@ export default function CmsEditor() {
                   { icon: 'Shield', value: '99.7%', label: 'UPTIME' },
                   { icon: 'Clock', value: '24/7', label: 'SOPORTE' }
                 ];
+            }
+            
+            if (!data.trusted_brands || !Array.isArray(data.trusted_brands) || data.trusted_brands.length === 0) {
+                data.trusted_brands = ["Perkins", "Guascor", "Cummins", "Iveco", "Ruggerini", "Volvo Penta", "Lombardini", "MAN", "Rolls-Royce", "MTU"];
             }
 
             setContent(data);
@@ -157,8 +160,8 @@ export default function CmsEditor() {
 
             <Card>
                 <CardHeader>
-                    <CardTitle>Estadísticas (Sección Hero)</CardTitle>
-                    <CardDescription>Los 4 contadores que se muestran en la sección principal.</CardDescription>
+                    <CardTitle>Estadísticas (Sección Experiencia)</CardTitle>
+                    <CardDescription>Los 4 contadores de la sección de experiencia.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {Array.isArray(content.stats_publicas) && content.stats_publicas.map((stat, index) => (
