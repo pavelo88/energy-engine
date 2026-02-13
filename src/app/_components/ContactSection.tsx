@@ -68,19 +68,6 @@ export default function ContactSection() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t border-primary/10 pt-4">
-                    <div>
-                        <h4 className="font-semibold text-primary">Delegación Norte</h4>
-                        <p className="text-foreground/70">Contacto: Andrés Granados</p>
-                        <p className="font-semibold">683 77 52 08</p>
-                    </div>
-                    <div>
-                        <h4 className="font-semibold text-primary">Delegación Sur</h4>
-                        <p className="text-foreground/70">Contacto: Antonio Ugena</p>
-                        <p className="font-semibold">635 12 05 10</p>
-                    </div>
-                </div>
-
                 <div className="relative aspect-video w-full rounded-md overflow-hidden border border-primary/20">
                   <iframe
                     src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.5558853974057!2d-3.6226846999999998!3d39.9065746!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd69fd9fcbbb692b%3A0x28b5ff2cac42084!2sC.%20Miguel%20L%C3%B3pez%20Bravo%2C%206%2C%2045313%20Yepes%2C%20Toledo%2C%20Espa%C3%B1a!5e0!3m2!1ses!2sec!4v1770960048534!5m2!1ses!2sec"
