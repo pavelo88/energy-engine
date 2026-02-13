@@ -6,14 +6,14 @@ import * as THREE from "three"
 export function AnimatedBackground() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
+
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
-    const isMobile = window.innerWidth < 768
     let cleanup = () => {}
 
-    const initDesktop = () => {
+    const initAnimation = () => {
       const scene = new THREE.Scene()
       const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
       
@@ -29,38 +29,77 @@ export function AnimatedBackground() {
       const mainGroup = new THREE.Group()
       scene.add(mainGroup)
 
-      const coreGeo = new THREE.IcosahedronGeometry(10, 1)
-      const coreMat = new THREE.MeshBasicMaterial({ 
-        color: 0x00f2ff, 
-        wireframe: true, 
-        transparent: true, 
-        opacity: 0.3 
-      })
-      const coreSphere = new THREE.Mesh(coreGeo, coreMat)
-      mainGroup.add(coreSphere)
+      // --- 1. Definir colores para los temas (Aquí puedes "monear" el color) ---
+      const darkColor = new THREE.Color(0x00c8ff); // <-- Un cian más azulado
+      const lightColor = new THREE.Color(0x00c8ff); // Un cian más oscuro para el modo claro
 
+      // --- 2. EL NÚCLEO (Esfera) ---
+      const coreGeo = new THREE.IcosahedronGeometry(11, 1) 
+      const edges = new THREE.EdgesGeometry(coreGeo)
+      const coreMat = new THREE.LineBasicMaterial({ 
+        color: darkColor,
+        transparent: true,
+        opacity: 0.4
+      }) 
+      const coreLines = new THREE.LineSegments(edges, coreMat)
+      mainGroup.add(coreLines)
+
+      // --- 3. LA ATMÓSFERA (Puntos) ---
+      // --- AQUÍ PUEDES "MONEAR" LA CANTIDAD DE PUNTOS ---
+      // Simplemente cambia el número de abajo. Ej: 50, 100, etc.
+      const particleCount = 4000
       const particlesGeo = new THREE.BufferGeometry()
-      const particleCount = 700
       const posArray = new Float32Array(particleCount * 3)
       
       for(let i = 0; i < particleCount * 3; i++) {
-        posArray[i] = (Math.random() - 0.5) * 35 
+        // El '30' de al final controla qué tan lejos se esparcen los puntos.
+        // Un número más grande los aleja más del centro.
+        posArray[i] = (Math.random() - 0.5) * 120 
       }
       
       particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3))
       
       const particlesMat = new THREE.PointsMaterial({
-        size: 0.15,
-        color: 0x00f2ff,
+        size: 0.25,
+        color: darkColor, 
         transparent: true,
-        opacity: 0.8,
+        opacity: 0.4,
       })
       
       const particlesMesh = new THREE.Points(particlesGeo, particlesMat)
       mainGroup.add(particlesMesh)
 
-      camera.position.z = 22
+      // --- 4. Lógica de Tema (Claro/Oscuro) ---
+      const updateTheme = () => {
+        const isLight = document.body.classList.contains('light-mode');
+        const newColor = isLight ? lightColor : darkColor;
+        coreMat.color.set(newColor);
+        particlesMat.color.set(newColor);
+        canvas.style.opacity = isLight ? '1' : '0.7';
+      }
 
+      // Observador para cambios en el body (cambio de tema)
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.attributeName === "class") {
+            updateTheme();
+          }
+        });
+      });
+      observer.observe(document.body, { attributes: true });
+
+      // --- 5. Lógica de Tamaño (PC/Móvil) ---
+      const updateCameraPosition = () => {
+        // En PC, la cámara está en 25 (más cerca). En móvil, en 40 (más lejos).
+        camera.position.z = window.innerWidth < 768 ? 40 : 25;
+      }
+      
+      // Llamadas iniciales
+      updateCameraPosition();
+      updateTheme();
+
+
+      // INTERACCIÓN CON MOUSE (Efecto Parallax suave)
       let mouseX = 0
       let mouseY = 0
       
@@ -70,13 +109,13 @@ export function AnimatedBackground() {
       }
       document.addEventListener("mousemove", handleMouseMove)
 
+      // LOOP DE ANIMACIÓN
       let animationId: number
       const animate = () => {
         animationId = requestAnimationFrame(animate)
         
-        coreSphere.rotation.y += 0.002
-        coreSphere.rotation.x += 0.001
-
+        coreLines.rotation.y += 0.002
+        coreLines.rotation.x += 0.001
         particlesMesh.rotation.y -= 0.0015
         
         mainGroup.rotation.y += 0.05 * (mouseX - mainGroup.rotation.y)
@@ -86,10 +125,12 @@ export function AnimatedBackground() {
       }
       animate()
 
+      // Limpieza y responsividad
       const handleResize = () => {
         camera.aspect = window.innerWidth / window.innerHeight
         camera.updateProjectionMatrix()
         renderer.setSize(window.innerWidth, window.innerHeight)
+        updateCameraPosition();
       }
       window.addEventListener("resize", handleResize)
 
@@ -97,78 +138,15 @@ export function AnimatedBackground() {
         cancelAnimationFrame(animationId)
         window.removeEventListener("resize", handleResize)
         document.removeEventListener("mousemove", handleMouseMove)
+        observer.disconnect() 
         coreGeo.dispose()
+        edges.dispose()
         particlesGeo.dispose()
         renderer.dispose()
       }
     }
 
-    const initMobile = () => {
-      const ctx = canvas.getContext("2d")
-      if (!ctx) return
-
-      let width = window.innerWidth
-      let height = window.innerHeight
-      canvas.width = width
-      canvas.height = height
-
-      const globeRadius = width * 0.35 
-      const rotationSpeed = 0.003
-      let angleTicker = 0
-
-      const particles: any[] = []
-      const particleCount = 100
-
-      for (let i = 0; i < particleCount; i++) {
-        const theta = Math.random() * 2 * Math.PI
-        const phi = Math.acos((Math.random() * 2) - 1)
-        particles.push({
-          baseX: globeRadius * Math.sin(phi) * Math.cos(theta),
-          baseY: globeRadius * Math.sin(phi) * Math.sin(theta),
-          baseZ: globeRadius * Math.cos(phi)
-        })
-      }
-
-      let animationId: number
-      const animate = () => {
-        animationId = requestAnimationFrame(animate)
-        ctx.clearRect(0, 0, width, height)
-        
-        const cx = width / 2
-        const cy = height / 2
-        angleTicker += rotationSpeed
-
-        ctx.strokeStyle = "rgba(0, 242, 255, 0.15)"
-        ctx.lineWidth = 0.5
-
-        const projected = particles.map(p => {
-          const cosY = Math.cos(angleTicker)
-          const sinY = Math.sin(angleTicker)
-          let x = p.baseX * cosY - p.baseZ * sinY
-          let z = p.baseZ * cosY + p.baseX * sinY
-          const perspective = 300 / (300 + z)
-          return { x: cx + x * perspective, y: cy + p.baseY * perspective, scale: perspective }
-        })
-
-        for (let i = 0; i < particleCount; i++) {
-          const p = projected[i]
-          const alpha = Math.max(0.1, (p.scale - 0.5) * 1.5)
-          ctx.fillStyle = `rgba(0, 242, 255, ${alpha})`
-          ctx.beginPath()
-          ctx.arc(p.x, p.y, 1.5 * p.scale, 0, Math.PI * 2)
-          ctx.fill()
-        }
-      }
-      animate()
-
-      cleanup = () => cancelAnimationFrame(animationId)
-    }
-
-    if (isMobile) {
-      initMobile()
-    } else {
-      initDesktop()
-    }
+    initAnimation()
 
     return () => cleanup()
   }, [])
@@ -177,7 +155,7 @@ export function AnimatedBackground() {
     <canvas 
       ref={canvasRef} 
       id="bg-canvas" 
-      className="fixed top-0 left-0 -z-10 w-full h-full opacity-40 pointer-events-none" 
+      className="fixed top-0 left-0 z-0 w-full h-full opacity-70 transition-opacity duration-300 pointer-events-none"
     />
   )
 }
