@@ -49,9 +49,63 @@ export function BlueprintBackground({ type }: { type: string }) {
     preserveAspectRatio: "xMidYMid slice",
     stroke: "hsl(var(--primary))"
   }
+  
+  // Mantenimiento
+  if (t.includes("mantenimiento")) {
+    const createGear = (teeth: number, innerRadius: number, outerRadius: number, holeRadius: number) => {
+        let path = "";
+        const angle = (Math.PI * 2) / (teeth * 2);
+        for (let i = 0; i < teeth * 2; i++) {
+            const r = i % 2 === 0 ? outerRadius : innerRadius;
+            const a = angle * i;
+            const x = Math.cos(a) * r;
+            const y = Math.sin(a) * r;
+            path += `${i === 0 ? 'M' : 'L'}${x},${y} `;
+        }
+        path += "Z ";
+        path += `M${holeRadius},0 A${holeRadius},${holeRadius} 0 1,1 -${holeRadius},0 A${holeRadius},${holeRadius} 0 1,1 ${holeRadius},0 Z`;
+        return path;
+    };
+    
+    return (
+      <>
+        {styles}
+        <svg {...svgProps} strokeLinecap="round" strokeLinejoin="round">
+            <defs>
+                <pattern id="grid-pat-maint" width="20" height="20" patternUnits="userSpaceOnUse">
+                   <path d="M 0 10 H 20 M 10 0 V 20" fill="none" strokeWidth="0.5" opacity="0.2"/>
+                </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#grid-pat-maint)" opacity="0.8"/>
+            
+            <g transform="translate(200, 200)">
+                {/* Main Gear */}
+                <g className="bp-spin" style={{ animationDuration: '20s' }}>
+                    <path d={createGear(20, 80, 100, 30)} strokeWidth="2" fill="hsla(var(--primary), 0.05)" className="neon-glow" />
+                    <circle cx="0" cy="0" r="60" strokeWidth="1" strokeDasharray="4 8" opacity="0.5" />
+                </g>
+                
+                {/* Small Gear 1 */}
+                <g transform="translate(135, 0) rotate(9)" className="bp-spin-rev" style={{ animationDuration: '10s' }}>
+                    <path d={createGear(10, 25, 35, 10)} strokeWidth="1.5" fill="hsla(var(--primary), 0.1)" className="neon-glow bp-pulse" />
+                </g>
+                
+                {/* Small Gear 2 */}
+                <g transform="translate(-105, 95) rotate(-18)" className="bp-spin-rev" style={{ animationDuration: '12s' }}>
+                     <path d={createGear(12, 30, 42, 12)} strokeWidth="1.5" fill="hsla(var(--primary), 0.1)" className="neon-glow" />
+                </g>
+            </g>
 
-  // Mantenimiento - energia, electrico
-  if (t.includes("mantenimiento") || t.includes("energia") || t.includes("elect")) {
+            <text x="20" y="380" fill="hsl(var(--primary))" fontFamily="Orbitron, monospace" fontSize="12" className="bp-flicker">
+                SYS_DIAG // MECH_OPS
+            </text>
+        </svg>
+      </>
+    )
+  }
+
+  // Energia, electrico
+  if (t.includes("energia") || t.includes("elect")) {
     return (
       <>
         {styles}
