@@ -6,8 +6,10 @@ import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Pie, PieChar
 import { useEffect, useState } from "react";
 import type { Asset, Report } from "@/lib/types";
 import { getAssets, getReports } from "@/lib/data";
-import { AlertCircle, CheckCircle, MapPin, Wrench, TriangleAlert } from "lucide-react";
+import { AlertCircle, CheckCircle, MapPin, Wrench, TriangleAlert, BrainCircuit } from "lucide-react";
 import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
+import CriticalSummaryDialog from "./CriticalSummaryDialog";
 
 const COLORS = {
   Operativo: 'hsl(var(--chart-2))',
@@ -29,6 +31,7 @@ export default function Dashboard() {
     const [assets, setAssets] = useState<Asset[]>([]);
     const [reports, setReports] = useState<Report[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isSummaryDialogOpen, setIsSummaryDialogOpen] = useState(false);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -121,9 +124,20 @@ export default function Dashboard() {
             </div>
              <Card>
                 <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-destructive">
-                        <AlertCircle /> Informes Críticos
-                    </CardTitle>
+                    <div className="flex justify-between items-center gap-4">
+                        <CardTitle className="flex items-center gap-2 text-destructive">
+                            <AlertCircle /> Informes Críticos
+                        </CardTitle>
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            disabled={criticalReports.length === 0}
+                            onClick={() => setIsSummaryDialogOpen(true)}
+                        >
+                            <BrainCircuit className="mr-2 h-4 w-4" />
+                            Resumen con IA
+                        </Button>
+                    </div>
                     <CardDescription>Activos que requieren atención inmediata (estado PAR u OFE).</CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -202,6 +216,13 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
             </div>
+            {isSummaryDialogOpen && (
+                <CriticalSummaryDialog
+                    reports={criticalReports}
+                    isOpen={isSummaryDialogOpen}
+                    onClose={() => setIsSummaryDialogOpen(false)}
+                />
+            )}
         </div>
     );
 }
