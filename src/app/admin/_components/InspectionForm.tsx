@@ -40,7 +40,7 @@ export default function InspectionForm() {
     useEffect(() => {
         getAssets().then(loadedAssets => {
             setAssets(loadedAssets);
-            const uniqueAirports = [...new Set(loadedAssets.map(a => a.id_aeropuerto))];
+            const uniqueAirports = [...new Set(loadedAssets.map(a => a.id_aeropuerto))].sort() as Airport[];
             setAirports(uniqueAirports);
         });
     }, []);
@@ -186,7 +186,7 @@ export default function InspectionForm() {
                             <div key={point}>
                                 <Label className="text-base font-semibold">{point}</Label>
                                 <RadioGroup
-                                    className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mt-2"
+                                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-2"
                                     value={inspectionData[point]}
                                     onValueChange={(value: InspectionStatus) => setInspectionData(prev => ({ ...prev, [point]: value }))}
                                 >
@@ -246,5 +246,3 @@ export default function InspectionForm() {
         </div>
     );
 }
-
-    

@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/components/ui/sheet';
 import { Menu } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -51,6 +51,7 @@ export function SiteHeader() {
               </SheetTrigger>
               <SheetContent side="left" className="bg-background w-[280px]">
                  <div className="p-6 h-full flex flex-col">
+                    <SheetTitle className="sr-only">Navegación Principal</SheetTitle>
                     <Link className="flex items-center gap-2 mb-8" href="#" onClick={() => setIsMobileMenuOpen(false)}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
                         <span className="font-bold text-xl font-orbitron">AssetTrack AI</span>
@@ -58,7 +59,7 @@ export function SiteHeader() {
                     <div className="flex flex-col gap-6">
                     {navLinks.map(link => (
                         <SheetClose asChild key={link.href}>
-                            <a href={link.href} className="text-lg font-medium hover:text-primary">
+                            <a href={link.href} className="text-lg font-medium hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>
                             {link.label}
                             </a>
                         </SheetClose>

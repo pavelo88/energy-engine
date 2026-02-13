@@ -43,12 +43,12 @@ export default function CmsEditor() {
 
     const handleAddService = () => {
         if (!content) return;
-        const newServices = [...content.servicios, { icono: 'Wrench', titulo: 'Nuevo Servicio', descripcion: 'Descripción del servicio.' }];
+        const newServices = [...(content.servicios || []), { icono: 'Wrench', titulo: 'Nuevo Servicio', descripcion: 'Descripción del servicio.' }];
         setContent({ ...content, servicios: newServices });
     };
 
     const handleRemoveService = (index: number) => {
-        if (!content) return;
+        if (!content || !content.servicios) return;
         const newServices = content.servicios.filter((_, i) => i !== index);
         setContent({ ...content, servicios: newServices });
     };
@@ -130,7 +130,7 @@ export default function CmsEditor() {
                     <CardDescription>Los 4 contadores que se muestran en la sección principal.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {content.stats_publicas.map((stat, index) => (
+                    {Array.isArray(content.stats_publicas) && content.stats_publicas.map((stat, index) => (
                          <div key={index} className="p-4 border rounded-md space-y-2">
                              <div className="space-y-1">
                                  <Label>Icono (Lucide: Zap, Globe, Shield, Clock)</Label>
@@ -160,12 +160,12 @@ export default function CmsEditor() {
                     </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {content.servicios.map((service, index) => (
+                    {Array.isArray(content.servicios) && content.servicios.map((service, index) => (
                         <div key={index} className="p-4 border rounded-md relative space-y-2">
                             <Button variant="destructive" size="icon" className="absolute top-2 right-2 h-7 w-7" onClick={() => handleRemoveService(index)}>
                                 <Trash2 className="h-4 w-4" />
                             </Button>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Título del Servicio</Label>
                                     <Input value={service.titulo} onChange={e => handleInputChange('servicios', 'titulo', e.target.value, index)} />
