@@ -9,7 +9,8 @@ interface MarcasSectionProps {
 
 export default function MarcasSection({ brands }: MarcasSectionProps) {
     const [rotation, setRotation] = useState(0);
-    const [radius, setRadius] = useState(280); // Default radius for PC
+    // Radius del anillo: ajusta este valor para cambiar la separación de las marcas
+    const [radius, setRadius] = useState(280); 
     const requestRef = useRef<number>();
 
     const displayBrands = (brands && brands.length > 0)
@@ -18,6 +19,7 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
 
     useEffect(() => {
         const handleResize = () => {
+            // Cambia el radio del anillo para móviles y escritorio
             setRadius(window.innerWidth < 768 ? 180 : 280);
         };
 
@@ -25,6 +27,7 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
         window.addEventListener('resize', handleResize);
 
         const animate = () => {
+            // Controla la velocidad de rotación
             setRotation(prev => prev - 0.05);
             requestRef.current = requestAnimationFrame(animate);
         };
@@ -39,7 +42,8 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
     }, []);
     
     return (
-        <section id="marcas" className="py-24 sm:py-32">
+        // Fondo de la sección: azul claro en modo claro, gris oscuro en modo oscuro
+        <section id="marcas" className="py-24 sm:py-32 bg-muted/40 dark:bg-secondary/20 border-y border-primary/10">
           <div className="container mx-auto">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-24">
               Trabajamos con <span className="text-primary">Primeras Marcas</span>
@@ -55,7 +59,8 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
                     className="absolute w-full h-full"
                     style={{
                         transformStyle: "preserve-3d",
-                        transform: `rotateX(-10deg) rotateY(${rotation}deg)` 
+                        // Aquí puedes ajustar la inclinación (rotateX) para que el anillo se vea más "tumbado"
+                        transform: `rotateX(-15deg) rotateY(${rotation}deg)` 
                     }}
                 >
                     {displayBrands.map((brand, i) => {
@@ -67,11 +72,12 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
                                 key={i}
                                 className="absolute left-1/2 top-1/2 flex items-center justify-center tech-glass font-orbitron font-bold transition-all"
                                 style={{
-                                    width: isMobile ? "140px" : "200px", 
-                                    height: isMobile ? "70px" : "90px",
-                                    marginLeft: isMobile ? "-70px" : "-100px", 
-                                    marginTop: isMobile ? "-35px" : "-45px", 
-                                    fontSize: isMobile ? "1rem" : "1.5rem",
+                                    // Para ajustar el ancho de la etiqueta, cambia los valores de 'width' aquí
+                                    width: isMobile ? "140px" : "190px", 
+                                    height: isMobile ? "70px" : "85px",
+                                    marginLeft: isMobile ? "-70px" : "-95px", 
+                                    marginTop: isMobile ? "-35px" : "-42.5px", 
+                                    fontSize: isMobile ? "1rem" : "1.4rem",
                                     transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
                                     backfaceVisibility: 'hidden',
                                 }}
