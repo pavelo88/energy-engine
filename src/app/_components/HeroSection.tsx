@@ -18,7 +18,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ hero, stats }: HeroSectionProps) {
   return (
-    <section id="home" className="container mx-auto px-6 relative pt-24 pb-12 md:pt-32 md:pb-24">
+    <section id="home" className="container mx-auto px-6 relative pt-24 pb-16 sm:py-24">
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="text-center lg:text-left">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
