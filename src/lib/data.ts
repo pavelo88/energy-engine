@@ -97,7 +97,7 @@ export async function addReport(report: Report): Promise<Report> {
 }
 
 
-export async function saveContactMessage(formData: { name: string; email: string; message: string; }) {
+export async function saveContactMessage(formData: { name: string; email: string; phone?: string; message: string; }) {
   try {
     const contactsCollection = collection(db, 'contact_messages');
     await addDoc(contactsCollection, {

@@ -7,12 +7,13 @@ export async function saveContactMessage(formData: FormData) {
   const rawFormData = {
     name: formData.get('name') as string,
     email: formData.get('email') as string,
+    phone: formData.get('phone') as string,
     message: formData.get('message') as string,
   };
 
   // Basic validation
   if (!rawFormData.name || !rawFormData.email || !rawFormData.message) {
-    return { success: false, message: 'Todos los campos son requeridos.' };
+    return { success: false, message: 'Nombre, email y mensaje son requeridos.' };
   }
 
   const result = await dbSaveContactMessage(rawFormData);

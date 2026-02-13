@@ -1,6 +1,5 @@
 
 import { getWebContent } from '@/lib/data';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 import { SiteHeader } from '@/components/SiteHeader';
 import HeroSection from './_components/HeroSection';
@@ -11,7 +10,6 @@ import Footer from './_components/Footer';
 
 export default async function Home() {
   const webContent = await getWebContent();
-  const contactMapImage = PlaceHolderImages.find(p => p.id === 'contact-map');
   
   if (!webContent) {
     return (
@@ -33,7 +31,7 @@ export default async function Home() {
         <HeroSection hero={hero} stats={safeStats} />
         <MarcasSection brands={safeBrands} />
         <ServicesSection servicios={servicios} />
-        <ContactSection contactMapImage={contactMapImage} />
+        <ContactSection />
       </main>
 
       <Footer />
