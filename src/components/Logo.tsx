@@ -18,7 +18,7 @@ export function Logo({ className }: { className?: string }) {
         <path d="M2 12l10 5 10-5"></path>
       </svg>
       <h1 className="text-xl font-bold font-headline text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-        AssetTrack AI
+        Energy Engine
       </h1>
     </div>
   );

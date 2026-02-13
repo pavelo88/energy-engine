@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
  
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'AssetTrack AI | Energy Engine España',
-    short_name: 'AssetTrack AI',
+    name: 'Energy Engine',
+    short_name: 'Energy Engine',
     description: 'Plataforma de mantenimiento predictivo y gestión de activos impulsada por IA.',
     start_url: '/admin',
     display: 'standalone',

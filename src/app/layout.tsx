@@ -5,8 +5,8 @@ import { ThemeProvider } from '@/components/ThemeProvider';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 
-const APP_NAME = "AssetTrack AI";
-const APP_DESCRIPTION = "Asset-Track AI platform for Energy Engine España";
+const APP_NAME = "Energy Engine";
+const APP_DESCRIPTION = "Energy Engine platform for Energy Engine España";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
