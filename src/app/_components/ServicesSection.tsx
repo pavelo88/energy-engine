@@ -22,7 +22,10 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
     return (
         <section id="servicios" className="container mx-auto py-24 sm:py-32">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">Nuestras <span className="text-primary">Capacidades</span></h2>
+            <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
+              <span className="block md:inline">Nuestras </span>
+              <span className="text-primary block md:inline">Capacidades</span>
+            </h2>
             <p className="mt-4 text-lg text-foreground/60">
               Soluciones integrales para la operación, mantenimiento y optimización de activos críticos.
             </p>

@@ -15,7 +15,8 @@ export default function ContactSection({ contactMapImage }: ContactSectionProps)
         <section id="contacto" className="container mx-auto py-24 sm:py-32">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
-              Contacta con <span className="text-primary">Nosotros</span>
+              <span className="block md:inline">Contacta con </span>
+              <span className="text-primary block md:inline">Nosotros</span>
             </h2>
             <p className="mt-4 text-lg text-foreground/60">
               ¿Listo para optimizar tu mantenimiento? Solicita una demostración o envíanos tu consulta.

@@ -22,7 +22,8 @@ export default function HeroSection({ hero, stats }: HeroSectionProps) {
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="text-center lg:text-left">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
-              INGENIERÍA ENERGÉTICA <span className="text-primary">DE VANGUARDIA</span>
+              <span className="block lg:inline">INGENIERÍA ENERGÉTICA </span>
+              <span className="text-primary block lg:inline">DE VANGUARDIA</span>
             </h1>
             <p className="max-w-2xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto lg:mx-0">
             {hero.subitulo}
