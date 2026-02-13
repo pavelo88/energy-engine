@@ -1,3 +1,4 @@
+
 "use client"
 
 import React from "react"
@@ -195,10 +196,11 @@ export function BlueprintBackground({ type }: { type: string }) {
           ))}
           <g transform="translate(50 350) scale(1 -1)" className="neon-glow" fill="hsl(var(--primary))" opacity="0.7">
              {[...Array(15)].map((_, i) => {
-                 const h = Math.random() * 100 + 20;
+                 const h = (Math.sin(i * 0.5) * 50) + 70;
+                 const randomDuration = 0.5 + ((Math.sin(i * 2) + 1) / 2);
                  return (
                      <rect key={i} x={i * 20} y="0" width="12" height={h} className="bp-pulse">
-                        <animate attributeName="height" values={`${h};${h*1.5};${h}`} dur={`${0.5+Math.random()}s`} repeatCount="indefinite"/>
+                        <animate attributeName="height" values={`${h};${h*1.5};${h}`} dur={`${randomDuration}s`} repeatCount="indefinite"/>
                      </rect>
                  )
              })}
