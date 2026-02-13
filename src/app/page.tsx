@@ -7,6 +7,7 @@ import MarcasSection from './_components/MarcasSection';
 import ServicesSection from './_components/ServicesSection';
 import ContactSection from './_components/ContactSection';
 import Footer from './_components/Footer';
+import ExperienceSection from './_components/ExperienceSection';
 
 export default async function Home() {
   const webContent = await getWebContent();
@@ -28,7 +29,8 @@ export default async function Home() {
        <SiteHeader />
 
       <main className="flex-1">
-        <HeroSection hero={hero} stats={safeStats} />
+        <HeroSection hero={hero} />
+        <ExperienceSection stats={safeStats} />
         <MarcasSection brands={safeBrands} />
         <ServicesSection servicios={servicios} />
         <ContactSection />
