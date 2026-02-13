@@ -1,7 +1,8 @@
 
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, MapPin, Camera, PenTool, CheckCircle, AlertCircle, ChevronRight, ArrowLeft, Download, Database, Battery, Zap, Thermometer, FileText, User as UserIcon, History, Save, Printer, Trash2, Lock, LogOut, LayoutDashboard, ClipboardList, RefreshCw, HardDrive } from 'lucide-react';
+import { Search, MapPin, Camera, PenTool, CheckCircle, AlertCircle, ChevronRight, ArrowLeft, Download, Database, Battery, Zap, Thermometer, FileText, User as UserIcon, History, Save, Printer, Trash2, Lock, LogOut, LayoutDashboard, ClipboardList, RefreshCw, HardDrive, BrainCircuit } from 'lucide-react';
+import { inspectionSummarySuggestion } from '@/ai/flows/inspection-summary-suggestion';
 
 /**
 
@@ -61,12 +62,30 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [reportDate, setReportDate] = useState('');
 
+  // -- Estados para IA --
+  const [aiSummary, setAiSummary] = useState({ core_issue: '', recommended_actions: '', potential_impact: '' });
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+
   // Setea la fecha del reporte solo en el cliente para evitar errores de hidratación
   useEffect(() => {
     if (view === 'summary') {
       setReportDate(new Date().toLocaleDateString());
     }
   }, [view]);
+
+  // Chequeo de conexión
+  useEffect(() => {
+    setIsOnline(navigator.onLine);
+    const onlineHandler = () => setIsOnline(true);
+    const offlineHandler = () => setIsOnline(false);
+    window.addEventListener('online', onlineHandler);
+    window.addEventListener('offline', offlineHandler);
+    return () => {
+      window.removeEventListener('online', onlineHandler);
+      window.removeEventListener('offline', offlineHandler);
+    }
+  }, []);
 
   const reset = useCallback(() => {
     setChecklist({});
@@ -76,6 +95,7 @@ export default function App() {
     setIsSigned(false);
     setSelectedGrupo(null);
     setSelectedInstalacion('');
+    setAiSummary({ core_issue: '', recommended_actions: '', potential_impact: '' });
     if(canvasRef.current) {
         const ctx = canvasRef.current.getContext('2d');
         ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
@@ -183,6 +203,23 @@ export default function App() {
           setIsSigned(false);
       }
   }, []);
+
+  const handleGenerateAISummary = async () => {
+    if (Object.keys(checklist).length === 0) {
+      alert("Por favor, complete al menos un punto del checklist antes de usar la IA.");
+      return;
+    }
+    setIsAiLoading(true);
+    try {
+      const result = await inspectionSummarySuggestion(checklist);
+      setAiSummary(result);
+    } catch(e) {
+      console.error(e);
+      alert("Error al generar el resumen con IA. Verifique su conexión.");
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
 
   // --- Renderizado Condicional: LOGIN ---
   if (!user) {
@@ -442,6 +479,35 @@ export default function App() {
                 </section>
 
                 <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                    <div className="flex justify-between items-center">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase">Resumen de Informe (Editable)</h3>
+                        <button 
+                            type="button"
+                            onClick={handleGenerateAISummary}
+                            disabled={!isOnline || isAiLoading}
+                            className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isAiLoading ? <RefreshCw size={14} className="animate-spin" /> : <BrainCircuit size={14} />}
+                            {isAiLoading ? "Generando..." : "Generar con IA"}
+                        </button>
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Problema Principal</label>
+                            <textarea value={aiSummary.core_issue} onChange={(e) => setAiSummary(p => ({...p, core_issue: e.target.value}))} className="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl mt-1 focus:border-amber-500 outline-none" rows={2}></textarea>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Acciones Recomendadas</label>
+                            <textarea value={aiSummary.recommended_actions} onChange={(e) => setAiSummary(p => ({...p, recommended_actions: e.target.value}))} className="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl mt-1 focus:border-amber-500 outline-none" rows={3}></textarea>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-slate-500">Impacto Potencial</label>
+                            <textarea value={aiSummary.potential_impact} onChange={(e) => setAiSummary(p => ({...p, potential_impact: e.target.value}))} className="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl mt-1 focus:border-amber-500 outline-none" rows={2}></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <h3 className="text-[10px] font-black text-slate-400 uppercase">Firma del Técnico</h3>
                   <div className="bg-slate-50 h-48 rounded-2xl border-2 border-slate-100 relative">
                     <canvas ref={canvasRef} width={600} height={192} className="w-full h-full cursor-crosshair touch-none" />
@@ -518,6 +584,23 @@ export default function App() {
                       </div>
                     ))}
                   </div>
+
+                   <div className="space-y-6 bg-slate-50 p-6 rounded-2xl border border-slate-100 mb-8">
+                        <h4 className="text-xs font-black text-slate-400 uppercase">Observaciones del Técnico</h4>
+                        <div>
+                        <h5 className="font-bold text-sm">Problema Principal</h5>
+                        <p className="text-sm text-slate-600 mt-1">{aiSummary.core_issue || 'No especificado.'}</p>
+                        </div>
+                        <div>
+                        <h5 className="font-bold text-sm">Acciones Recomendadas</h5>
+                        <p className="text-sm text-slate-600 mt-1">{aiSummary.recommended_actions || 'No especificado.'}</p>
+                        </div>
+                        <div>
+                        <h5 className="font-bold text-sm">Impacto Potencial</h5>
+                        <p className="text-sm text-slate-600 mt-1">{aiSummary.potential_impact || 'No especificado.'}</p>
+                        </div>
+                    </div>
+
 
                   <div className="flex justify-between items-end mt-12 pt-8 border-t border-slate-100">
                     <div>

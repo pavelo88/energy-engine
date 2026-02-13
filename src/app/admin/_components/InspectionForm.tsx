@@ -12,8 +12,10 @@ import type { Asset, InspectionStatus, Report, User, Airport } from '@/lib/types
 import { getAssets, addReport } from '@/lib/data';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Play, StopCircle, MapPin, Camera, Signature, Loader2 } from 'lucide-react';
+import { Play, StopCircle, MapPin, Camera, Signature, Loader2, BrainCircuit } from 'lucide-react';
 import Image from 'next/image';
+import { useSyncStatus } from '@/hooks/useSyncStatus';
+import { inspectionSummarySuggestion } from '@/ai/flows/inspection-summary-suggestion';
 
 const inspectionPoints: Record<Asset['categoria'], string[]> = {
     'Energía': ['Nivel de aceite', 'Sistema eléctrico', 'Batería', 'Filtro de aire', 'Nivel de refrigerante'],
@@ -26,6 +28,7 @@ const inspectionStatuses: InspectionStatus[] = ['N/A', 'OPT', 'ACU', 'PAR', 'OFE
 export default function InspectionForm() {
     const { user } = useAuth();
     const { toast } = useToast();
+    const { isOnline } = useSyncStatus();
 
     const [assets, setAssets] = useState<Asset[]>([]);
     const [airports, setAirports] = useState<Airport[]>([]);
@@ -37,6 +40,11 @@ export default function InspectionForm() {
     const [isSaving, setIsSaving] = useState(false);
     const [photoEvidence, setPhotoEvidence] = useState<string | null>(null);
     const [hasSigned, setHasSigned] = useState(false);
+
+    const [coreIssue, setCoreIssue] = useState('');
+    const [recommendedActions, setRecommendedActions] = useState('');
+    const [potentialImpact, setPotentialImpact] = useState('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
 
     useEffect(() => {
         getAssets().then(loadedAssets => {
@@ -59,9 +67,32 @@ export default function InspectionForm() {
         setInspectionData({});
         setHasSigned(false);
         setPhotoEvidence(null);
+        setCoreIssue('');
+        setRecommendedActions('');
+        setPotentialImpact('');
         // Mock GPS capture
         setLocation({ lat: 40.4936, lng: -3.5934 });
         toast({ title: "Inspección iniciada", description: `Cronómetro activado para el activo ${selectedAssetId}.` });
+    };
+
+    const handleGenerateSummary = async () => {
+        if (Object.keys(inspectionData).length === 0) {
+            toast({ title: "Datos insuficientes", description: "Complete al menos un punto de la inspección.", variant: "destructive" });
+            return;
+        }
+        setIsAiLoading(true);
+        try {
+            const result = await inspectionSummarySuggestion(inspectionData);
+            setCoreIssue(result.core_issue);
+            setRecommendedActions(result.recommended_actions);
+            setPotentialImpact(result.potential_impact);
+            toast({ title: "Resumen generado", description: "La IA ha rellenado los campos de resumen." });
+        } catch (error) {
+            console.error("AI summary generation failed:", error);
+            toast({ title: "Error de IA", description: "No se pudo generar el resumen.", variant: "destructive" });
+        } finally {
+            setIsAiLoading(false);
+        }
     };
 
     const handleFinishInspection = async () => {
@@ -97,9 +128,9 @@ export default function InspectionForm() {
             inspeccion: inspectionData,
             ubicacion: { ...location!, validado_gps: true },
             estado: finalStatus,
-            core_issue: "Revisión periódica",
-            recommended_actions: "Seguir plan de mantenimiento",
-            potential_impact: "N/A",
+            core_issue: coreIssue,
+            recommended_actions: recommendedActions,
+            potential_impact: potentialImpact,
             photoEvidenceUrl: photoEvidence || undefined,
         };
 
@@ -179,84 +210,133 @@ export default function InspectionForm() {
                             <Play className="mr-2 h-4 w-4" /> Iniciar Tarea
                         </Button>
                     ) : (
-                        <Button size="lg" variant="destructive" onClick={handleFinishInspection} disabled={isSaving}>
-                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <StopCircle className="mr-2 h-4 w-4" />}
-                            Finalizar Tarea
-                        </Button>
+                        <div className='text-right text-sm text-muted-foreground'>
+                            <p>Inspección en curso para {selectedAssetId}...</p>
+                        </div>
                     )}
                 </CardFooter>
             </Card>
 
             {isInspecting && selectedAsset && (
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Matriz de Inspección: <span className="font-mono">{selectedAsset.id_bien}</span></CardTitle>
-                        <div className="flex items-center text-sm text-muted-foreground gap-2">
-                            <MapPin className="h-4 w-4 text-green-500" />
-                            <span>Ubicación GPS capturada.</span>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        {currentInspectionPoints.map(point => (
-                            <div key={point}>
-                                <Label className="text-base font-semibold">{point}</Label>
-                                <RadioGroup
-                                    className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-2"
-                                    value={inspectionData[point]}
-                                    onValueChange={(value: InspectionStatus) => setInspectionData(prev => ({ ...prev, [point]: value }))}
-                                >
-                                    {inspectionStatuses.map(status => (
-                                        <div key={status} className="flex items-center space-x-2">
-                                            <RadioGroupItem value={status} id={`${point}-${status}`} />
-                                            <Label htmlFor={`${point}-${status}`}>{status}</Label>
-                                        </div>
-                                    ))}
-                                </RadioGroup>
+                <>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Matriz de Inspección: <span className="font-mono">{selectedAsset.id_bien}</span></CardTitle>
+                            <div className="flex items-center text-sm text-muted-foreground gap-2">
+                                <MapPin className="h-4 w-4 text-green-500" />
+                                <span>Ubicación GPS capturada.</span>
                             </div>
-                        ))}
-                    </CardContent>
+                        </CardHeader>
+                        <CardContent className="space-y-6">
+                            {currentInspectionPoints.map(point => (
+                                <div key={point}>
+                                    <Label className="text-base font-semibold">{point}</Label>
+                                    <RadioGroup
+                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mt-2"
+                                        value={inspectionData[point]}
+                                        onValueChange={(value: InspectionStatus) => setInspectionData(prev => ({ ...prev, [point]: value }))}
+                                    >
+                                        {inspectionStatuses.map(status => (
+                                            <div key={status} className="flex items-center space-x-2">
+                                                <RadioGroupItem value={status} id={`${point}-${status}`} />
+                                                <Label htmlFor={`${point}-${status}`}>{status}</Label>
+                                            </div>
+                                        ))}
+                                    </RadioGroup>
+                                </div>
+                            ))}
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Resumen y Observaciones</CardTitle>
+                            <CardDescription>Rellene los detalles del informe. Puede usar la IA para generar un borrador.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="core-issue">Problema Principal Detectado</Label>
+                                <Textarea id="core-issue" value={coreIssue} onChange={e => setCoreIssue(e.target.value)} placeholder="Ej: Fuga de refrigerante en el circuito secundario." />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="recommended-actions">Acciones Recomendadas</Label>
+                                <Textarea id="recommended-actions" value={recommendedActions} onChange={e => setRecommendedActions(e.target.value)} placeholder="Ej: Realizar prueba de estanqueidad y reparar fuga. Recargar refrigerante." />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="potential-impact">Impacto Potencial (si no se actúa)</Label>
+                                <Textarea id="potential-impact" value={potentialImpact} onChange={e => setPotentialImpact(e.target.value)} placeholder="Ej: Sobrecalentamiento del motor, parada no programada del activo." />
+                            </div>
+                        </CardContent>
+                        <CardFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleGenerateSummary}
+                                disabled={!isOnline || isAiLoading}
+                            >
+                                {isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BrainCircuit className="mr-2 h-4 w-4" />}
+                                Generar Resumen con IA
+                            </Button>
+                        </CardFooter>
+                    </Card>
+
                     
                     {Object.values(inspectionData).includes('OFE') && (
-                        <CardFooter className="flex-col items-start gap-4 border-t pt-6">
-                             <Label className="text-base font-semibold">Evidencia para 'Ofertar'</Label>
-                             <div className="flex items-center gap-4 p-4 border-2 border-dashed rounded-lg w-full">
-                                <Camera className="h-8 w-8 text-muted-foreground" />
-                                <div className="flex-grow">
-                                    <h4 className="font-semibold">Adjuntar Foto de Evidencia</h4>
-                                    <p className="text-sm text-muted-foreground">Requerido para componentes marcados como OFE.</p>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Evidencia para 'Ofertar'</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="flex items-center gap-4 p-4 border-2 border-dashed rounded-lg w-full">
+                                    <Camera className="h-8 w-8 text-muted-foreground" />
+                                    <div className="flex-grow">
+                                        <h4 className="font-semibold">Adjuntar Foto de Evidencia</h4>
+                                        <p className="text-sm text-muted-foreground">Requerido para componentes marcados como OFE.</p>
+                                    </div>
+                                    <Input type="file" accept="image/*" className="hidden" id="photo-upload" onChange={handlePhotoChange}/>
+                                    <Button asChild variant="outline">
+                                        <Label htmlFor="photo-upload">{photoEvidence ? "Cambiar Foto" : "Seleccionar Foto"}</Label>
+                                    </Button>
                                 </div>
-                                <Input type="file" accept="image/*" className="hidden" id="photo-upload" onChange={handlePhotoChange}/>
-                                <Button asChild variant="outline">
-                                    <Label htmlFor="photo-upload">{photoEvidence ? "Cambiar Foto" : "Seleccionar Foto"}</Label>
-                                </Button>
-                             </div>
-                             {photoEvidence && <Image src={photoEvidence} alt="Vista previa de la evidencia" width={64} height={64} className="h-16 w-16 object-cover rounded-md border" />}
-                        </CardFooter>
+                                {photoEvidence && <Image src={photoEvidence} alt="Vista previa de la evidencia" width={64} height={64} className="mt-4 h-16 w-16 object-cover rounded-md border" />}
+                            </CardContent>
+                        </Card>
                     )}
 
-                    <CardFooter className="flex-col items-start gap-4 border-t pt-6">
-                        <Label className="text-base font-semibold">Firma del Técnico</Label>
-                        <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border-2 border-dashed rounded-lg w-full">
-                            <Signature className="h-8 w-8 text-muted-foreground" />
-                            <div className="flex-grow">
-                                <h4 className="font-semibold">Confirmación de Informe</h4>
-                                <p className="text-sm text-muted-foreground">
-                                    {user?.isFirstLogin ? "Realice su firma en el recuadro." : "Use su firma guardada."}
-                                </p>
-                            </div>
-                            {user?.isFirstLogin ? (
-                                <div className="w-full sm:w-64 h-32 bg-gray-200 rounded-md p-2 flex items-center justify-center">
-                                    <p className="text-xs text-center text-muted-foreground">[Área de firma en Canvas]</p>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Firma del Técnico</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 border-2 border-dashed rounded-lg w-full">
+                                <Signature className="h-8 w-8 text-muted-foreground" />
+                                <div className="flex-grow">
+                                    <h4 className="font-semibold">Confirmación de Informe</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                        {user?.isFirstLogin ? "Realice su firma en el recuadro." : "Use su firma guardada."}
+                                    </p>
                                 </div>
-                            ) : (
-                                 <Button onClick={() => setHasSigned(true)} disabled={hasSigned}>
-                                    {hasSigned ? "Firmado" : "Autorizar con Auto-Firma"}
-                                 </Button>
-                            )}
-                        </div>
-                        {user?.isFirstLogin && <Button onClick={() => setHasSigned(true)}>Guardar y Usar Firma</Button>}
-                    </CardFooter>
-                </Card>
+                                {user?.isFirstLogin ? (
+                                    <div className="w-full sm:w-64 h-32 bg-gray-200 rounded-md p-2 flex items-center justify-center">
+                                        <p className="text-xs text-center text-muted-foreground">[Área de firma en Canvas]</p>
+                                    </div>
+                                ) : (
+                                    <Button onClick={() => setHasSigned(true)} disabled={hasSigned}>
+                                        {hasSigned ? "Firmado" : "Autorizar con Auto-Firma"}
+                                    </Button>
+                                )}
+                            </div>
+                            {user?.isFirstLogin && <Button onClick={() => setHasSigned(true)} className="mt-4">Guardar y Usar Firma</Button>}
+                        </CardContent>
+                    </Card>
+
+                    <div className="flex justify-end gap-4 mt-6">
+                        <Button size="lg" variant="destructive" onClick={handleFinishInspection} disabled={isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <StopCircle className="mr-2 h-4 w-4" />}
+                            Finalizar y Guardar Informe
+                        </Button>
+                    </div>
+                </>
             )}
         </div>
     );
