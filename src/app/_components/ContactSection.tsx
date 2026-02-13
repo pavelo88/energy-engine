@@ -48,12 +48,12 @@ export default function ContactSection() {
               </div>
             </form>
             
-            {/* Info Column from image */}
+            {/* Info Column */}
             <div className="tech-glass p-8 rounded-lg flex flex-col space-y-6">
                 <div className="flex justify-between items-center">
                     <div>
-                        <p className="text-xs uppercase text-foreground/70 font-semibold tracking-wider">CONTACTO DIRECTO</p>
-                        <p className="text-2xl md:text-3xl font-bold font-orbitron text-foreground tracking-wider">+593 98 446 7411</p>
+                        <p className="text-xs uppercase text-foreground/70 font-semibold tracking-wider">OFICINA CENTRAL</p>
+                        <p className="text-2xl md:text-3xl font-bold font-orbitron text-foreground tracking-wider">925 15 43 54</p>
                     </div>
                     <div className="flex gap-2">
                         <Button asChild variant="ghost" size="icon" className="bg-foreground/5 text-foreground/60 rounded-full hover:bg-primary/10 hover:text-primary">
@@ -62,16 +62,28 @@ export default function ContactSection() {
                         <Button asChild variant="ghost" size="icon" className="bg-foreground/5 text-foreground/60 rounded-full hover:bg-primary/10 hover:text-primary">
                             <a href="#" aria-label="Instagram"><Instagram /></a>
                         </Button>
-                        {/* Using LinkedIn as the third icon as it's professional, the image icon is a musical note (TikTok?) */}
                         <Button asChild variant="ghost" size="icon" className="bg-foreground/5 text-foreground/60 rounded-full hover:bg-primary/10 hover:text-primary">
                             <a href="#" aria-label="LinkedIn"><Linkedin /></a>
                         </Button>
                     </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm border-t border-primary/10 pt-4">
+                    <div>
+                        <h4 className="font-semibold text-primary">Delegación Norte</h4>
+                        <p className="text-foreground/70">Contacto: Andrés Granados</p>
+                        <p className="font-semibold">683 77 52 08</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-primary">Delegación Sur</h4>
+                        <p className="text-foreground/70">Contacto: Antonio Ugena</p>
+                        <p className="font-semibold">635 12 05 10</p>
+                    </div>
+                </div>
+
                 <div className="relative aspect-video w-full rounded-md overflow-hidden border border-primary/20">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.815918698188!2d-78.48785642456073!3d-0.1989417354117852!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d59a5d3f2a7e7b%3A0x8e8b5a9b7b9d3b7!2sEdificio%20Torres%20del%20Castillo!5e0!3m2!1sen!2sus!4v1718907310574!5m2!1sen!2sus"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.5558853974057!2d-3.6226846999999998!3d39.9065746!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd69fd9fcbbb692b%3A0x28b5ff2cac42084!2sC.%20Miguel%20L%C3%B3pez%20Bravo%2C%206%2C%2045313%20Yepes%2C%20Toledo%2C%20Espa%C3%B1a!5e0!3m2!1ses!2sec!4v1770960048534!5m2!1ses!2sec"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -83,7 +95,7 @@ export default function ContactSection() {
                 </div>
 
                 <p className="text-center text-xs text-foreground/60">
-                    Quito - Ecuador. José Tamayo N24-33 y Baquerizo Moreno. Torres del Castillo, T2, Of. 903.
+                    Oficina Central: NAVE, C. Miguel López Bravo, 6, 45313 Yepes, Toledo, España.
                 </p>
             </div>
           </div>
