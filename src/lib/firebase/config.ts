@@ -2,7 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { getAnalytics, isSupported } from "firebase/analytics";
+// import { getAnalytics, isSupported } from "firebase/analytics";
 
 // Your web app's Firebase configuration
 // For Firebase JS SDK v7.20.0 and later, measurementId is optional
@@ -21,7 +21,11 @@ const firebaseConfig = {
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
+// Analytics is disabled to prevent the "Firebase Installations API" error on new projects.
+// To enable it, uncomment the code below and ensure the API is enabled in your Google Cloud project:
+// https://console.developers.google.com/apis/api/firebaseinstallations.googleapis.com
 let analytics;
+/*
 if (typeof window !== 'undefined') {
   isSupported().then(supported => {
     if (supported) {
@@ -29,6 +33,6 @@ if (typeof window !== 'undefined') {
     }
   });
 }
-
+*/
 
 export { app, db, analytics };
