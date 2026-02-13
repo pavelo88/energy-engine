@@ -4,7 +4,7 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 import { SiteHeader } from '@/components/SiteHeader';
 import HeroSection from './_components/HeroSection';
-import ClientsSection from './_components/ClientsSection';
+import MarcasSection from './_components/MarcasSection';
 import ServicesSection from './_components/ServicesSection';
 import ContactSection from './_components/ContactSection';
 import Footer from './_components/Footer';
@@ -31,7 +31,7 @@ export default async function Home() {
 
       <main className="flex-1">
         <HeroSection hero={hero} stats={safeStats} />
-        <ClientsSection brands={safeBrands} />
+        <MarcasSection brands={safeBrands} />
         <ServicesSection servicios={servicios} />
         <ContactSection contactMapImage={contactMapImage} />
       </main>

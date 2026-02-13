@@ -3,11 +3,11 @@
 import { useEffect, useState, useRef } from "react";
 import type { WebContent } from '@/lib/types';
 
-interface ClientsSectionProps {
+interface MarcasSectionProps {
     brands: WebContent['trusted_brands'];
 }
 
-export default function ClientsSection({ brands }: ClientsSectionProps) {
+export default function MarcasSection({ brands }: MarcasSectionProps) {
     const [rotation, setRotation] = useState(0);
     const [radius, setRadius] = useState(280); // Default radius for PC
     const requestRef = useRef<number>();
@@ -41,7 +41,7 @@ export default function ClientsSection({ brands }: ClientsSectionProps) {
     }
     
     return (
-        <section id="clientes" className="py-24 sm:py-32">
+        <section id="marcas" className="py-24 sm:py-32">
           <div className="container mx-auto">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-24">
               Trabajamos con <span className="text-primary">Primeras Marcas</span>
