@@ -56,9 +56,9 @@ export default function Reports() {
   
   const filteredReports = reports.filter(report => {
     const asset = assets.find(a => a.id_bien === report.id_bien);
-    const techMatch = !filters.technician || report.id_tecnico === filters.technician;
-    const assetTypeMatch = !filters.assetType || asset?.categoria === filters.assetType;
-    const airportMatch = !filters.airport || asset?.id_aeropuerto === filters.airport;
+    const techMatch = !filters.technician || filters.technician === 'all' || report.id_tecnico === filters.technician;
+    const assetTypeMatch = !filters.assetType || filters.assetType === 'all' || asset?.categoria === filters.assetType;
+    const airportMatch = !filters.airport || filters.airport === 'all' || asset?.id_aeropuerto === filters.airport;
     const dateMatch = !filters.date || format(new Date(report.tiempos.fin), 'yyyy-MM-dd') === format(filters.date, 'yyyy-MM-dd');
 
     return techMatch && assetTypeMatch && airportMatch && dateMatch;
@@ -83,14 +83,14 @@ export default function Reports() {
           <Select value={filters.technician} onValueChange={v => handleFilterChange('technician', v)}>
             <SelectTrigger><SelectValue placeholder="Técnico" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               {users.filter(u => u.rol === 'inspector').map(u => <SelectItem key={u.uid} value={u.uid}>{u.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filters.airport} onValueChange={v => handleFilterChange('airport', v)}>
             <SelectTrigger><SelectValue placeholder="Aeropuerto" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="VLC">VLC</SelectItem>
               <SelectItem value="MAD">MAD</SelectItem>
             </SelectContent>
@@ -98,7 +98,7 @@ export default function Reports() {
           <Select value={filters.assetType} onValueChange={v => handleFilterChange('assetType', v)}>
             <SelectTrigger><SelectValue placeholder="Tipo de Activo" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="Energía">Energía</SelectItem>
               <SelectItem value="BHS">BHS</SelectItem>
               <SelectItem value="Clima">Clima</SelectItem>
