@@ -5,11 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { Asset, AssetStatus, Airport, AssetCategory } from "@/lib/types";
 import { getAssets } from "@/lib/data";
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { BrainCircuit } from 'lucide-react';
+import PredictiveMaintenanceDialog from './PredictiveMaintenanceDialog';
 
 const statusColors: Record<AssetStatus, string> = {
   Operativo: "bg-green-100 text-green-800 border-green-200",
@@ -29,6 +32,7 @@ export default function AssetManager() {
     categoria: '',
     estado: ''
   });
+  const [selectedAssetForAnalysis, setSelectedAssetForAnalysis] = useState<Asset | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -57,103 +61,124 @@ export default function AssetManager() {
   });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Gestión de Activos</CardTitle>
-        <CardDescription>Visualiza, filtra y gestiona el maestro de activos de la empresa.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Input 
-            placeholder="Buscar ID, modelo, S/N..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Select value={filters.id_aeropuerto} onValueChange={(value) => handleFilterChange('id_aeropuerto', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Aeropuerto" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="VLC">VLC</SelectItem>
-              <SelectItem value="MAD">MAD</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filters.categoria} onValueChange={(value) => handleFilterChange('categoria', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Categoría" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
-              <SelectItem value="Energía">Energía</SelectItem>
-              <SelectItem value="BHS">BHS</SelectItem>
-              <SelectItem value="Clima">Clima</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={filters.estado} onValueChange={(value) => handleFilterChange('estado', value)}>
-            <SelectTrigger>
-              <SelectValue placeholder="Estado" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              <SelectItem value="Operativo">Operativo</SelectItem>
-              <SelectItem value="Alerta">Alerta</SelectItem>
-              <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
-              <SelectItem value="PAR">PAR</SelectItem>
-              <SelectItem value="OFE">OFE</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>ID Bien</TableHead>
-                <TableHead>Aeropuerto</TableHead>
-                <TableHead>Categoría</TableHead>
-                <TableHead>Marca/Modelo</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Próx. Mtto.</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({length: 5}).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-12" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
-                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+    <>
+        <Card>
+          <CardHeader>
+            <CardTitle>Gestión de Activos</CardTitle>
+            <CardDescription>Visualiza, filtra y gestiona el maestro de activos de la empresa.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <Input 
+                placeholder="Buscar ID, modelo, S/N..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Select value={filters.id_aeropuerto} onValueChange={(value) => handleFilterChange('id_aeropuerto', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Aeropuerto" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="VLC">VLC</SelectItem>
+                  <SelectItem value="MAD">MAD</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filters.categoria} onValueChange={(value) => handleFilterChange('categoria', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Categoría" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="Energía">Energía</SelectItem>
+                  <SelectItem value="BHS">BHS</SelectItem>
+                  <SelectItem value="Clima">Clima</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={filters.estado} onValueChange={(value) => handleFilterChange('estado', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="Operativo">Operativo</SelectItem>
+                  <SelectItem value="Alerta">Alerta</SelectItem>
+                  <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
+                  <SelectItem value="PAR">PAR</SelectItem>
+                  <SelectItem value="OFE">OFE</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID Bien</TableHead>
+                    <TableHead>Aeropuerto</TableHead>
+                    <TableHead>Categoría</TableHead>
+                    <TableHead>Marca/Modelo</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Próx. Mtto.</TableHead>
+                    <TableHead className="text-center">Análisis IA</TableHead>
                   </TableRow>
-                ))
-              ) : filteredAssets.length > 0 ? (
-                filteredAssets.map(asset => (
-                  <TableRow key={asset.id_bien}>
-                    <TableCell className="font-medium">{asset.id_bien}</TableCell>
-                    <TableCell>{asset.id_aeropuerto}</TableCell>
-                    <TableCell>{asset.categoria}</TableCell>
-                    <TableCell>{asset.marca_modelo}</TableCell>
-                    <TableCell>
-                        <Badge variant="outline" className={statusColors[asset.estado]}>
-                            {asset.estado}
-                        </Badge>
-                    </TableCell>
-                    <TableCell>{asset.proximo_mantenimiento ? format(new Date(asset.proximo_mantenimiento), 'dd/MM/yyyy') : 'N/A'}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center">
-                    No se encontraron activos con los filtros seleccionados.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    Array.from({length: 5}).map((_, i) => (
+                      <TableRow key={i}>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-24 rounded-full" /></TableCell>
+                        <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                        <TableCell><Skeleton className="h-8 w-8 rounded-full mx-auto" /></TableCell>
+                      </TableRow>
+                    ))
+                  ) : filteredAssets.length > 0 ? (
+                    filteredAssets.map(asset => (
+                      <TableRow key={asset.id_bien}>
+                        <TableCell className="font-medium">{asset.id_bien}</TableCell>
+                        <TableCell>{asset.id_aeropuerto}</TableCell>
+                        <TableCell>{asset.categoria}</TableCell>
+                        <TableCell>{asset.marca_modelo}</TableCell>
+                        <TableCell>
+                            <Badge variant="outline" className={statusColors[asset.estado]}>
+                                {asset.estado}
+                            </Badge>
+                        </TableCell>
+                        <TableCell>{asset.proximo_mantenimiento ? format(new Date(asset.proximo_mantenimiento), 'dd/MM/yyyy') : 'N/A'}</TableCell>
+                        <TableCell className="text-center">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setSelectedAssetForAnalysis(asset)}
+                                aria-label="Analizar Activo"
+                            >
+                                <BrainCircuit className="h-5 w-5 text-primary/80 hover:text-primary transition-colors" />
+                            </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-24 text-center">
+                        No se encontraron activos con los filtros seleccionados.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+        {selectedAssetForAnalysis && (
+            <PredictiveMaintenanceDialog
+                asset={selectedAssetForAnalysis}
+                isOpen={!!selectedAssetForAnalysis}
+                onClose={() => setSelectedAssetForAnalysis(null)}
+            />
+        )}
+    </>
   );
 }
