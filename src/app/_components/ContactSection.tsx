@@ -6,7 +6,7 @@ import { Facebook, Instagram, Linkedin, Send } from 'lucide-react';
 
 export default function ContactSection() {
     return (
-        <section id="contacto" className="container mx-auto px-6 py-16">
+        <section id="contacto" className="container mx-auto px-6 py-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
               <span className="block md:inline">CANAL DE </span>
@@ -50,7 +50,7 @@ export default function ContactSection() {
             
             {/* Info Column */}
             <div className="tech-glass p-8 rounded-lg flex flex-col space-y-6">
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col items-center gap-4 text-center md:flex-row md:justify-between md:items-center md:text-left">
                     <div>
                         <p className="text-xs uppercase text-foreground/70 font-semibold tracking-wider">OFICINA CENTRAL</p>
                         <p className="text-2xl md:text-3xl font-bold font-orbitron text-foreground tracking-wider">925 15 43 54</p>
