@@ -37,6 +37,17 @@ export default function CmsEditor() {
                 data.trusted_brands = ["Perkins", "Guascor", "Cummins", "Iveco", "Ruggerini", "Volvo Penta", "Lombardini", "MAN", "Rolls-Royce", "MTU"];
             }
 
+            if (!data.servicios || data.servicios.length === 0) {
+                 data.servicios = [
+                    { icono: 'mantenimiento', titulo: 'Mantenimiento Integral', descripcion: 'Mantenimiento preventivo, correctivo y cambios de componentes (aceite, filtros, etc.) para todo tipo de generadores multimarca.' },
+                    { icono: 'inspeccion', titulo: 'Inspecciones y Revisiones', descripcion: 'Inspecciones técnicas detalladas y revisiones a medida según las necesidades del cliente para garantizar el óptimo funcionamiento.' },
+                    { icono: 'suministro', titulo: 'Suministro Urgente de Recambios', descripcion: 'Provisión de todo tipo de recambios y componentes críticos en tiempo récord para minimizar la inactividad de los activos.' },
+                    { icono: 'gestion', titulo: 'Operación de Plantas', descripcion: 'Contratos de operación y mantenimiento para plantas de cogeneración, con personal electromecánico altamente cualificado.' },
+                    { icono: 'soporte', titulo: 'Asistencia Técnica 24/7', descripcion: 'Servicio de asistencia técnica disponible 24/7, los 365 días del año, con cobertura nacional e internacional (Portugal).' },
+                    { icono: 'auditoria', titulo: 'Gestión de Averías', descripcion: 'Tarifas y gestión especializada para la resolución de averías, asegurando una respuesta rápida y eficiente.' },
+                ];
+            }
+
             setContent(data);
             setLoading(false);
         };
@@ -207,6 +218,9 @@ export default function CmsEditor() {
                                 <div className="space-y-2">
                                     <Label>Icono (Palabra clave para ilustración)</Label>
                                     <Input value={service.icono} onChange={e => handleInputChange('servicios', 'icono', e.target.value, index)} />
+                                    <p className="text-xs text-muted-foreground">
+                                        Sugerencias: mantenimiento, inspeccion, suministro, gestion, soporte, auditoria, energia
+                                    </p>
                                 </div>
                             </div>
                             <div className="space-y-2">
