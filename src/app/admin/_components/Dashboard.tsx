@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import type { Asset, Report } from "@/lib/types";
 import { getAssets, getReports } from "@/lib/data";
 import { AlertCircle, CheckCircle, MapPin, Wrench, TriangleAlert } from "lucide-react";
+import { format } from "date-fns";
 
 const COLORS = {
   Operativo: 'hsl(var(--chart-2))',
@@ -189,7 +190,7 @@ export default function Dashboard() {
                                     <div className="flex-grow">
                                         <p className="font-semibold">Activo {report.id_bien}</p>
                                         <p className="text-sm text-muted-foreground">
-                                            {report.id_tecnico} - {new Date(report.tiempos.fin).toLocaleDateString()}
+                                            {report.id_tecnico} - {format(new Date(report.tiempos.fin), 'dd/MM/yyyy')}
                                         </p>
                                     </div>
                                     <div className="text-right">

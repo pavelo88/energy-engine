@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Asset, AssetStatus, Airport, AssetCategory } from "@/lib/types";
 import { getAssets } from "@/lib/data";
 import { Skeleton } from '@/components/ui/skeleton';
+import { format } from 'date-fns';
 
 const statusColors: Record<AssetStatus, string> = {
   Operativo: "bg-green-100 text-green-800 border-green-200",
@@ -139,7 +140,7 @@ export default function AssetManager() {
                             {asset.estado}
                         </Badge>
                     </TableCell>
-                    <TableCell>{asset.proximo_mantenimiento ? new Date(asset.proximo_mantenimiento).toLocaleDateString() : 'N/A'}</TableCell>
+                    <TableCell>{asset.proximo_mantenimiento ? format(new Date(asset.proximo_mantenimiento), 'dd/MM/yyyy') : 'N/A'}</TableCell>
                   </TableRow>
                 ))
               ) : (

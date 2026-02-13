@@ -114,7 +114,7 @@ export default function Reports() {
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filters.date ? format(filters.date, "PPP") : <span>Seleccionar fecha</span>}
+                {filters.date ? format(filters.date, "dd/MM/yyyy") : <span>Seleccionar fecha</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
