@@ -23,7 +23,7 @@ export default function AdminLayout({
   return (
     <AuthProvider>
       <SidebarProvider>
-        <Sidebar>
+        <Sidebar variant="inset">
           <SidebarHeader>
             <Logo />
           </SidebarHeader>

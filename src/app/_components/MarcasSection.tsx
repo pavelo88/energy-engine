@@ -46,8 +46,8 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
         <section id="marcas" className="py-16 bg-muted/95 dark:bg-secondary/80 border-y border-primary/10">
           <div className="container mx-auto px-6">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-24">
-              <span className="block md:inline"></span>
-              <span className="text-primary block md:inline">Primeras Marcas</span>
+              <span className="block md:inline">Aliados</span>
+              <span className="text-primary block md:inline"> TECNOLÓGICOS</span>
             </h2>
             <div 
                 className="relative flex justify-center items-center" 

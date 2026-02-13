@@ -52,6 +52,26 @@ export default function CmsEditor() {
         const newServices = content.servicios.filter((_, i) => i !== index);
         setContent({ ...content, servicios: newServices });
     };
+    
+    const handleBrandChange = (index: number, value: string) => {
+        if (!content || !content.trusted_brands) return;
+        const newBrands = [...content.trusted_brands];
+        newBrands[index] = value;
+        setContent({ ...content, trusted_brands: newBrands });
+    };
+
+    const handleAddBrand = () => {
+        if (!content) return;
+        const newBrands = [...(content.trusted_brands || []), "Nueva Marca"];
+        setContent({ ...content, trusted_brands: newBrands });
+    };
+
+    const handleRemoveBrand = (index: number) => {
+        if (!content || !content.trusted_brands) return;
+        const newBrands = content.trusted_brands.filter((_, i) => i !== index);
+        setContent({ ...content, trusted_brands: newBrands });
+    };
+
 
     const handleSave = async () => {
         if (!content) return;
@@ -179,6 +199,26 @@ export default function CmsEditor() {
                                 <Label>Descripción</Label>
                                 <Textarea value={service.descripcion} onChange={e => handleInputChange('servicios', 'descripcion', e.target.value, index)} />
                             </div>
+                        </div>
+                    ))}
+                </CardContent>
+            </Card>
+
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle>Aliados Tecnológicos (Marcas)</CardTitle>
+                        <Button variant="outline" size="sm" onClick={handleAddBrand}><Plus className="mr-2 h-4 w-4" /> Añadir Marca</Button>
+                    </div>
+                    <CardDescription>La lista de marcas que se muestra en el anillo rotatorio.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {Array.isArray(content.trusted_brands) && content.trusted_brands.map((brand, index) => (
+                        <div key={index} className="relative flex items-center">
+                            <Input value={brand} onChange={e => handleBrandChange(index, e.target.value)} className="pr-10"/>
+                            <Button variant="ghost" size="icon" className="absolute top-1/2 right-1 -translate-y-1/2 h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => handleRemoveBrand(index)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
                         </div>
                     ))}
                 </CardContent>
