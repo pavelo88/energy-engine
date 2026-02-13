@@ -2,9 +2,7 @@
 import { getWebContent } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Mail, Phone, Shield, Linkedin, MapPin, Instagram, Facebook, HardHat, Zap, Globe, Clock } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
-import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BlueprintBackground } from '@/components/ServiceIllustrations';
 import { Input } from '@/components/ui/input';
@@ -12,12 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { saveContactMessage } from '@/app/actions';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-
-const navLinks = [
-  { href: '#servicios', label: 'Servicios' },
-  { href: '#clientes', label: 'Clientes' },
-  { href: '#contacto', label: 'Contacto' },
-];
+import { SiteHeader } from '@/components/SiteHeader';
+import { MobileServicesCarousel } from '@/components/MobileServicesCarousel';
 
 const iconMap: { [key: string]: React.ElementType } = {
   Zap,
@@ -42,7 +36,6 @@ export default async function Home() {
   const { hero, servicios } = webContent;
   const safeStats = Array.isArray(webContent.stats_publicas) ? webContent.stats_publicas : [];
   const safeBrands = Array.isArray(webContent.trusted_brands) ? webContent.trusted_brands : [];
-  const brandList = [...safeBrands, ...safeBrands];
 
   const gridLayout =
     servicios.length % 3 === 0
@@ -53,29 +46,7 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
-       <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto h-16 flex items-center">
-          <Link className="flex items-center gap-2" href="#">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
-              <span className="font-bold text-xl font-orbitron">AssetTrack AI</span>
-          </Link>
-          <nav className="ml-auto hidden md:flex items-center gap-6 text-sm font-medium">
-            {navLinks.map(link => (
-              <a key={link.href} className="transition-colors hover:text-primary text-foreground/80" href={link.href}>
-                {link.label}
-              </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-2 ml-auto md:ml-4">
-             <Link href="/admin">
-                <Button variant="outline" className="hidden sm:flex border-primary/50 hover:bg-primary/10 hover:text-primary">
-                    Panel
-                </Button>
-            </Link>
-            <ThemeToggle />
-          </div>
-        </div>
-      </header>
+       <SiteHeader />
 
       <main className="flex-1">
         <section id="home" className="container mx-auto relative py-24 md:py-32 flex items-center justify-center text-center">
@@ -127,27 +98,7 @@ export default async function Home() {
           </div>
           
           <div className="md:hidden">
-             <Carousel opts={{ align: "start" }} className="w-full">
-                <CarouselContent>
-                  {servicios.map((servicio, index) => (
-                    <CarouselItem key={index} className="basis-full sm:basis-1/2">
-                       <div className="p-2 h-full">
-                         <Card className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 w-full h-full">
-                            <CardHeader className="p-4">
-                                <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-primary/20">
-                                <BlueprintBackground type={servicio.icono} />
-                                </div>
-                                <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="flex-grow p-4 pt-0">
-                                <p className="text-foreground/70 text-sm">{servicio.descripcion}</p>
-                            </CardContent>
-                         </Card>
-                       </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
+             <MobileServicesCarousel servicios={servicios} />
           </div>
           
           <div className={`hidden md:grid grid-cols-1 md:grid-cols-2 ${gridLayout} gap-8`}>
@@ -171,26 +122,27 @@ export default async function Home() {
 
         <section id="clientes" className="py-24 sm:py-32 bg-card">
           <div className="container mx-auto">
-            <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-12">Aliados <span className="text-primary">Tecnológicos</span></h2>
-            <div className="relative w-full overflow-hidden">
-                <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-card to-transparent z-10"></div>
-                <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-card to-transparent z-10"></div>
-                <div className="flex w-max">
-                  <div className="flex items-center infinite-scroll">
-                      {brandList.map((brand, index) => (
-                        <div key={index} className="w-64 mx-4 flex items-center justify-center h-24">
-                            <span className="text-2xl font-semibold text-foreground/60 font-orbitron">{brand}</span>
-                        </div>
-                      ))}
-                  </div>
-                   <div className="flex items-center infinite-scroll" aria-hidden="true">
-                      {brandList.map((brand, index) => (
-                        <div key={index} className="w-64 mx-4 flex items-center justify-center h-24">
-                            <span className="text-2xl font-semibold text-foreground/60 font-orbitron">{brand}</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
+            <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-16">
+              Aliados <span className="text-primary">Tecnológicos</span>
+            </h2>
+            <div className="ring-container">
+              <div className="brand-ring" style={{ '--total': safeBrands.length } as React.CSSProperties}>
+                {safeBrands.map((brand, index) => {
+                  const angle = (360 / safeBrands.length) * index;
+                  const radius = 250; // Adjust this for ring size
+                  return (
+                    <div 
+                      key={index} 
+                      className="brand-ring-item" 
+                      style={{ transform: `rotateY(${angle}deg) translateZ(${radius}px)` }}
+                    >
+                      <div className="tech-glass flex items-center justify-center p-6 h-20 w-48 bg-background/80">
+                        <span className="text-2xl font-semibold text-foreground/80 font-orbitron">{brand}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </section>

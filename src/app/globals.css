@@ -108,4 +108,38 @@
   .infinite-scroll {
     animation: scroll 40s linear infinite;
   }
+
+  .ring-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    perspective: 1200px;
+    height: 20rem;
+  }
+
+  .brand-ring {
+    position: relative;
+    width: 12rem;
+    height: 5rem;
+    transform-style: preserve-3d;
+    animation: ring-spin 25s linear infinite;
+  }
+
+  @keyframes ring-spin {
+    from {
+      transform: rotateY(0deg);
+    }
+    to {
+      transform: rotateY(360deg);
+    }
+  }
+
+  .brand-ring-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+  }
 }

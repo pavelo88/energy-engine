@@ -11,6 +11,7 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useAuth } from '@/context/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,12 +37,14 @@ const navItems = {
 
 export default function AdminSidebar() {
   const { user, loading } = useAuth();
+  const { setOpenMobile } = useSidebar();
   const [activeView, setActiveView] = useState<AdminView>('dashboard');
 
   const handleSetView = (view: AdminView) => {
     const event = new CustomEvent('setView', { detail: view });
     window.dispatchEvent(event);
     setActiveView(view);
+    setOpenMobile(false);
   };
   
   // Listen for external changes to activeView
