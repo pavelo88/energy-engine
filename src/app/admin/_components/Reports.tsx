@@ -83,14 +83,14 @@ export default function Reports() {
           <Select value={filters.technician} onValueChange={v => handleFilterChange('technician', v)}>
             <SelectTrigger><SelectValue placeholder="Técnico" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Técnicos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               {users.filter(u => u.rol === 'inspector').map(u => <SelectItem key={u.uid} value={u.uid}>{u.nombre}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={filters.airport} onValueChange={v => handleFilterChange('airport', v)}>
             <SelectTrigger><SelectValue placeholder="Aeropuerto" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Aeropuertos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="VLC">VLC</SelectItem>
               <SelectItem value="MAD">MAD</SelectItem>
             </SelectContent>
@@ -98,7 +98,7 @@ export default function Reports() {
           <Select value={filters.assetType} onValueChange={v => handleFilterChange('assetType', v)}>
             <SelectTrigger><SelectValue placeholder="Tipo de Activo" /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Tipos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="Energía">Energía</SelectItem>
               <SelectItem value="BHS">BHS</SelectItem>
               <SelectItem value="Clima">Clima</SelectItem>
@@ -127,7 +127,7 @@ export default function Reports() {
             </PopoverContent>
           </Popover>
         </div>
-        <div className="rounded-md border overflow-x-auto">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>

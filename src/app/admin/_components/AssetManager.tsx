@@ -74,7 +74,7 @@ export default function AssetManager() {
               <SelectValue placeholder="Aeropuerto" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Aeropuertos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="VLC">VLC</SelectItem>
               <SelectItem value="MAD">MAD</SelectItem>
             </SelectContent>
@@ -84,7 +84,7 @@ export default function AssetManager() {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas Categorías</SelectItem>
+              <SelectItem value="all">Todas</SelectItem>
               <SelectItem value="Energía">Energía</SelectItem>
               <SelectItem value="BHS">BHS</SelectItem>
               <SelectItem value="Clima">Clima</SelectItem>
@@ -95,7 +95,7 @@ export default function AssetManager() {
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos Estados</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="Operativo">Operativo</SelectItem>
               <SelectItem value="Alerta">Alerta</SelectItem>
               <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
@@ -104,7 +104,7 @@ export default function AssetManager() {
             </SelectContent>
           </Select>
         </div>
-        <div className="rounded-md border overflow-x-auto">
+        <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
