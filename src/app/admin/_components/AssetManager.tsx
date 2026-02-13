@@ -24,9 +24,9 @@ export default function AssetManager() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    id_aeropuerto: 'all',
-    categoria: 'all',
-    estado: 'all'
+    id_aeropuerto: '',
+    categoria: '',
+    estado: ''
   });
 
   useEffect(() => {
@@ -48,9 +48,9 @@ export default function AssetManager() {
                         asset.marca_modelo.toLowerCase().includes(searchTerm.toLowerCase()) ||
                         asset.numero_serie.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const airportMatch = filters.id_aeropuerto === 'all' || asset.id_aeropuerto === filters.id_aeropuerto;
-    const categoryMatch = filters.categoria === 'all' || asset.categoria === filters.categoria;
-    const statusMatch = filters.estado === 'all' || asset.estado === filters.estado;
+    const airportMatch = !filters.id_aeropuerto || asset.id_aeropuerto === filters.id_aeropuerto;
+    const categoryMatch = !filters.categoria || asset.categoria === filters.categoria;
+    const statusMatch = !filters.estado || asset.estado === filters.estado;
 
     return searchMatch && airportMatch && categoryMatch && statusMatch;
   });
@@ -74,7 +74,7 @@ export default function AssetManager() {
               <SelectValue placeholder="Aeropuerto" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="">Todos</SelectItem>
               <SelectItem value="VLC">VLC</SelectItem>
               <SelectItem value="MAD">MAD</SelectItem>
             </SelectContent>
@@ -84,7 +84,7 @@ export default function AssetManager() {
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="">Todas</SelectItem>
               <SelectItem value="Energía">Energía</SelectItem>
               <SelectItem value="BHS">BHS</SelectItem>
               <SelectItem value="Clima">Clima</SelectItem>
@@ -95,7 +95,7 @@ export default function AssetManager() {
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="">Todos</SelectItem>
               <SelectItem value="Operativo">Operativo</SelectItem>
               <SelectItem value="Alerta">Alerta</SelectItem>
               <SelectItem value="Mantenimiento">Mantenimiento</SelectItem>
