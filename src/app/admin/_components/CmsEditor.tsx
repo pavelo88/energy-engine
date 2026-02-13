@@ -23,6 +23,17 @@ export default function CmsEditor() {
         const loadData = async () => {
             setLoading(true);
             const data = await getWebContent();
+            
+            // Ensure stats_publicas is always an array with default values if missing
+            if (!data.stats_publicas || !Array.isArray(data.stats_publicas) || data.stats_publicas.length === 0) {
+                data.stats_publicas = [
+                  { icon: 'Zap', value: '500+', label: 'PROYECTOS' },
+                  { icon: 'Globe', value: '15+', label: 'AÑOS EXP.' },
+                  { icon: 'Shield', value: '99.7%', label: 'UPTIME' },
+                  { icon: 'Clock', value: '24/7', label: 'SOPORTE' }
+                ];
+            }
+
             setContent(data);
             setLoading(false);
         };
@@ -227,3 +238,5 @@ export default function CmsEditor() {
         </div>
     );
 }
+
+    
