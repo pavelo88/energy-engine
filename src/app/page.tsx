@@ -13,8 +13,14 @@ import ExperienceSection from './_components/ExperienceSection';
 
 export async function generateMetadata(): Promise<Metadata> {
   const webContent = await getWebContent();
-  const metadata = webContent.metadata;
-  const heroImage = PlaceHolderImages.find(img => img.id === webContent.hero.imagen_id);
+  // Fallback for metadata to prevent crash if it's missing from DB
+  const metadata = webContent.metadata || {
+    title: 'Energy Engine | Soluciones de Ingeniería',
+    description: 'Líderes en mantenimiento, operación y optimización de activos críticos.',
+    keywords: 'ingeniería energética, mantenimiento predictivo, grupos electrógenos'
+  };
+  // Safe access to hero image
+  const heroImage = PlaceHolderImages.find(img => img.id === webContent.hero?.imagen_id);
 
   return {
     title: metadata.title,
@@ -55,7 +61,9 @@ export default async function Home() {
     );
   }
 
-  const { hero, servicios } = webContent;
+  // Safe access to webContent properties
+  const hero = webContent.hero || { titulo: 'Título no disponible', subitulo: '', imagen_id: '' };
+  const servicios = webContent.servicios || [];
   const safeStats = Array.isArray(webContent.stats_publicas) ? webContent.stats_publicas : [];
   const safeBrands = Array.isArray(webContent.trusted_brands) ? webContent.trusted_brands : [];
 
