@@ -17,7 +17,8 @@ export function InstallPwaButton() {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault(); // Prevent the default mini-infobar from appearing on mobile
+      // Do not prevent the default browser prompt (e.g., mini-infobar)
+      // event.preventDefault(); 
       setInstallPrompt(event);
     };
 
