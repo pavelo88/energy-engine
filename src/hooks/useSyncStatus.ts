@@ -1,42 +1,33 @@
 'use client';
 import { useState, useEffect } from 'react';
-
-// This is a MOCK implementation for demonstration purposes.
-// In a real app, this would interface with a service worker and IndexedDB.
+import { useLiveQuery } from 'dexie-react-hooks';
+import { localDb } from '@/lib/db';
 
 export function useSyncStatus() {
   const [isOnline, setIsOnline] = useState(true);
-  const [pendingSyncs, setPendingSyncs] = useState(0);
+
+  // Use Dexie's live query to get the count of pending tasks
+  const pendingSyncs = useLiveQuery(
+    () => localDb.sync_tasks.where('status').equals('pending').count(),
+    [], // dependencies
+    0 // initial value
+  );
 
   useEffect(() => {
-    // Initial state from navigator
-    if (typeof window !== 'undefined' && typeof window.navigator !== 'undefined') {
+    // Check initial online status
+    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
         setIsOnline(navigator.onLine);
     }
     
-    const handleOnline = () => {
-      setIsOnline(true);
-      // Simulate clearing the queue upon reconnection
-      setPendingSyncs(0); 
-    };
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Mock pending syncs being added for demonstration when offline
-    const interval = setInterval(() => {
-      if (!navigator.onLine) {
-        setPendingSyncs(prev => prev + 1);
-      }
-    }, 8000);
-
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
-      clearInterval(interval);
     };
   }, []);
 

@@ -3,6 +3,7 @@ import { db } from '@/lib/firebase/config';
 import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, query, where, serverTimestamp } from 'firebase/firestore';
 import type { User, Asset, Report, WebContent, UserRole } from './types';
 import { PlaceHolderImages } from './placeholder-images';
+import { localDb } from './db';
 
 // MOCK DATA FOR USERS (role switching simulation)
 const users: User[] = [
@@ -25,11 +26,44 @@ export async function getUser(uid: string): Promise<User | undefined> {
 
 // FIRESTORE-BACKED FUNCTIONS
 export async function getAssets(): Promise<Asset[]> {
-    const assetsCollection = collection(db, 'assets');
-    const assetSnapshot = await getDocs(assetsCollection);
-    const assets = assetSnapshot.docs.map(doc => doc.data() as Asset);
-    return assets;
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+    // If online, always fetch from Firestore to get the latest data and update cache.
+    if (isOnline) {
+        try {
+            console.log("Online. Fetching assets from Firestore and updating cache.");
+            const assetsCollection = collection(db, 'assets');
+            const assetSnapshot = await getDocs(assetsCollection);
+            const assets = assetSnapshot.docs.map(doc => doc.data() as Asset);
+            
+            // Update the cache for next time
+            const assetsToCache = assets.map(asset => ({ ...asset, cachedAt: Date.now() }));
+            await localDb.maestro_cache.bulkPut(assetsToCache);
+            console.log(`Cached ${assets.length} assets locally.`);
+            
+            return assets;
+        } catch (error) {
+            console.error("Firestore fetch failed. Attempting to fall back to local cache.", error);
+            // Fall through to cache if network fails
+        }
+    }
+
+    // If offline or Firestore fetch failed, use the cache.
+    try {
+        console.log("Offline or network error. Loading assets from local cache.");
+        const cachedAssets = await localDb.maestro_cache.toArray();
+        if (cachedAssets.length > 0) {
+            return cachedAssets;
+        }
+    } catch (e) {
+        console.error("Could not read from IndexedDB.", e);
+    }
+    
+    // If we reach here, we're offline and the cache is empty.
+    console.warn("Offline and no local asset cache available.");
+    return [];
 }
+
 
 export async function getAsset(id_bien: string): Promise<Asset | undefined> {
     const assetDoc = await getDoc(doc(db, 'assets', id_bien));
@@ -90,13 +124,43 @@ export async function updateWebContent(newContent: WebContent): Promise<WebConte
 }
 
 export async function addReport(report: Report): Promise<Report> {
-    const reportsCollection = collection(db, 'reports');
-    await setDoc(doc(reportsCollection, report.id_informe), report);
+    const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
-    const assetRef = doc(db, 'assets', report.id_bien);
-    await updateDoc(assetRef, {
-        estado: report.estado
+    if (isOnline) {
+        try {
+            console.log("Online. Saving report directly to Firestore.");
+            const reportsCollection = collection(db, 'reports');
+            await setDoc(doc(reportsCollection, report.id_informe), report);
+
+            const assetRef = doc(db, 'assets', report.id_bien);
+            await updateDoc(assetRef, {
+                estado: report.estado
+            });
+
+            console.log("Report and asset status synced to Firestore.");
+            return report;
+        } catch (error) {
+             console.error("Firestore save failed. Saving to local queue for later sync.", error);
+             // Fall through to offline logic
+        }
+    }
+
+    // Offline or Firestore save failed
+    console.log("Offline. Adding report to local sync queue.");
+    await localDb.sync_tasks.add({
+        type: 'report',
+        status: 'pending',
+        payload: report,
+        createdAt: Date.now()
     });
+
+    // We can't update the asset in Firestore, but we can update it in the local cache
+    try {
+        await localDb.maestro_cache.update(report.id_bien, { estado: report.estado });
+        console.log(`Updated asset ${report.id_bien} status in local cache.`);
+    } catch (error) {
+        console.error(`Failed to update asset ${report.id_bien} status in local cache.`, error);
+    }
 
     return report;
 }
