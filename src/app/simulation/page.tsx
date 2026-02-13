@@ -1,14 +1,29 @@
 
 'use client';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Search, MapPin, Camera, PenTool, CheckCircle, AlertCircle, ChevronRight, ArrowLeft, Download, Database, Battery, Zap, Thermometer, FileText, User, History, Save, Printer, Trash2, Lock, LogOut, LayoutDashboard, ClipboardList, RefreshCw, HardDrive } from 'lucide-react';
+import { Search, MapPin, Camera, PenTool, CheckCircle, AlertCircle, ChevronRight, ArrowLeft, Download, Database, Battery, Zap, Thermometer, FileText, User as UserIcon, History, Save, Printer, Trash2, Lock, LogOut, LayoutDashboard, ClipboardList, RefreshCw, HardDrive } from 'lucide-react';
 
 /**
 
 ENERGYTRACK PRO - ENERGY ENGINE ENTERPRISE
 Optimizado para Android/Tablets | Funcionalidad Offline-First */
-// --- BASE DE DATOS DE ACTIVOS (Basada en Revision.xlsx) ---
-const ASSETS_DB = {
+// --- Tipos y Datos Simulados ---
+
+type User = {
+  role: 'admin' | 'inspector';
+  name: string;
+};
+
+type Asset = {
+  id: string;
+  modelo: string;
+  sn: string;
+  potencia: string;
+  cliente: string;
+  estado: string;
+};
+
+const ASSETS_DB: Record<string, Asset[]> = {
   "Aeropuerto de Valencia (VLC)": [
     { id: "M-3209", modelo: "DEUTZ BF4M1013EC", sn: "00481993", potencia: "110 kVA", cliente: "AENA / JJ PASCUAL", estado: "Operativo" },
     { id: "M-3210", modelo: "DEUTZ BF4M1013EC", sn: "00481994", potencia: "110 kVA", cliente: "AENA / JJ PASCUAL", estado: "Mantenimiento" },
@@ -28,22 +43,30 @@ const SECCIONES_CHECKLIST = [
 
 export default function App() {
   // --- Estados de Autenticación ---
-  const [user, setUser] = useState(null); // { role: 'admin' | 'inspector' }
+  const [user, setUser] = useState<User | null>(null);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
 
   // --- Estados de Navegación ---
   const [view, setView] = useState('selector'); // selector, inspection, summary, database
   const [selectedInstalacion, setSelectedInstalacion] = useState('');
-  const [selectedGrupo, setSelectedGrupo] = useState(null);
+  const [selectedGrupo, setSelectedGrupo] = useState<Asset | null>(null);
 
   // --- Estados de Formulario ---
-  const [checklist, setChecklist] = useState({});
+  const [checklist, setChecklist] = useState<Record<string, string>>({});
   const [mediciones, setMediciones] = useState({ horas: '', presion: '', temp: '', carga: '' });
-  const [gps, setGps] = useState(null);
-  const [photos, setPhotos] = useState([]);
+  const [gps, setGps] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<File[]>([]);
   const [isSigned, setIsSigned] = useState(false);
-  const canvasRef = useRef(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [reportDate, setReportDate] = useState('');
+
+  // Setea la fecha del reporte solo en el cliente para evitar errores de hidratación
+  useEffect(() => {
+    if (view === 'summary') {
+      setReportDate(new Date().toLocaleDateString());
+    }
+  }, [view]);
 
   const reset = useCallback(() => {
     setChecklist({});
@@ -55,12 +78,12 @@ export default function App() {
     setSelectedInstalacion('');
     if(canvasRef.current) {
         const ctx = canvasRef.current.getContext('2d');
-        ctx.clearRect(0,0,600,192);
+        ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
   }, []);
 
   // --- Lógica de Login ---
-  const handleLogin = (e) => {
+  const handleLogin = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (loginForm.username === 'admin' && loginForm.password === '1234') {
       setUser({ role: 'admin', name: 'Administrador Central' });
@@ -73,59 +96,93 @@ export default function App() {
     } else {
       setError('Credenciales incorrectas');
     }
-  };
+  }, [loginForm]);
 
   // --- Lógica de Firma (Inspector) ---
   useEffect(() => {
-    if (view === 'inspection' && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      ctx.strokeStyle = '#334155'; // slate-700
-      ctx.lineWidth = 2;
-      let drawing = false;
-
-      const getPos = (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-      };
-
-      const start = (e) => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); };
-      const move = (e) => { if(!drawing) return; e.preventDefault(); const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
-      const stop = () => { drawing = false; setIsSigned(true); };
-
-      canvas.addEventListener('mousedown', start);
-      canvas.addEventListener('mousemove', move);
-      canvas.addEventListener('mouseup', stop);
-      canvas.addEventListener('touchstart', start, { passive: false });
-      canvas.addEventListener('touchmove', move, { passive: false });
-      canvas.addEventListener('touchend', stop);
-      
-      return () => {
-        canvas.removeEventListener('mousedown', start);
-        canvas.removeEventListener('mousemove', move);
-        canvas.removeEventListener('mouseup', stop);
-        canvas.removeEventListener('touchstart', start);
-        canvas.removeEventListener('touchmove', move);
-        canvas.removeEventListener('touchend', stop);
-      }
+    if (view !== 'inspection' || !canvasRef.current) {
+      return;
     }
 
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.strokeStyle = '#334155'; // slate-700
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    let drawing = false;
+
+    const getPos = (e: MouseEvent | TouchEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    };
+
+    const start = (e: MouseEvent | TouchEvent) => {
+      drawing = true;
+      ctx.beginPath();
+      const p = getPos(e);
+      ctx.moveTo(p.x, p.y);
+    };
+    
+    const move = (e: MouseEvent | TouchEvent) => {
+      if(!drawing) return;
+      e.preventDefault();
+      const p = getPos(e);
+      ctx.lineTo(p.x, p.y);
+      ctx.stroke();
+    };
+
+    const stop = () => {
+      if (!drawing) return;
+      drawing = false;
+      setIsSigned(true);
+    };
+
+    canvas.addEventListener('mousedown', start);
+    canvas.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', stop); // Use document to catch mouseup outside canvas
+    
+    canvas.addEventListener('touchstart', start, { passive: false });
+    canvas.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', stop);
+    
+    return () => {
+      canvas.removeEventListener('mousedown', start);
+      canvas.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', stop);
+      
+      canvas.removeEventListener('touchstart', start);
+      canvas.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', stop);
+    }
   }, [view]);
 
   // --- Acciones ---
-  const handleCheck = (campo, valor) => setChecklist(prev => ({ ...prev, [campo]: valor }));
-  const obtenerGPS = () => {
+  const handleCheck = useCallback((campo: string, valor: string) => setChecklist(prev => ({ ...prev, [campo]: valor })), []);
+  
+  const obtenerGPS = useCallback(() => {
     setGps("Buscando señal...");
     setTimeout(() => setGps("39.4893° N, 0.4817° W"), 1500);
-  };
-  const logout = () => {
+  }, []);
+
+  const logout = useCallback(() => {
     setUser(null);
     setView('selector');
     setLoginForm({ username: '', password: '' });
     reset();
-  };
+  }, [reset]);
+
+  const clearSignature = useCallback(() => {
+      if (canvasRef.current) {
+          const ctx = canvasRef.current.getContext('2d');
+          ctx?.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+          setIsSigned(false);
+      }
+  }, []);
 
   // --- Renderizado Condicional: LOGIN ---
   if (!user) {
@@ -141,17 +198,17 @@ export default function App() {
             {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-xs font-bold border border-red-100 flex items-center gap-2"><AlertCircle size={14}/> {error}</div>}
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Usuario</label>
+                <label htmlFor="username-login" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Usuario</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-3.5 text-slate-300" size={18}/>
-                  <input type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 pl-12 outline-none focus:border-amber-500 transition-all" placeholder="admin o inspector" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} />
+                  <UserIcon className="absolute left-4 top-3.5 text-slate-300" size={18}/>
+                  <input id="username-login" type="text" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 pl-12 outline-none focus:border-amber-500 transition-all" placeholder="admin o inspector" value={loginForm.username} onChange={e => setLoginForm({...loginForm, username: e.target.value})} />
                 </div>
               </div>
               <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Contraseña</label>
+                <label htmlFor="password-login" className="text-[10px] font-bold text-slate-400 uppercase ml-1">Contraseña</label>
                 <div className="relative">
                   <Lock className="absolute left-4 top-3.5 text-slate-300" size={18}/>
-                  <input type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 pl-12 outline-none focus:border-amber-500 transition-all" placeholder="••••" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} />
+                  <input id="password-login" type="password" className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3.5 pl-12 outline-none focus:border-amber-500 transition-all" placeholder="••••" value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -165,7 +222,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-
       {/* NAVBAR */}
       <nav className="bg-slate-900 text-white p-4 sticky top-0 z-50 shadow-lg border-b-2 border-amber-500 print:hidden">
         <div className="max-w-6xl mx-auto flex justify-between items-center">
@@ -175,11 +231,13 @@ export default function App() {
           </div>
           
           <div className="flex items-center gap-4">
-            <div className="hidden md:block text-right">
-              <p className="text-[10px] font-bold text-amber-500 leading-none">{user.name}</p>
-              <p className="text-[9px] text-slate-400 uppercase tracking-tighter">{user.role}</p>
-            </div>
-            {user.role === 'admin' && (
+            {user && (
+              <div className="hidden md:block text-right">
+                <p className="text-[10px] font-bold text-amber-500 leading-none">{user.name}</p>
+                <p className="text-[9px] text-slate-400 uppercase tracking-tighter">{user.role}</p>
+              </div>
+            )}
+            {user?.role === 'admin' && (
               <button 
                 onClick={() => setView('database')}
                 className={`p-2 rounded-lg transition-colors ${view === 'database' ? 'bg-amber-500 text-slate-900' : 'text-slate-400 hover:text-white'}`}
@@ -195,7 +253,6 @@ export default function App() {
       </nav>
 
       <main className="max-w-6xl mx-auto p-4 md:p-8">
-
         {/* VISTA: ADMIN DASHBOARD / DATABASE */}
         {user.role === 'admin' && view === 'database' && (
           <div className="space-y-6 animate-in fade-in duration-500">
@@ -324,7 +381,7 @@ export default function App() {
             )}
 
             {/* 2. Formulario de Inspección */}
-            {view === 'inspection' && (
+            {view === 'inspection' && selectedGrupo && (
               <div className="animate-in fade-in duration-300 space-y-6 print:hidden">
                 <div className="bg-slate-900 text-white p-6 rounded-3xl shadow-xl flex justify-between items-center border-b-4 border-amber-500">
                   <div>
@@ -346,6 +403,7 @@ export default function App() {
                             {['OK', 'DEF', 'AVR', 'CAM'].map(status => (
                               <button
                                 key={status}
+                                type="button"
                                 onClick={() => handleCheck(campo, status)}
                                 className={`px-4 py-2 rounded-xl text-[9px] font-black border-2 transition-all hover:scale-105 ${
                                   checklist[campo] === status ? 'bg-amber-500 border-amber-500 text-slate-900 shadow-md ring-2 ring-amber-100' : 'bg-white border-slate-100 text-slate-400'
@@ -364,18 +422,18 @@ export default function App() {
                 <section className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-6">
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {['horas', 'presion', 'temp', 'carga'].map(f => (
-                      <div key={f} className="space-y-2">
+                      <div key={f}>
                         <label className="text-[9px] font-black text-slate-400 uppercase">{f}</label>
                         <input type="number" step="0.1" className="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl font-bold focus:border-amber-500 outline-none" onChange={e => setMediciones({...mediciones, [f]: e.target.value})} />
                       </div>
                     ))}
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3">
-                    <button onClick={obtenerGPS} className={`flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-black text-sm transition-all hover:scale-[1.02] ${gps ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
+                    <button type="button" onClick={obtenerGPS} className={`flex-1 p-4 rounded-xl border-2 flex items-center justify-center gap-2 font-black text-sm transition-all hover:scale-[1.02] ${gps ? 'bg-blue-50 border-blue-200 text-blue-700' : 'bg-slate-50 border-slate-100 text-slate-400'}`}>
                       <MapPin size={18}/> {gps || "Validar GPS"}
                     </button>
                     <div className="flex-1 relative">
-                      <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => setPhotos([...photos, ...Array.from(e.target.files)])} />
+                      <input type="file" multiple className="absolute inset-0 opacity-0 cursor-pointer" onChange={e => e.target.files && setPhotos([...photos, ...Array.from(e.target.files)])} />
                       <div className="p-4 rounded-xl border-2 border-dashed border-slate-200 flex items-center justify-center gap-2 font-black text-slate-400 text-sm hover:bg-slate-50 transition-all">
                         <Camera size={18}/> {photos.length > 0 ? `${photos.length} Fotos` : "Adjuntar Fotos"}
                       </div>
@@ -390,8 +448,9 @@ export default function App() {
                     {!isSigned && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-slate-300 italic text-sm">Firma aquí</div>}
                   </div>
                   <div className="flex justify-between items-center pt-2">
-                    <button onClick={() => { const ctx = canvasRef.current.getContext('2d'); ctx.clearRect(0,0,600,192); setIsSigned(false); }} className="text-xs text-red-500 font-bold hover:underline flex items-center gap-1"><Trash2 size={14}/> REINICIAR</button>
+                    <button type="button" onClick={clearSignature} className="text-xs text-red-500 font-bold hover:underline flex items-center gap-1"><Trash2 size={14}/> REINICIAR</button>
                     <button 
+                      type="button"
                       disabled={!isSigned}
                       onClick={() => setView('summary')}
                       className="bg-emerald-600 text-white px-10 py-4 rounded-2xl font-black shadow-xl hover:bg-emerald-700 transition-all disabled:opacity-20 flex items-center gap-2"
@@ -425,7 +484,7 @@ export default function App() {
                     <div className="text-right">
                       <p className="text-[10px] font-bold text-slate-400 uppercase">Reporte No.</p>
                       <p className="text-lg font-mono font-black">R-20260038</p>
-                      <p className="text-xs font-bold text-slate-500 uppercase">{new Date().toLocaleDateString()}</p>
+                      <p className="text-xs font-bold text-slate-500 uppercase">{reportDate}</p>
                     </div>
                   </div>
 
@@ -463,11 +522,11 @@ export default function App() {
                   <div className="flex justify-between items-end mt-12 pt-8 border-t border-slate-100">
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase">Técnico de Campo</p>
-                      <p className="text-sm font-bold text-slate-900">{user.name}</p>
+                      {user && <p className="text-sm font-bold text-slate-900">{user.name}</p>}
                     </div>
                     <div className="text-center space-y-1">
                       <div className="w-40 h-16 border-b border-slate-200 flex items-center justify-center">
-                        {isSigned && <img alt="Firma" src={canvasRef.current.toDataURL()} className="max-h-full grayscale contrast-125" />}
+                        {isSigned && canvasRef.current && <img alt="Firma del técnico" src={canvasRef.current.toDataURL()} className="max-h-full grayscale contrast-125" />}
                       </div>
                       <p className="text-[8px] font-bold text-slate-400 uppercase">Firma Digitalizada</p>
                     </div>
@@ -475,16 +534,15 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 max-w-sm mx-auto print:hidden">
-                  <button onClick={() => window.print()} className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3">
+                  <button type="button" onClick={() => window.print()} className="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl hover:bg-slate-800 transition-all hover:scale-105 active:scale-95 flex items-center justify-center gap-3">
                     <Printer size={22} className="text-amber-500"/> GENERAR REPORTE PDF
                   </button>
-                  <button onClick={() => { reset(); setView('selector'); }} className="w-full bg-white border-2 border-slate-200 text-slate-600 p-5 rounded-2xl font-bold hover:bg-slate-50 transition-colors">NUEVA REVISIÓN</button>
+                  <button type="button" onClick={() => { reset(); setView('selector'); }} className="w-full bg-white border-2 border-slate-200 text-slate-600 p-5 rounded-2xl font-bold hover:bg-slate-50 transition-colors">NUEVA REVISIÓN</button>
                 </div>
               </div>
             )}
           </div>
         )}
-
       </main>
 
       <footer className="fixed bottom-0 w-full bg-white border-t border-slate-200 p-2 text-center text-[8px] text-slate-400 uppercase tracking-widest print:hidden">
