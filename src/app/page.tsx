@@ -45,19 +45,21 @@ export default async function Home() {
       : 'lg:grid-cols-3';
 
   return (
-    <div className="flex flex-col min-h-dvh bg-background text-foreground">
+    <div className="flex flex-col min-h-dvh bg-transparent text-foreground">
        <SiteHeader />
 
       <main className="flex-1">
-        <section id="home" className="container mx-auto relative py-24 md:py-32 flex items-center justify-center text-center">
-            <div className="flex flex-col items-center">
+        
+        <section id="home" className="container mx-auto relative pt-24 pb-12 md:pt-32 md:pb-24">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="text-center lg:text-left">
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
                   INGENIERÍA ENERGÉTICA <span className="text-primary">DE VANGUARDIA</span>
                 </h1>
-                <p className="max-w-2xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto">
+                <p className="max-w-2xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto lg:mx-0">
                 {hero.subitulo}
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4 mx-auto">
+                <div className="flex flex-col sm:flex-row gap-4 mx-auto lg:mx-0 justify-center lg:justify-start">
                     <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold" asChild>
                       <a href="#servicios">
                           Explorar Servicios <ArrowRight className="ml-2" />
@@ -70,22 +72,20 @@ export default async function Home() {
                     </Button>
                 </div>
             </div>
-        </section>
-
-        <section id="experiencia" className="container mx-auto pb-24 sm:pb-32">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 tech-glass p-8 rounded-xl">
+             <div className="grid grid-cols-2 gap-4 md:gap-6">
               {safeStats.map((stat) => {
                 const Icon = iconMap[stat.icon] || HardHat;
                 return (
-                  <div key={stat.label} className="flex flex-col items-center text-center gap-2">
+                  <div key={stat.label} className="tech-glass p-4 rounded-xl flex flex-col items-center justify-center text-center gap-2">
                     <Icon className="w-8 h-8 text-primary" />
                     <div>
-                      <p className="text-4xl font-bold font-orbitron text-primary">{stat.value}</p>
+                      <p className="text-3xl md:text-4xl font-bold font-orbitron text-primary">{stat.value}</p>
                       <p className="text-sm uppercase tracking-wider text-foreground/60">{stat.label}</p>
                     </div>
                   </div>
                 )
               })}
+            </div>
           </div>
         </section>
 
@@ -120,14 +120,14 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="clientes" className="py-24 sm:py-32 bg-card">
+        <section id="clientes" className="py-24 sm:py-32">
           <div className="container mx-auto">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-16">
               Aliados <span className="text-primary">Tecnológicos</span>
             </h2>
             <div className="ring-container">
               <div className="brand-ring" style={{ '--total': safeBrands.length } as React.CSSProperties}>
-                {safeBrands.map((brand, index) => {
+                {(safeBrands || []).map((brand, index) => {
                   const angle = (360 / safeBrands.length) * index;
                   const radius = 180; // Adjust this for ring size
                   return (
@@ -222,7 +222,7 @@ export default async function Home() {
 
       </main>
 
-      <footer className="border-t border-primary/20">
+      <footer className="border-t border-primary/20 bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between py-8">
             <p className="text-sm text-foreground/60">&copy; 2024 Energy Engine España. Todos los derechos reservados.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
