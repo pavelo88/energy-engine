@@ -1,4 +1,3 @@
-
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -34,11 +33,6 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2 ml-4">
-           <Link href="/admin" className="hidden sm:flex">
-              <Button variant="outline" className="border-primary/50 hover:bg-primary/10 hover:text-primary">
-                  Panel
-              </Button>
-          </Link>
           <ThemeToggle />
           
           {/* Mobile Nav Trigger */}
@@ -66,13 +60,6 @@ export function SiteHeader() {
                         </SheetClose>
                     ))}
                     </div>
-                    <SheetClose asChild>
-                        <Link href="/admin" className='mt-auto'>
-                            <Button variant="outline" className="w-full">
-                                Acceder al Panel
-                            </Button>
-                        </Link>
-                    </SheetClose>
                  </div>
               </SheetContent>
             </Sheet>
