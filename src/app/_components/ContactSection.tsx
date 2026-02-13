@@ -6,7 +6,7 @@ import { Facebook, Instagram, Linkedin, Send } from 'lucide-react';
 
 export default function ContactSection() {
     return (
-        <section id="contacto" className="container mx-auto px-6 py-16 sm:py-24">
+        <section id="contacto" className="container mx-auto px-6 py-16">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
               <span className="block md:inline">CANAL DE </span>

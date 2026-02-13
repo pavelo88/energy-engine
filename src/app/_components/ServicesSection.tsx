@@ -20,7 +20,7 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
         : 'lg:grid-cols-3';
 
     return (
-        <section id="servicios" className="container mx-auto px-6 py-16 sm:py-24">
+        <section id="servicios" className="container mx-auto px-6 py-16">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
               <span className="block md:inline">Nuestras </span>

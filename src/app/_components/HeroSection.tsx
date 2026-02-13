@@ -1,15 +1,8 @@
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, Globe, Shield, Clock, HardHat } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { WebContent } from '@/lib/types';
-
-const iconMap: { [key: string]: React.ElementType } = {
-  Zap,
-  Globe,
-  Shield,
-  Clock,
-  HardHat, // Fallback
-};
+import ExperienceSection from './ExperienceSection';
 
 interface HeroSectionProps {
     hero: WebContent['hero'];
@@ -18,7 +11,7 @@ interface HeroSectionProps {
 
 export default function HeroSection({ hero, stats }: HeroSectionProps) {
   return (
-    <section id="home" className="container mx-auto px-6 relative pt-24 pb-16 sm:py-24">
+    <section id="home" className="container mx-auto px-6 relative pt-24 pb-16">
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="text-center lg:text-left">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
@@ -42,19 +35,8 @@ export default function HeroSection({ hero, stats }: HeroSectionProps) {
                 </Button>
             </div>
         </div>
-         <div className="hidden lg:grid grid-cols-2 gap-4 md:gap-6">
-          {stats.map((stat) => {
-            const Icon = iconMap[stat.icon] || HardHat;
-            return (
-              <div key={stat.label} className="tech-glass p-4 rounded-xl flex flex-col items-center justify-center text-center gap-2">
-                <Icon className="w-8 h-8 text-primary" />
-                <div>
-                  <p className="text-3xl md:text-4xl font-bold font-orbitron text-primary">{stat.value}</p>
-                  <p className="text-sm uppercase tracking-wider text-foreground/60">{stat.label}</p>
-                </div>
-              </div>
-            )
-          })}
+        <div className="mt-12 lg:mt-0">
+          <ExperienceSection stats={stats} />
         </div>
       </div>
     </section>
