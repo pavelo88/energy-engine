@@ -2,6 +2,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 // import { getAnalytics, isSupported } from "firebase/analytics";
 
 // Your web app's Firebase configuration
@@ -20,6 +21,7 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 // Analytics is disabled to prevent the "Firebase Installations API" error on new projects.
 // To enable it, uncomment the code below and ensure the API is enabled in your Google Cloud project:
@@ -35,4 +37,4 @@ if (typeof window !== 'undefined') {
 }
 */
 
-export { app, db, analytics };
+export { app, db, storage, analytics };

@@ -100,7 +100,7 @@ export default function InspectionForm() {
             core_issue: "Revisión periódica",
             recommended_actions: "Seguir plan de mantenimiento",
             potential_impact: "N/A",
-            photoEvidenceDataUrl: photoEvidence || undefined,
+            photoEvidenceUrl: photoEvidence || undefined,
         };
 
         try {

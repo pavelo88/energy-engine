@@ -1,6 +1,7 @@
 
-import { db } from '@/lib/firebase/config';
+import { db, storage } from '@/lib/firebase/config';
 import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 import type { User, Asset, Report, WebContent, UserRole } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 import { localDb } from './db';
@@ -135,15 +136,28 @@ export async function updateWebContent(newContent: WebContent): Promise<WebConte
 export async function syncReportToFirestore(report: Report): Promise<void> {
   console.log(`Syncing report ${report.id_informe} to Firestore.`);
   
-  // Clone the report to avoid mutating the original object
   const reportToSync = { ...report };
 
-  if (reportToSync.photoEvidenceDataUrl) {
-    // TODO: Implement Firebase Storage upload.
-    // For now, we will log a warning and remove the data URL to prevent
-    // exceeding Firestore's document size limit.
-    console.warn(`Report ${report.id_informe} has photo evidence, but storage upload is not implemented. The photo will not be saved.`);
-    delete reportToSync.photoEvidenceDataUrl;
+  // Check if there is a photo and if it's a data URL (meaning it needs to be uploaded)
+  if (reportToSync.photoEvidenceUrl && reportToSync.photoEvidenceUrl.startsWith('data:image')) {
+    console.log(`Uploading photo evidence for report ${report.id_informe}...`);
+    const storageRef = ref(storage, `evidence/${report.id_informe}.jpg`);
+    
+    // The data URL needs to be stripped of its prefix to be uploaded as a base64 string
+    const base64String = reportToSync.photoEvidenceUrl.split(',')[1];
+
+    try {
+      const snapshot = await uploadString(storageRef, base64String, 'base64', { contentType: 'image/jpeg' });
+      const downloadUrl = await getDownloadURL(snapshot.ref);
+      
+      // Replace the data URL with the permanent storage URL
+      reportToSync.photoEvidenceUrl = downloadUrl;
+      console.log(`Photo uploaded successfully. URL: ${downloadUrl}`);
+    } catch (error) {
+      console.error(`Failed to upload photo for report ${report.id_informe}:`, error);
+      // On failure, remove the photo evidence to allow the rest of the report to sync.
+      delete reportToSync.photoEvidenceUrl;
+    }
   }
 
   const reportsCollection = collection(db, 'reports');
