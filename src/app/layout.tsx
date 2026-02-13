@@ -47,8 +47,8 @@ export default function RootLayout({
       </head>
       <body className="font-body bg-background text-foreground antialiased">
         <ThemeProvider
-            defaultTheme="light"
-            enableSystem={false}
+            defaultTheme="system"
+            enableSystem={true}
         >
             <AnimatedBackground />
             {children}

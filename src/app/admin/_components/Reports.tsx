@@ -59,7 +59,7 @@ export default function Reports() {
     const techMatch = !filters.technician || filters.technician === 'all' || report.id_tecnico === filters.technician;
     const assetTypeMatch = !filters.assetType || filters.assetType === 'all' || asset?.categoria === filters.assetType;
     const airportMatch = !filters.airport || filters.airport === 'all' || asset?.id_aeropuerto === filters.airport;
-    const dateMatch = !filters.date || format(new Date(report.tiempos.fin), 'yyyy-MM-dd') === format(filters.date, 'yyyy-MM-dd');
+    const dateMatch = !filters.date || format(new Date(report.tiempos.fin), 'P') === format(filters.date, 'P');
 
     return techMatch && assetTypeMatch && airportMatch && dateMatch;
   });
@@ -114,7 +114,7 @@ export default function Reports() {
                 )}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filters.date ? format(filters.date, "dd/MM/yyyy") : <span>Seleccionar fecha</span>}
+                {filters.date ? format(filters.date, "dd/MM/yyyy") : <span>Fecha</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">

@@ -13,119 +13,134 @@ export function AnimatedBackground() {
     let cleanup = () => {}
 
     const initAnimation = () => {
+      // 1. ESCENA LIMPIA
       const scene = new THREE.Scene()
-      
-      // Cámara ajustada para ver el objeto desde un ángulo técnico
       const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100)
-      
+      camera.position.z = 18 // Distancia perfecta para ver el detalle
+
       const renderer = new THREE.WebGLRenderer({ 
         canvas: canvas, 
-        alpha: true, 
-        antialias: true 
+        alpha: true, // FONDO TRANSPARENTE (CRUCIAL)
+        antialias: true // Bordes suaves, sin dientes de sierra
       })
       
       renderer.setSize(window.innerWidth, window.innerHeight)
       renderer.setPixelRatio(window.devicePixelRatio)
 
-      const engineGroup = new THREE.Group()
-      scene.add(engineGroup)
+      const reactorGroup = new THREE.Group()
+      scene.add(reactorGroup)
 
-      // --- 1. ESTILO "BLUEPRINT" (Solo Líneas) ---
-      // Color azul oscuro técnico, muy sutil
-      const lineColor = new THREE.Color(0x1a4b6e) 
-      const highlightColor = new THREE.Color(0x00AEEF)
+      // 2. MATERIALES ELEGANTES (Mate y Fino)
+      // Azul corporativo serio, no neón
+      const techBlue = new THREE.Color(0x00AEEF) 
+      const darkBlue = new THREE.Color(0x005577)
 
+      // Material de líneas finas
       const lineMaterial = new THREE.LineBasicMaterial({
-        color: lineColor,
+        color: techBlue,
         transparent: true,
-        opacity: 0.2, // MUY BAJA OPACIDAD (Clave para no distraer)
+        opacity: 0.2, // Sutil
       })
 
-      const highlightMaterial = new THREE.LineBasicMaterial({
-        color: highlightColor,
+      // Material de núcleo sólido pero transparente (Cristal)
+      const coreMaterial = new THREE.MeshBasicMaterial({
+        color: techBlue,
+        wireframe: true,
         transparent: true,
-        opacity: 0.15, 
+        opacity: 0.15
       })
 
-      // --- 2. CONSTRUCCIÓN DEL MOTOR (Esquemático) ---
-      
-      // Cilindro Principal (Carcasa) - Usamos EdgesGeometry para ver solo los bordes
-      const mainCylGeo = new THREE.CylinderGeometry(4, 4, 12, 16, 1, true)
-      const mainCylEdges = new THREE.EdgesGeometry(mainCylGeo)
-      const mainCyl = new THREE.LineSegments(mainCylEdges, lineMaterial)
-      // Rotamos para que esté horizontal
-      mainCyl.rotation.z = Math.PI / 2
-      engineGroup.add(mainCyl)
+      // 3. CONSTRUCCIÓN DEL REACTOR (ARQUITECTURA)
 
-      // Cilindro Interior (Rotor)
-      const rotorGeo = new THREE.CylinderGeometry(2, 2, 12, 12, 1, true)
-      const rotorEdges = new THREE.EdgesGeometry(rotorGeo)
-      const rotor = new THREE.LineSegments(rotorEdges, lineMaterial)
-      rotor.rotation.z = Math.PI / 2
-      engineGroup.add(rotor)
+      // A. El Núcleo (La Fuente de Energía)
+      // Un Icosaedro simple y elegante
+      const coreGeo = new THREE.IcosahedronGeometry(2.5, 1)
+      const core = new THREE.Mesh(coreGeo, coreMaterial)
+      reactorGroup.add(core)
 
-      // Cono Frontal
-      const coneGeo = new THREE.ConeGeometry(2, 3, 16, 1, true)
-      const coneEdges = new THREE.EdgesGeometry(coneGeo)
-      const cone = new THREE.LineSegments(coneEdges, highlightMaterial)
-      cone.rotation.z = -Math.PI / 2
-      cone.position.x = -7.5
-      engineGroup.add(cone)
+      // Líneas de refuerzo del núcleo (para que se vea técnico)
+      const coreEdges = new THREE.EdgesGeometry(coreGeo)
+      const coreLines = new THREE.LineSegments(coreEdges, lineMaterial)
+      reactorGroup.add(coreLines)
 
-      // Anillos de Sección (Detalles técnicos)
-      const ringGeo = new THREE.TorusGeometry(4.2, 0.05, 2, 32)
-      // Creamos 3 anillos distribuidos
-      for(let i = -1; i <= 1; i++) {
-        const ring = new THREE.Mesh(ringGeo, highlightMaterial)
-        ring.rotation.y = Math.PI / 2
-        ring.position.x = i * 4 // Separación
-        engineGroup.add(ring)
-      }
 
-      // --- 3. PARTICULAS DE FONDO (Polvo estático) ---
-      // Muy pocas, muy lentas, solo para dar profundidad 3D
-      const particlesGeo = new THREE.BufferGeometry()
-      const pCount = 100
-      const pPos = new Float32Array(pCount * 3)
-      for(let i=0; i<pCount*3; i++) {
-        pPos[i] = (Math.random() - 0.5) * 40
-      }
-      particlesGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3))
-      const particlesMat = new THREE.PointsMaterial({
-        color: lineColor, size: 0.1, transparent: true, opacity: 0.2
+      // B. Anillos de Contención (Estator)
+      // Usamos Torus pero muy finos, como aros de precisión
+      const ringGeo = new THREE.TorusGeometry(4.5, 0.02, 16, 100) // Tubo de 0.02 (Muy fino)
+      const ring1 = new THREE.Mesh(ringGeo, lineMaterial)
+      const ring2 = new THREE.Mesh(ringGeo, lineMaterial)
+      const ring3 = new THREE.Mesh(ringGeo, lineMaterial)
+
+      // Rotación inicial simétrica (Átomo clásico)
+      ring1.rotation.x = Math.PI / 2
+      ring2.rotation.x = Math.PI / 2
+      ring2.rotation.y = Math.PI / 3
+      ring3.rotation.x = Math.PI / 2
+      ring3.rotation.y = -Math.PI / 3
+
+      reactorGroup.add(ring1)
+      reactorGroup.add(ring2)
+      reactorGroup.add(ring3)
+
+
+      // C. El Anillo Exterior (La Carcasa)
+      // Un anillo plano que encierra todo
+      const outerRingGeo = new THREE.RingGeometry(5.8, 6.0, 64)
+      const outerRingMat = new THREE.MeshBasicMaterial({
+        color: darkBlue,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.1
       })
-      const particles = new THREE.Points(particlesGeo, particlesMat)
-      scene.add(particles)
+      const outerRing = new THREE.Mesh(outerRingGeo, outerRingMat)
+      reactorGroup.add(outerRing)
 
-
-      // --- 4. POSICIONAMIENTO ESTRATÉGICO ---
-      const updateLayout = () => {
-        const width = window.innerWidth
-        if (width > 768) {
-          // PC: Movemos el motor a la DERECHA para dejar texto libre a la izquierda
-          engineGroup.position.set(6, 0, 0)
-          camera.position.z = 15
-        } else {
-          // Móvil: Lo ponemos abajo o muy atrás
-          engineGroup.position.set(0, 2, 0)
-          camera.position.z = 25
-        }
+      // Marcadores de "Reloj" en el anillo exterior (Detalle técnico)
+      const ticksGroup = new THREE.Group()
+      const tickGeo = new THREE.BoxGeometry(0.1, 0.5, 0)
+      for (let i = 0; i < 12; i++) {
+        const tick = new THREE.Mesh(tickGeo, lineMaterial)
+        const angle = (i / 12) * Math.PI * 2
+        tick.position.x = Math.cos(angle) * 6.2
+        tick.position.y = Math.sin(angle) * 6.2
+        tick.rotation.z = angle - Math.PI / 2
+        ticksGroup.add(tick)
       }
-      updateLayout()
+      reactorGroup.add(ticksGroup)
 
-      // --- ANIMACIÓN ---
-      let animationId: number
+
+      // 4. INTERACCIÓN (Suave)
+      let mouseX = 0
+      let mouseY = 0
+      const handleMouseMove = (e: MouseEvent) => {
+        // Reducimos sensibilidad para que no "baile"
+        mouseX = (e.clientX - window.innerWidth / 2) * 0.0002 
+        mouseY = (e.clientY - window.innerHeight / 2) * 0.0002
+      }
+      document.addEventListener("mousemove", handleMouseMove)
+
+
+      // 5. ANIMACIÓN (Lenta y Constante)
       const animate = () => {
-        animationId = requestAnimationFrame(animate)
-        
-        // Rotación CONSTANTE y LENTA (Estabilidad)
-        // Solo rota sobre su eje X (el eje longitudinal del motor)
-        mainCyl.rotation.y += 0.001
-        rotor.rotation.y += 0.002 // El interior gira un poco más rápido
-        cone.rotation.y += 0.002
+        requestAnimationFrame(animate)
 
-        // Sutil movimiento flotante (breathing)
-        engineGroup.position.y += Math.sin(Date.now() * 0.001) * 0.002
+        // Rotación del núcleo (Energía latente)
+        core.rotation.y += 0.002
+        coreLines.rotation.y += 0.002
+        core.rotation.z -= 0.001
+
+        // Rotación de los anillos (Mecánica de precisión)
+        ring1.rotation.x += 0.002
+        ring2.rotation.x += 0.002
+        ring3.rotation.x += 0.002
+
+        // Rotación del anillo exterior (Lentísima)
+        outerRing.rotation.z -= 0.001
+        ticksGroup.rotation.z -= 0.001
+
+        // Parallax suave
+        reactorGroup.rotation.y += 0.05 * (mouseX - reactorGroup.rotation.y)
+        reactorGroup.rotation.x += 0.05 * (mouseY - reactorGroup.rotation.x)
 
         renderer.render(scene, camera)
       }
@@ -136,15 +151,14 @@ export function AnimatedBackground() {
         camera.aspect = window.innerWidth / window.innerHeight
         camera.updateProjectionMatrix()
         renderer.setSize(window.innerWidth, window.innerHeight)
-        updateLayout()
       }
       window.addEventListener("resize", handleResize)
 
       cleanup = () => {
-        cancelAnimationFrame(animationId)
         window.removeEventListener("resize", handleResize)
+        document.removeEventListener("mousemove", handleMouseMove)
         renderer.dispose()
-        mainCylGeo.dispose(); rotorGeo.dispose(); coneGeo.dispose();
+        coreGeo.dispose(); ringGeo.dispose(); outerRingGeo.dispose();
       }
     }
 
@@ -156,8 +170,8 @@ export function AnimatedBackground() {
     <canvas 
       ref={canvasRef} 
       className="fixed top-0 left-0 z-0 w-full h-full pointer-events-none"
-      // Fondo muy oscuro para que resalte la elegancia
-      style={{ opacity: 0.6 }} 
+      // SIN FONDO DE COLOR, solo opacidad sutil
+      style={{ opacity: 0.8 }} 
     />
   )
 }

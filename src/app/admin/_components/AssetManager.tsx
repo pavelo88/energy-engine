@@ -65,7 +65,7 @@ export default function AssetManager() {
       <CardContent>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Input 
-            placeholder="Buscar por ID, modelo, S/N..."
+            placeholder="Buscar ID, modelo, S/N..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
