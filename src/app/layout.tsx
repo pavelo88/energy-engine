@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
+import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 
 const APP_NAME = "AssetTrack AI";
 const APP_DESCRIPTION = "Asset-Track AI platform for Energy Engine España";
@@ -51,6 +52,7 @@ export default function RootLayout({
         >
             <AnimatedBackground />
             {children}
+            <FloatingWhatsApp />
             <Toaster />
         </ThemeProvider>
       </body>
