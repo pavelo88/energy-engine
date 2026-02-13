@@ -43,7 +43,7 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
     
     return (
         // Fondo de la sección: azul claro en modo claro, gris oscuro en modo oscuro
-        <section id="marcas" className="py-16 bg-muted/40 dark:bg-secondary/30 border-y border-primary/10 scroll-mt-20">
+        <section id="marcas" className="py-16 bg-muted/40 dark:bg-secondary/30 border-y border-primary/10">
           <div className="container mx-auto px-6">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-24">
               <span className="block md:inline">Aliados</span>

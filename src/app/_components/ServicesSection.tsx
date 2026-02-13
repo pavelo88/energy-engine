@@ -13,7 +13,7 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
     }
 
     return (
-        <section id="servicios" className="container mx-auto px-6 py-16 scroll-mt-20">
+        <section id="servicios" className="container mx-auto px-6 py-16">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
               <span className="block md:inline">Nuestras </span>
