@@ -62,10 +62,9 @@ export default function AssetManager() {
         <CardDescription>Visualiza, filtra y gestiona el maestro de activos de la empresa.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Input 
-            placeholder="Buscar por ID, modelo, S/N..." 
-            className="sm:col-span-2 lg:col-span-1"
+            placeholder="Buscar por ID, modelo, S/N..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />

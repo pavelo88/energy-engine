@@ -79,7 +79,7 @@ export default function Reports() {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-2 gap-4 mb-6">
           <Select value={filters.technician} onValueChange={v => handleFilterChange('technician', v)}>
             <SelectTrigger><SelectValue placeholder="Técnico" /></SelectTrigger>
             <SelectContent>

@@ -14,7 +14,8 @@ export function AnimatedBackground() {
 
     const initAnimation = () => {
       const scene = new THREE.Scene()
-      const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000)
+      // Cámara un poco más lejos para ver la estructura completa
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000)
       
       const renderer = new THREE.WebGLRenderer({ 
         canvas: canvas, 
@@ -28,152 +29,152 @@ export function AnimatedBackground() {
       const mainGroup = new THREE.Group()
       scene.add(mainGroup)
 
-      // --- 1. COLORES (Mantenemos tu cian tecnológico) ---
-      const baseColorHex = 0x00c8ff
-      const darkColor = new THREE.Color(baseColorHex)
-      const lightColor = new THREE.Color(baseColorHex)
+      // --- 1. COLORES INDUSTRIALES ---
+      // Usamos un Azul "Ingeniería" (más serio que el cian neón)
+      const baseColor = new THREE.Color(0x00AEEF) 
+      const secondaryColor = new THREE.Color(0x005577)
 
-      // --- 2. EL NÚCLEO (Red Geodésica) ---
-      // Usamos detail=2 para que tenga más triangulos (parece una red global)
-      const coreGeo = new THREE.IcosahedronGeometry(10, 2) 
-      const coreMat = new THREE.MeshBasicMaterial({ 
-        color: darkColor,
-        wireframe: true, // Importante: modo alambre para que se vea "tech"
+      // --- 2. EL ACTIVO CRÍTICO (La Turbina / Estator) ---
+      // CylinderGeometry(radioTop, radioBottom, height, segmentosRadiales, segmentosAltura, openEnded)
+      const turbineGeo = new THREE.CylinderGeometry(6, 6, 16, 24, 6, true)
+      const turbineMat = new THREE.MeshBasicMaterial({ 
+        color: baseColor,
+        wireframe: true, // Estilo plano técnico / Blueprint
         transparent: true,
-        opacity: 0.15 // Muy sutil, como un holograma
-      }) 
-      const coreMesh = new THREE.Mesh(coreGeo, coreMat)
-      mainGroup.add(coreMesh)
-
-      // Capa externa del núcleo (Aristas brillantes)
-      const edgesGeo = new THREE.EdgesGeometry(coreGeo)
-      const edgesMat = new THREE.LineBasicMaterial({
-        color: darkColor,
-        transparent: true,
-        opacity: 0.3
+        opacity: 0.15,
       })
-      const edgesLines = new THREE.LineSegments(edgesGeo, edgesMat)
-      // Lo escalamos un pelín para que brille por fuera
-      edgesLines.scale.set(1.01, 1.01, 1.01) 
-      mainGroup.add(edgesLines)
+      const turbineMesh = new THREE.Mesh(turbineGeo, turbineMat)
+      // Lo rotamos 90 grados si quisieras que fuera horizontal, pero vertical impone más "estabilidad"
+      mainGroup.add(turbineMesh)
 
-
-      // --- 3. ANILLOS ORBITALES (Giroscopio Tech) ---
-      // Creamos 3 anillos con diferentes inclinaciones
-      const ringGeo = new THREE.TorusGeometry(14, 0.1, 16, 100) // Radio 14, Tubo muy fino
-      const ringMat = new THREE.MeshBasicMaterial({
-        color: darkColor,
+      // --- 3. EL NÚCLEO (El Eje / Rotor) ---
+      // Un cilindro más pequeño adentro para dar densidad mecánica
+      const shaftGeo = new THREE.CylinderGeometry(2, 2, 16, 12, 2, false)
+      const shaftMat = new THREE.MeshBasicMaterial({
+        color: secondaryColor,
+        wireframe: true,
         transparent: true,
-        opacity: 0.6
+        opacity: 0.2
       })
+      const shaftMesh = new THREE.Mesh(shaftGeo, shaftMat)
+      mainGroup.add(shaftMesh)
 
-      const ring1 = new THREE.Mesh(ringGeo, ringMat)
-      const ring2 = new THREE.Mesh(ringGeo, ringMat)
-      const ring3 = new THREE.Mesh(ringGeo, ringMat)
-
-      // Rotaciones iniciales para que no estén planos
-      ring1.rotation.x = Math.PI / 2
-      ring2.rotation.x = Math.PI / 4
-      ring2.rotation.y = Math.PI / 4
+      // --- 4. ANILLOS DE ESCANEO (Simula Monitoreo/Mantenimiento) ---
+      // Estos anillos subirán y bajarán "escaneando" la turbina
+      const scannerGeo = new THREE.TorusGeometry(6.2, 0.05, 16, 100)
+      const scannerMat = new THREE.MeshBasicMaterial({
+        color: baseColor,
+        transparent: true,
+        opacity: 0.8
+      })
       
-      mainGroup.add(ring1)
-      mainGroup.add(ring2)
-      mainGroup.add(ring3)
+      const scanner1 = new THREE.Mesh(scannerGeo, scannerMat)
+      const scanner2 = new THREE.Mesh(scannerGeo, scannerMat)
+      
+      // Rotamos 90 grados en X para que queden planos horizontalmente
+      scanner1.rotation.x = Math.PI / 2
+      scanner2.rotation.x = Math.PI / 2
+      
+      mainGroup.add(scanner1)
+      mainGroup.add(scanner2)
 
-
-      // --- 4. LA ATMÓSFERA (Datos flotantes) ---
-      const particleCount = 2000 // Bajamos un poco la cantidad para limpiar la vista
+      // --- 5. FLUJO DE ENERGÍA (Partículas verticales) ---
+      // Simula el gas, vapor o electricidad pasando por la máquina
+      const particleCount = 600
       const particlesGeo = new THREE.BufferGeometry()
       const posArray = new Float32Array(particleCount * 3)
-      
-      for(let i = 0; i < particleCount * 3; i++) {
-        // Esparcimos más en horizontal (ancho) que en vertical para pantallas wide
-        posArray[i] = (Math.random() - 0.5) * 140 
+      // Array extra para guardar la velocidad aleatoria de cada partícula
+      const speeds = new Float32Array(particleCount) 
+
+      for(let i = 0; i < particleCount; i++) {
+        // X y Z en un radio alrededor de la turbina
+        const angle = Math.random() * Math.PI * 2
+        const radius = Math.random() * 12 // Esparcidos alrededor
+        
+        posArray[i * 3] = Math.cos(angle) * radius // x
+        posArray[i * 3 + 1] = (Math.random() - 0.5) * 40 // y (altura extendida)
+        posArray[i * 3 + 2] = Math.sin(angle) * radius // z
+        
+        speeds[i] = 0.02 + Math.random() * 0.05 // Velocidad vertical
       }
       
       particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3))
       
       const particlesMat = new THREE.PointsMaterial({
-        size: 0.2, // Puntos más finos
-        color: darkColor, 
+        size: 0.1,
+        color: baseColor, 
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.4,
       })
       
       const particlesMesh = new THREE.Points(particlesGeo, particlesMat)
       mainGroup.add(particlesMesh)
 
-      // --- 5. Lógica de Tema ---
-      const updateTheme = () => {
-        const isLight = document.body.classList.contains('light-mode');
-        const newColor = isLight ? lightColor : darkColor;
-        
-        // Actualizamos todos los materiales
-        coreMat.color.set(newColor);
-        edgesMat.color.set(newColor);
-        ringMat.color.set(newColor);
-        particlesMat.color.set(newColor);
-        
-        canvas.style.opacity = isLight ? '0.8' : '0.6'; // Ajuste de opacidad global
-      }
 
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.attributeName === "class") updateTheme();
-        });
-      });
-      observer.observe(document.body, { attributes: true });
-
-      // --- 6. Lógica de Cámara ---
+      // --- 6. Responsive y Cámara ---
       const updateCameraPosition = () => {
-        // Ajustamos la distancia: en móvil más lejos para ver todo el sistema
-        camera.position.z = window.innerWidth < 768 ? 50 : 35;
+        // En móvil alejamos más la cámara para que quepa la turbina
+        const isMobile = window.innerWidth < 768
+        camera.position.z = isMobile ? 45 : 30
+        camera.position.y = isMobile ? 0 : 0
       }
       
       updateCameraPosition();
-      updateTheme();
 
-      // INTERACCIÓN
+      // INTERACCIÓN MOUSE (Para rotar la vista de la máquina)
       let mouseX = 0
       let mouseY = 0
       
       const handleMouseMove = (event: MouseEvent) => {
-        mouseX = (event.clientX - window.innerWidth / 2) * 0.0005 // Movimiento más suave
+        mouseX = (event.clientX - window.innerWidth / 2) * 0.0005
         mouseY = (event.clientY - window.innerHeight / 2) * 0.0005
       }
       document.addEventListener("mousemove", handleMouseMove)
 
       // ANIMACIÓN
+      let time = 0
       let animationId: number
+      
       const animate = () => {
         animationId = requestAnimationFrame(animate)
-        
-        // Rotación del núcleo
-        coreMesh.rotation.y += 0.002
-        edgesLines.rotation.y += 0.002
+        time += 0.01
 
-        // Rotación independiente de los anillos (Efecto Giroscopio)
-        ring1.rotation.x += 0.005
-        ring1.rotation.y += 0.005
-        
-        ring2.rotation.x -= 0.003
-        ring2.rotation.y += 0.003
+        // 1. Rotación lenta y técnica de la turbina (Estabilidad)
+        turbineMesh.rotation.y += 0.002
+        shaftMesh.rotation.y -= 0.002 // Contrarrotación
 
-        ring3.rotation.x += 0.004
-        ring3.rotation.y -= 0.004
-
-        // Partículas flotando lento
-        particlesMesh.rotation.y = -performance.now() * 0.00005
+        // 2. Animación de los Escáneres (Seno para subir y bajar)
+        // El scanner 1 sube y baja
+        scanner1.position.y = Math.sin(time * 0.5) * 7 
+        // El scanner 2 va a destiempo
+        scanner2.position.y = Math.sin(time * 0.5 + Math.PI) * 7 
         
-        // Parallax con el mouse (movimiento de todo el grupo)
+        // Efecto visual: Cambiar opacidad según la altura para que se desvanezcan en los bordes
+        // (Opcional, pero se ve cool)
+
+        // 3. Flujo de partículas (Bucle infinito hacia arriba)
+        const positions = particlesGeo.attributes.position.array as Float32Array
+        for(let i = 0; i < particleCount; i++) {
+            // Mover en Y
+            positions[i * 3 + 1] += speeds[i]
+            
+            // Si sube demasiado (20), reiniciamos abajo (-20)
+            if (positions[i * 3 + 1] > 20) {
+                positions[i * 3 + 1] = -20
+            }
+        }
+        particlesGeo.attributes.position.needsUpdate = true
+
+        // 4. Movimiento suave con el mouse (Tilt)
         mainGroup.rotation.y += 0.05 * (mouseX - mainGroup.rotation.y)
+        // Limitamos la rotación en X para que no se voltee la máquina
         mainGroup.rotation.x += 0.05 * (mouseY - mainGroup.rotation.x)
+        mainGroup.rotation.z = -0.1 // Una leve inclinación estética
 
         renderer.render(scene, camera)
       }
       animate()
 
-      // Resize
       const handleResize = () => {
         camera.aspect = window.innerWidth / window.innerHeight
         camera.updateProjectionMatrix()
@@ -186,20 +187,15 @@ export function AnimatedBackground() {
         cancelAnimationFrame(animationId)
         window.removeEventListener("resize", handleResize)
         document.removeEventListener("mousemove", handleMouseMove)
-        observer.disconnect() 
         
-        // Limpiar geometrías nuevas
-        coreGeo.dispose()
-        edgesGeo.dispose()
-        ringGeo.dispose()
+        turbineGeo.dispose()
+        shaftGeo.dispose()
+        scannerGeo.dispose()
         particlesGeo.dispose()
-        
-        // Limpiar materiales
-        coreMat.dispose()
-        edgesMat.dispose()
-        ringMat.dispose()
+        turbineMat.dispose()
+        shaftMat.dispose()
+        scannerMat.dispose()
         particlesMat.dispose()
-        
         renderer.dispose()
       }
     }
@@ -213,8 +209,7 @@ export function AnimatedBackground() {
     <canvas 
       ref={canvasRef} 
       id="bg-canvas" 
-      // Opacidad reducida para que no moleste al leer texto
-      className="fixed top-0 left-0 z-0 w-full h-full opacity-60 transition-opacity duration-300 pointer-events-none"
+      className="fixed top-0 left-0 z-0 w-full h-full opacity-50 pointer-events-none"
     />
   )
 }
