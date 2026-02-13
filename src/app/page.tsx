@@ -44,6 +44,13 @@ export default async function Home() {
   const safeBrands = Array.isArray(webContent.trusted_brands) ? webContent.trusted_brands : [];
   const brandList = [...safeBrands, ...safeBrands];
 
+  const gridLayout =
+    servicios.length % 3 === 0
+      ? 'lg:grid-cols-3'
+      : servicios.length % 2 === 0
+      ? 'lg:grid-cols-2'
+      : 'lg:grid-cols-3';
+
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
        <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/80 backdrop-blur-sm">
@@ -71,7 +78,7 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        <section id="home" className="container mx-auto relative py-24 md:py-32 min-h-[calc(80vh-4rem)] flex items-center justify-center text-center">
+        <section id="home" className="container mx-auto relative py-24 md:py-32 flex items-center justify-center text-center">
             <div className="flex flex-col items-center">
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
                   INGENIERÍA ENERGÉTICA <span className="text-primary">DE VANGUARDIA</span>
@@ -143,7 +150,7 @@ export default async function Home() {
               </Carousel>
           </div>
           
-          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className={`hidden md:grid grid-cols-1 md:grid-cols-2 ${gridLayout} gap-8`}>
             {servicios.map((servicio) => (
                 <div key={servicio.titulo} className="flex">
                     <Card className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 w-full">
@@ -214,50 +221,48 @@ export default async function Home() {
               </div>
               <Button type="submit" className="w-full font-bold">Enviar Consulta</Button>
             </form>
-            <div className="space-y-6 flex flex-col">
-                <div className="tech-glass p-6 rounded-lg flex-grow flex flex-col">
-                    <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Datos de Contacto</h3>
-                    <div className="space-y-4 mb-6">
-                        <a href="https://wa.me/34000000000" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
-                            <Phone className="w-6 h-6 text-primary" />
-                            <div>
-                                <p className="font-semibold text-foreground group-hover:text-primary transition-colors">+34 000 000 000</p>
-                                <p className="text-sm text-foreground/60">Habla con un experto.</p>
-                            </div>
-                        </a>
-                        <a href="mailto:contacto@energy-engine.es" className="flex items-center gap-4 group">
-                            <Mail className="w-6 h-6 text-primary" />
-                            <div>
-                                <p className="font-semibold text-foreground group-hover:text-primary transition-colors">contacto@energy-engine.es</p>
-                                <p className="text-sm text-foreground/60">Para consultas detalladas.</p>
-                            </div>
-                        </a>
-                    </div>
-                     <div className="flex gap-4 mb-6">
-                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                        <a href="#" aria-label="LinkedIn"><Linkedin /></a>
-                        </Button>
-                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                        <a href="#" aria-label="Facebook"><Facebook /></a>
-                        </Button>
-                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                        <a href="#" aria-label="Instagram"><Instagram /></a>
-                        </Button>
-                    </div>
-                    <div className="relative aspect-video w-full mt-auto rounded-md overflow-hidden border border-primary/20">
-                      {contactMapImage ? (
-                          <Image src={contactMapImage.imageUrl} alt="Mapa de ubicación" fill className="object-cover" data-ai-hint={contactMapImage.imageHint} />
-                      ) : (
-                          <div className="w-full h-full bg-muted flex items-center justify-center">
-                              <MapPin className="w-12 h-12 text-muted-foreground" />
-                          </div>
-                      )}
-                       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
-                       <div className="absolute bottom-4 left-4">
-                         <p className="font-semibold text-foreground">Madrid, España</p>
-                         <p className="text-sm text-foreground/60">Oficinas centrales.</p>
-                       </div>
-                    </div>
+            <div className="tech-glass p-8 rounded-lg flex flex-col space-y-6">
+                <h3 className="font-bold text-xl font-orbitron text-primary">Datos de Contacto</h3>
+                <div className="space-y-4">
+                    <a href="https://wa.me/34000000000" target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 group">
+                        <Phone className="w-6 h-6 text-primary" />
+                        <div>
+                            <p className="font-semibold text-foreground group-hover:text-primary transition-colors">+34 000 000 000</p>
+                            <p className="text-sm text-foreground/60">Habla con un experto.</p>
+                        </div>
+                    </a>
+                    <a href="mailto:contacto@energy-engine.es" className="flex items-center gap-4 group">
+                        <Mail className="w-6 h-6 text-primary" />
+                        <div>
+                            <p className="font-semibold text-foreground group-hover:text-primary transition-colors">contacto@energy-engine.es</p>
+                            <p className="text-sm text-foreground/60">Para consultas detalladas.</p>
+                        </div>
+                    </a>
+                </div>
+                 <div className="flex gap-4">
+                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                    <a href="#" aria-label="LinkedIn"><Linkedin /></a>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                    <a href="#" aria-label="Facebook"><Facebook /></a>
+                    </Button>
+                    <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                    <a href="#" aria-label="Instagram"><Instagram /></a>
+                    </Button>
+                </div>
+                <div className="relative aspect-video w-full mt-auto rounded-md overflow-hidden border border-primary/20">
+                  {contactMapImage ? (
+                      <Image src={contactMapImage.imageUrl} alt="Mapa de ubicación" fill className="object-cover" data-ai-hint={contactMapImage.imageHint} />
+                  ) : (
+                      <div className="w-full h-full bg-muted flex items-center justify-center">
+                          <MapPin className="w-12 h-12 text-muted-foreground" />
+                      </div>
+                  )}
+                   <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent"></div>
+                   <div className="absolute bottom-4 left-4">
+                     <p className="font-semibold text-foreground">Madrid, España</p>
+                     <p className="text-sm text-foreground/60">Oficinas centrales.</p>
+                   </div>
                 </div>
             </div>
           </div>
