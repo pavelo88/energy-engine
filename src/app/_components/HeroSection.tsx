@@ -18,13 +18,13 @@ interface HeroSectionProps {
 
 export default function HeroSection({ hero, stats }: HeroSectionProps) {
   return (
-    <section id="home" className="container mx-auto relative pt-24 pb-12 md:pt-32 md:pb-24">
+    <section id="home" className="container mx-auto px-6 relative pt-24 pb-12 md:pt-32 md:pb-24">
       <div className="grid lg:grid-cols-2 gap-12 items-center">
         <div className="text-center lg:text-left">
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
-              <span className="block lg:inline">INGENIERÍA </span>
-              <span className="block lg:inline">ENERGÉTICA</span>
-              <span className="text-primary block">DE VANGUARDIA</span>
+              <span className="block">INGENIERÍA</span>
+              <span className="block text-primary">ENERGÉTICA</span>
+              <span className="block">DE VANGUARDIA</span>
             </h1>
             <p className="max-w-2xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto lg:mx-0">
             {hero.subitulo}

@@ -43,8 +43,8 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
     
     return (
         // Fondo de la sección: azul claro en modo claro, gris oscuro en modo oscuro
-        <section id="marcas" className="py-24 sm:py-32 bg-muted/40 dark:bg-secondary/20 border-y border-primary/10">
-          <div className="container mx-auto">
+        <section id="marcas" className="py-24 sm:py-32 bg-muted/95 dark:bg-secondary/80 border-y border-primary/10">
+          <div className="container mx-auto px-6">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-24">
               <span className="block md:inline">Trabajamos con </span>
               <span className="text-primary block md:inline">Primeras Marcas</span>
