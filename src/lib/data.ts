@@ -1,6 +1,6 @@
 
 import { db } from '@/lib/firebase/config';
-import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, query, where, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, addDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import type { User, Asset, Report, WebContent, UserRole } from './types';
 import { PlaceHolderImages } from './placeholder-images';
 import { localDb } from './db';
@@ -83,7 +83,16 @@ export async function getWebContent(): Promise<WebContent> {
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
-        return docSnap.data() as WebContent;
+        const data = docSnap.data() as WebContent;
+         // Provide default metadata if it's missing
+        if (!data.metadata) {
+            data.metadata = {
+                title: 'Energy Engine | Soluciones de Ingeniería Energética',
+                description: 'Líderes en mantenimiento, operación y optimización de grupos electrógenos y activos críticos.',
+                keywords: 'grupos electrógenos, mantenimiento predictivo, ingeniería energética, cogeneración, Energy Engine España, recambios, asistencia técnica 24/7'
+            };
+        }
+        return data;
     } else {
         // Return a default structure if it doesn't exist, which can be saved later
         return {
@@ -123,21 +132,25 @@ export async function updateWebContent(newContent: WebContent): Promise<WebConte
     return newContent;
 }
 
+export async function syncReportToFirestore(report: Report): Promise<void> {
+  console.log(`Syncing report ${report.id_informe} to Firestore.`);
+  const reportsCollection = collection(db, 'reports');
+  await setDoc(doc(reportsCollection, report.id_informe), report);
+
+  const assetRef = doc(db, 'assets', report.id_bien);
+  await updateDoc(assetRef, {
+      estado: report.estado
+  });
+  console.log(`Report ${report.id_informe} and asset status synced to Firestore.`);
+}
+
 export async function addReport(report: Report): Promise<Report> {
     const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
     if (isOnline) {
         try {
             console.log("Online. Saving report directly to Firestore.");
-            const reportsCollection = collection(db, 'reports');
-            await setDoc(doc(reportsCollection, report.id_informe), report);
-
-            const assetRef = doc(db, 'assets', report.id_bien);
-            await updateDoc(assetRef, {
-                estado: report.estado
-            });
-
-            console.log("Report and asset status synced to Firestore.");
+            await syncReportToFirestore(report);
             return report;
         } catch (error) {
              console.error("Firestore save failed. Saving to local queue for later sync.", error);

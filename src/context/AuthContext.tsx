@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode, useCall
 import type { User, UserRole } from '@/lib/types';
 import { getUsers, USER_ROLES } from '@/lib/data';
 import { AdminLogin } from '@/app/admin/_components/AdminLogin';
+import { useSyncManager } from '@/hooks/useSyncManager';
 
 const SESSION_STORAGE_KEY = 'assettrack_auth_token';
 
@@ -24,6 +25,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Initialize the sync manager. It will handle its own logic in the background.
+  useSyncManager();
 
   useEffect(() => {
     try {
