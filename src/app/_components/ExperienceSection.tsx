@@ -14,8 +14,12 @@ interface ExperienceSectionProps {
 }
 
 export default function ExperienceSection({ stats }: ExperienceSectionProps) {
+  if (!stats || stats.length === 0) {
+    return null;
+  }
+  
   return (
-    <section id="experience" className="container mx-auto px-6 py-16">
+    <section id="experience" className="container mx-auto px-6 py-8">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 max-w-5xl mx-auto">
         {stats.map((stat) => {
           const Icon = iconMap[stat.icon] || HardHat;

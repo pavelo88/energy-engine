@@ -63,14 +63,14 @@ export default function ContactSection() {
                             <a href="#" aria-label="Instagram"><Instagram /></a>
                         </Button>
                         <Button asChild variant="ghost" size="icon" className="bg-foreground/5 text-foreground/60 rounded-full hover:bg-primary/10 hover:text-primary">
-                            <a href="#" aria-label="LinkedIn"><Linkedin /></a>
+                            <a href="https://www.linkedin.com/in/energy-engine-grupos-electrogenos-74529270/?originalSubdomain=es" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn"><Linkedin /></a>
                         </Button>
                     </div>
                 </div>
 
                 <div className="relative aspect-video w-full rounded-md overflow-hidden border border-primary/20">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3060.5558853974057!2d-3.6226846999999998!3d39.9065746!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd69fd9fcbbb692b%3A0x28b5ff2cac42084!2sC.%20Miguel%20L%C3%B3pez%20Bravo%2C%206%2C%2045313%20Yepes%2C%20Toledo%2C%20Espa%C3%B1a!5e0!3m2!1ses!2sec!4v1770960048534!5m2!1ses!2sec"
+                    src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d3060.5601159996186!2d-3.6247125!3d39.9064799!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd69fd9fca56779b%3A0xd8e264de001cf92b!2sEnergy%20Engine%20Grupos%20Electr%C3%B3genos%20S.L!5e0!3m2!1ses!2sec!4v1770961761566!5m2!1ses!2sec"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
