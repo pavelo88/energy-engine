@@ -73,7 +73,7 @@ export async function getWebContent(): Promise<WebContent> {
               { icon: 'Shield', value: '99.7%', label: 'UPTIME' },
               { icon: 'Clock', value: '24/7', label: 'SOPORTE' }
             ],
-            trusted_brands: ["PELCO", "AVIGILON", "MOTOROLA", "EDWARDS", "BOSCH", "NOTIFIER", "TYCO"]
+            trusted_brands: ["Perkins", "Guascor", "Cummins", "Iveco", "Ruggerini", "Volvo Penta", "Lombardini", "MAN", "Rolls-Royce", "MTU"]
         };
     }
 }
