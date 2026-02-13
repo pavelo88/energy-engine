@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -61,15 +62,15 @@ export default function AssetManager() {
         <CardDescription>Visualiza, filtra y gestiona el maestro de activos de la empresa.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Input 
             placeholder="Buscar por ID, modelo, S/N..." 
-            className="flex-grow"
+            className="sm:col-span-2 lg:col-span-1"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <Select value={filters.id_aeropuerto} onValueChange={(value) => handleFilterChange('id_aeropuerto', value)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger>
               <SelectValue placeholder="Aeropuerto" />
             </SelectTrigger>
             <SelectContent>
@@ -79,7 +80,7 @@ export default function AssetManager() {
             </SelectContent>
           </Select>
           <Select value={filters.categoria} onValueChange={(value) => handleFilterChange('categoria', value)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger>
               <SelectValue placeholder="Categoría" />
             </SelectTrigger>
             <SelectContent>
@@ -90,7 +91,7 @@ export default function AssetManager() {
             </SelectContent>
           </Select>
           <Select value={filters.estado} onValueChange={(value) => handleFilterChange('estado', value)}>
-            <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectTrigger>
               <SelectValue placeholder="Estado" />
             </SelectTrigger>
             <SelectContent>

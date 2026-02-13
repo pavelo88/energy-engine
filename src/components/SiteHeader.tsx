@@ -1,3 +1,4 @@
+
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
@@ -24,7 +25,7 @@ export function SiteHeader() {
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <nav className="hidden lg:flex items-center gap-6 text-sm font-medium">
           {navLinks.map(link => (
             <a key={link.href} className="transition-colors hover:text-primary text-foreground/80" href={link.href}>
               {link.label}
@@ -41,7 +42,7 @@ export function SiteHeader() {
           <ThemeToggle />
           
           {/* Mobile Nav Trigger */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon">
@@ -50,8 +51,8 @@ export function SiteHeader() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="bg-background w-[280px]">
+                <SheetTitle className="sr-only">Navegación Principal</SheetTitle>
                  <div className="p-6 h-full flex flex-col">
-                    <SheetTitle className="sr-only">Navegación Principal</SheetTitle>
                     <Link className="flex items-center gap-2 mb-8" href="#" onClick={() => setIsMobileMenuOpen(false)}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
                         <span className="font-bold text-xl font-orbitron">AssetTrack AI</span>

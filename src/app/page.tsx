@@ -129,7 +129,7 @@ export default async function Home() {
               <div className="brand-ring" style={{ '--total': safeBrands.length } as React.CSSProperties}>
                 {safeBrands.map((brand, index) => {
                   const angle = (360 / safeBrands.length) * index;
-                  const radius = 250; // Adjust this for ring size
+                  const radius = 180; // Adjust this for ring size
                   return (
                     <div 
                       key={index} 
