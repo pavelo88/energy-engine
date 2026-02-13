@@ -12,7 +12,9 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
     const [radius, setRadius] = useState(280); // Default radius for PC
     const requestRef = useRef<number>();
 
-    const displayBrands = brands || [];
+    const displayBrands = (brands && brands.length > 0)
+        ? brands
+        : ["Perkins", "Guascor", "Cummins", "Iveco", "Ruggerini", "Volvo Penta", "Lombardini", "MAN", "Rolls-Royce", "MTU"];
 
     useEffect(() => {
         const handleResize = () => {
@@ -35,10 +37,6 @@ export default function MarcasSection({ brands }: MarcasSectionProps) {
             }
         };
     }, []);
-    
-    if (displayBrands.length === 0) {
-        return null;
-    }
     
     return (
         <section id="marcas" className="py-24 sm:py-32">
