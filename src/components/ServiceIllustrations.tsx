@@ -59,8 +59,8 @@ export function BlueprintBackground({ type }: { type: string }) {
         for (let i = 0; i < teeth * 2; i++) {
             const r = i % 2 === 0 ? outerRadius : innerRadius;
             const a = angle * i;
-            const x = Math.cos(a) * r;
-            const y = Math.sin(a) * r;
+            const x = (Math.cos(a) * r).toFixed(3);
+            const y = (Math.sin(a) * r).toFixed(3);
             path += `${i === 0 ? 'M' : 'L'}${x},${y} `;
         }
         path += "Z ";
