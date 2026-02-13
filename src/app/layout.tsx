@@ -1,3 +1,4 @@
+
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -6,7 +7,7 @@ import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { FloatingWhatsApp } from '@/components/FloatingWhatsApp';
 
 const APP_NAME = "Energy Engine";
-const APP_DESCRIPTION = "Energy Engine platform for Energy Engine España";
+const APP_DESCRIPTION = "Plataforma de gestión para Energy Engine España";
 
 export const metadata: Metadata = {
   applicationName: APP_NAME,
@@ -15,7 +16,6 @@ export const metadata: Metadata = {
     template: "%s | " + APP_NAME,
   },
   description: APP_DESCRIPTION,
-  // manifest: "/manifest.json", // Temporarily disabled to prevent CORS errors in dev environment
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

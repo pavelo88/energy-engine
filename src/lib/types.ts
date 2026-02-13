@@ -76,4 +76,9 @@ export interface WebContent {
     label: string;
   }>;
   trusted_brands: string[];
+  metadata: {
+    title: string;
+    description: string;
+    keywords: string;
+  };
 }

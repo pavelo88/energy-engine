@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, {
@@ -37,18 +38,7 @@ export function ThemeProvider({
   enableSystem = true,
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') {
-      return defaultTheme;
-    }
-    try {
-      return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
-    } catch (e) {
-      console.warn('Could not access localStorage. Falling back to default theme.');
-      return defaultTheme;
-    }
-  });
-
+  const [theme, setTheme] = useState<Theme>(defaultTheme);
   const [resolvedTheme, setResolvedTheme] = useState<'dark' | 'light'>();
 
   const applyTheme = useCallback((themeToApply: Theme) => {
@@ -66,14 +56,8 @@ export function ThemeProvider({
     
     root.classList.remove('light', 'dark');
     root.classList.add(finalTheme);
-    
-    try {
-      localStorage.setItem(storageKey, themeToApply);
-    } catch (e) {
-      console.warn('Could not save theme to localStorage.');
-    }
 
-  }, [enableSystem, storageKey]);
+  }, [enableSystem]);
 
   useEffect(() => {
     applyTheme(theme);

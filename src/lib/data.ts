@@ -73,7 +73,12 @@ export async function getWebContent(): Promise<WebContent> {
               { icon: 'Shield', value: '99.7%', label: 'UPTIME' },
               { icon: 'Clock', value: '24/7', label: 'SOPORTE' }
             ],
-            trusted_brands: ["Perkins", "Guascor", "Cummins", "Iveco", "Ruggerini", "Volvo Penta", "Lombardini", "MAN", "Rolls-Royce", "MTU"]
+            trusted_brands: ["Perkins", "Guascor", "Cummins", "Iveco", "Ruggerini", "Volvo Penta", "Lombardini", "MAN", "Rolls-Royce", "MTU"],
+            metadata: {
+                title: 'Energy Engine | Soluciones de Ingeniería Energética',
+                description: 'Líderes en mantenimiento, operación y optimización de grupos electrógenos y activos críticos. Ofrecemos servicio 24/7 y recambios urgentes.',
+                keywords: 'grupos electrógenos, mantenimiento predictivo, ingeniería energética, cogeneración, Energy Engine España, recambios, asistencia técnica 24/7'
+            }
         };
     }
 }

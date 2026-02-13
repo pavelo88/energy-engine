@@ -1,5 +1,7 @@
 
+import type { Metadata } from 'next';
 import { getWebContent } from '@/lib/data';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 import { SiteHeader } from '@/components/SiteHeader';
 import HeroSection from './_components/HeroSection';
@@ -8,6 +10,39 @@ import ServicesSection from './_components/ServicesSection';
 import ContactSection from './_components/ContactSection';
 import Footer from './_components/Footer';
 import ExperienceSection from './_components/ExperienceSection';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const webContent = await getWebContent();
+  const metadata = webContent.metadata;
+  const heroImage = PlaceHolderImages.find(img => img.id === webContent.hero.imagen_id);
+
+  return {
+    title: metadata.title,
+    description: metadata.description,
+    keywords: metadata.keywords?.split(',').map(k => k.trim()),
+    openGraph: {
+      title: metadata.title,
+      description: metadata.description,
+      url: '/',
+      siteName: 'Energy Engine España',
+      images: [
+        {
+          url: heroImage?.imageUrl || '',
+          width: 1200,
+          height: 630,
+        },
+      ],
+      locale: 'es_ES',
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: metadata.title,
+      description: metadata.description,
+      images: [heroImage?.imageUrl || ''],
+    },
+  };
+}
 
 export default async function Home() {
   const webContent = await getWebContent();

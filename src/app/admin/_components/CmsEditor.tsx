@@ -48,6 +48,14 @@ export default function CmsEditor() {
                 ];
             }
 
+            if (!data.metadata) {
+                data.metadata = {
+                    title: 'Energy Engine | Soluciones de Ingeniería Energética',
+                    description: 'Líderes en mantenimiento, operación y optimización de grupos electrógenos y activos críticos. Ofrecemos servicio 24/7 y recambios urgentes.',
+                    keywords: 'grupos electrógenos, mantenimiento predictivo, ingeniería energética, cogeneración, Energy Engine España, recambios, asistencia técnica 24/7'
+                };
+            }
+
             setContent(data);
             setLoading(false);
         };
@@ -252,8 +260,30 @@ export default function CmsEditor() {
                 </CardContent>
             </Card>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>SEO y Metadatos</CardTitle>
+                    <CardDescription>Optimiza cómo los buscadores y redes sociales ven tu página.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="meta-title">Título de la Página (Title Tag)</Label>
+                        <Input id="meta-title" value={content.metadata?.title || ''} onChange={e => handleInputChange('metadata', 'title', e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="meta-description">Descripción (Meta Description)</Label>
+                        <Textarea id="meta-description" value={content.metadata?.description || ''} onChange={e => handleInputChange('metadata', 'description', e.target.value)} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="meta-keywords">Palabras Clave (Keywords)</Label>
+                        <Textarea id="meta-keywords" value={content.metadata?.keywords || ''} onChange={e => handleInputChange('metadata', 'keywords', e.target.value)} />
+                        <p className="text-xs text-muted-foreground">
+                            Separar las palabras o frases por comas.
+                        </p>
+                    </div>
+                </CardContent>
+            </Card>
+
         </div>
     );
 }
-
-    
