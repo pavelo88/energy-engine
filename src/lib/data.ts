@@ -55,17 +55,17 @@ export async function getWebContent(): Promise<WebContent> {
         return {
             id: 'config_principal',
             hero: {
-                titulo: 'Protegemos su INFRAESTRUCTURA',
-                subitulo: 'Soluciones integrales de mantenimiento predictivo, ingeniería y automatización industrial para activos críticos.',
+                titulo: 'INGENIERÍA ENERGÉTICA DE VANGUARDIA',
+                subitulo: 'Maximizando la eficiencia y fiabilidad de activos críticos en infraestructuras clave.',
                 imagen_id: 'hero-image'
             },
             servicios: [
-                { icono: 'mantenimiento', titulo: 'Mantenimiento Predictivo y Correctivo', descripcion: 'Anticipamos fallos antes de que ocurran, utilizando IA para análisis de datos y optimización de rendimiento energético.' },
-                { icono: 'inspeccion', titulo: 'Inspecciones Técnicas Avanzadas', descripcion: 'Garantizamos que todos los activos cumplan con las normativas más estrictas mediante escaneo y auditoría digital.' },
-                { icono: 'gestion', titulo: 'Gestión Inteligente de Activos', descripcion: 'Control del ciclo de vida completo del activo, desde la instalación hasta el reemplazo estratégico basado en datos.' },
-                { icono: 'soporte', titulo: 'Soporte y Asistencia 24/7', descripcion: 'Servicio de asistencia técnica los 365 días del año con cobertura nacional para resolver cualquier anomalía.' },
-                { icono: 'auditoria', titulo: 'Auditorías y Optimización Energética', descripcion: 'Optimizamos el consumo para reducir costes y el impacto ambiental en grandes infraestructuras y plantas de cogeneración.' },
-                { icono: 'suministro', titulo: 'Suministro Urgente de Componentes', descripcion: 'Aseguramos la provisión de todo tipo de recambios y componentes críticos en tiempo récord para minimizar la inactividad.' },
+                { icono: 'mantenimiento', titulo: 'Mantenimiento Integral', descripcion: 'Mantenimiento preventivo, correctivo y cambios de componentes (aceite, filtros, etc.) para todo tipo de generadores multimarca.' },
+                { icono: 'inspeccion', titulo: 'Inspecciones y Revisiones', descripcion: 'Inspecciones técnicas detalladas y revisiones a medida según las necesidades del cliente para garantizar el óptimo funcionamiento.' },
+                { icono: 'suministro', titulo: 'Suministro Urgente de Recambios', descripcion: 'Provisión de todo tipo de recambios y componentes críticos en tiempo récord para minimizar la inactividad de los activos.' },
+                { icono: 'gestion', titulo: 'Operación de Plantas', descripcion: 'Contratos de operación y mantenimiento para plantas de cogeneración, con personal electromecánico altamente cualificado.' },
+                { icono: 'soporte', titulo: 'Asistencia Técnica 24/7', descripcion: 'Servicio de asistencia técnica disponible 24/7, los 365 días del año, con cobertura nacional e internacional (Portugal).' },
+                { icono: 'auditoria', titulo: 'Gestión de Averías', descripcion: 'Tarifas y gestión especializada para la resolución de averías, asegurando una respuesta rápida y eficiente.' },
             ],
             stats_publicas: [
               { icon: 'Zap', value: '500+', label: 'PROYECTOS' },

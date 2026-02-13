@@ -40,14 +40,14 @@ export default async function Home() {
   }
 
   const { hero, servicios } = webContent;
-  // Ensure stats_publicas and trusted_brands are arrays to prevent errors
   const safeStats = Array.isArray(webContent.stats_publicas) ? webContent.stats_publicas : [];
   const safeBrands = Array.isArray(webContent.trusted_brands) ? webContent.trusted_brands : [];
+  const brandList = [...safeBrands, ...safeBrands];
 
   return (
     <div className="flex flex-col min-h-dvh bg-background text-foreground">
        <header className="sticky top-0 z-50 w-full border-b border-primary/20 bg-background/80 backdrop-blur-sm">
-        <div className="container h-16 flex items-center">
+        <div className="container mx-auto h-16 flex items-center">
           <Link className="flex items-center gap-2" href="#">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-7 w-7 text-primary"><path d="M12 2L2 7l10 5 10-5-10-5z"></path><path d="M2 17l10 5 10-5"></path><path d="M2 12l10 5 10-5"></path></svg>
               <span className="font-bold text-xl font-orbitron">AssetTrack AI</span>
@@ -71,12 +71,10 @@ export default async function Home() {
       </header>
 
       <main className="flex-1">
-        <section id="home" className="container relative py-24 md:py-32 min-h-[calc(100vh-4rem)] flex items-center justify-center text-center">
+        <section id="home" className="container mx-auto relative py-24 md:py-32 min-h-[calc(80vh-4rem)] flex items-center justify-center text-center">
             <div className="flex flex-col items-center">
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-black font-orbitron tracking-tighter mb-4 uppercase">
-                {hero.titulo.split(' ').map((word, i) => (
-                    <span key={i} className={i > 1 ? "text-primary" : ""}>{word} </span>
-                ))}
+                  INGENIERÍA ENERGÉTICA <span className="text-primary">DE VANGUARDIA</span>
                 </h1>
                 <p className="max-w-2xl text-lg md:text-xl text-foreground/60 mb-8 mx-auto">
                 {hero.subitulo}
@@ -96,7 +94,7 @@ export default async function Home() {
             </div>
         </section>
 
-        <section id="experiencia" className="container pb-24 sm:pb-32">
+        <section id="experiencia" className="container mx-auto pb-24 sm:pb-32">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 tech-glass p-8 rounded-xl">
               {safeStats.map((stat) => {
                 const Icon = iconMap[stat.icon] || HardHat;
@@ -113,20 +111,45 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="servicios" className="container py-24 sm:py-32">
+        <section id="servicios" className="container mx-auto py-24 sm:py-32">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">Nuestras <span className="text-primary">Capacidades</span></h2>
             <p className="mt-4 text-lg text-foreground/60">
               Soluciones integrales para la operación, mantenimiento y optimización de activos críticos.
             </p>
           </div>
-          <div className="flex flex-wrap justify-center gap-8">
+          
+          <div className="md:hidden">
+             <Carousel opts={{ align: "start" }} className="w-full">
+                <CarouselContent>
+                  {servicios.map((servicio, index) => (
+                    <CarouselItem key={index} className="basis-full sm:basis-1/2">
+                       <div className="p-2 h-full">
+                         <Card className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 w-full h-full">
+                            <CardHeader className="p-4">
+                                <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-primary/20">
+                                <BlueprintBackground type={servicio.icono} />
+                                </div>
+                                <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="flex-grow p-4 pt-0">
+                                <p className="text-foreground/70 text-sm">{servicio.descripcion}</p>
+                            </CardContent>
+                         </Card>
+                       </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+          </div>
+          
+          <div className="hidden md:grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {servicios.map((servicio) => (
-                <div key={servicio.titulo} className="w-full sm:w-1/2 lg:w-1/3 flex">
+                <div key={servicio.titulo} className="flex">
                     <Card className="tech-glass p-2 flex flex-col transition-all duration-300 hover:-translate-y-2 hover:shadow-primary/20 w-full">
                     <CardHeader className="p-4">
                         <div className="relative w-full aspect-[16/10] mb-4 overflow-hidden rounded-lg border border-primary/20">
-                        <BlueprintBackground type={servicio.icono} />
+                          <BlueprintBackground type={servicio.icono} />
                         </div>
                         <CardTitle className="text-xl font-bold font-orbitron uppercase text-primary">{servicio.titulo}</CardTitle>
                     </CardHeader>
@@ -140,30 +163,32 @@ export default async function Home() {
         </section>
 
         <section id="clientes" className="py-24 sm:py-32 bg-card">
-          <div className="container">
+          <div className="container mx-auto">
             <h2 className="text-center text-3xl md:text-4xl font-black font-orbitron tracking-tighter uppercase mb-12">Aliados <span className="text-primary">Tecnológicos</span></h2>
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
-              </div>
-              <Carousel opts={{ align: "start", loop: true }} className="w-full">
-                <CarouselContent>
-                  {safeBrands.map((brand, index) => (
-                    <CarouselItem key={index} className="basis-1/2 md:basis-1/3 lg:basis-1/5">
-                      <div className="p-1">
-                        <div className="flex aspect-video items-center justify-center p-6 tech-glass h-24">
-                          <span className="text-2xl font-semibold text-foreground/60 font-orbitron">{brand}</span>
+            <div className="relative w-full overflow-hidden">
+                <div className="absolute inset-y-0 left-0 w-24 bg-gradient-to-r from-card to-transparent z-10"></div>
+                <div className="absolute inset-y-0 right-0 w-24 bg-gradient-to-l from-card to-transparent z-10"></div>
+                <div className="flex w-max">
+                  <div className="flex items-center infinite-scroll">
+                      {brandList.map((brand, index) => (
+                        <div key={index} className="w-64 mx-4 flex items-center justify-center h-24">
+                            <span className="text-2xl font-semibold text-foreground/60 font-orbitron">{brand}</span>
                         </div>
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
+                      ))}
+                  </div>
+                   <div className="flex items-center infinite-scroll" aria-hidden="true">
+                      {brandList.map((brand, index) => (
+                        <div key={index} className="w-64 mx-4 flex items-center justify-center h-24">
+                            <span className="text-2xl font-semibold text-foreground/60 font-orbitron">{brand}</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
             </div>
           </div>
         </section>
         
-        <section id="contacto" className="container py-24 sm:py-32">
+        <section id="contacto" className="container mx-auto py-24 sm:py-32">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-black font-orbitron tracking-tight uppercase">
               Contacta con <span className="text-primary">Nosotros</span>
@@ -208,6 +233,17 @@ export default async function Home() {
                             </div>
                         </a>
                     </div>
+                     <div className="flex gap-4 mb-6">
+                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                        <a href="#" aria-label="LinkedIn"><Linkedin /></a>
+                        </Button>
+                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                        <a href="#" aria-label="Facebook"><Facebook /></a>
+                        </Button>
+                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
+                        <a href="#" aria-label="Instagram"><Instagram /></a>
+                        </Button>
+                    </div>
                     <div className="relative aspect-video w-full mt-auto rounded-md overflow-hidden border border-primary/20">
                       {contactMapImage ? (
                           <Image src={contactMapImage.imageUrl} alt="Mapa de ubicación" fill className="object-cover" data-ai-hint={contactMapImage.imageHint} />
@@ -223,20 +259,6 @@ export default async function Home() {
                        </div>
                     </div>
                 </div>
-                 <div className="tech-glass p-6 rounded-lg">
-                    <h3 className="font-bold text-xl font-orbitron text-primary mb-4">Redes Sociales</h3>
-                    <div className="flex gap-4">
-                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                        <a href="#" aria-label="LinkedIn"><Linkedin /></a>
-                        </Button>
-                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                        <a href="#" aria-label="Facebook"><Facebook /></a>
-                        </Button>
-                        <Button asChild variant="outline" size="icon" className="border-primary/30 hover:bg-primary/10 hover:border-primary">
-                        <a href="#" aria-label="Instagram"><Instagram /></a>
-                        </Button>
-                    </div>
-                </div>
             </div>
           </div>
         </section>
@@ -244,7 +266,7 @@ export default async function Home() {
       </main>
 
       <footer className="border-t border-primary/20">
-        <div className="container flex flex-col md:flex-row items-center justify-between py-8">
+        <div className="container mx-auto flex flex-col md:flex-row items-center justify-between py-8">
             <p className="text-sm text-foreground/60">&copy; 2024 Energy Engine España. Todos los derechos reservados.</p>
             <div className="flex gap-4 mt-4 md:mt-0">
                 <a className="text-sm transition-colors hover:text-primary text-foreground/60" href="#">Términos</a>
