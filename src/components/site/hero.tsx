@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 export default function Hero() {
   return (
     <section className="flex flex-col justify-center px-6 py-24 lg:py-32">
-      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
           <Badge
             variant="outline"
