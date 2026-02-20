@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge';
 
 export default function Hero() {
   return (
-    <section className="min-h-screen flex flex-col justify-center px-6">
-      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center">
+    <section className="flex flex-col justify-center px-6 py-24 lg:py-32">
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
           <Badge
             variant="outline"
@@ -19,7 +19,7 @@ export default function Hero() {
           <h1 className="text-5xl md:text-6xl font-black uppercase leading-[0.85] tracking-tighter mb-8 font-headline">
             Energía <br /> <span className="text-primary">Imparable</span>
           </h1>
-          <p className="text-lg text-muted-foreground mb-10 max-w-md text-balance">
+          <p className="text-lg text-muted-foreground mb-8 max-w-md text-balance">
             Especialistas en mantenimiento industrial para infraestructuras de
             alta exigencia: Aeropuertos y Hospitales.
           </p>

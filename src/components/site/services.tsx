@@ -29,7 +29,7 @@ export default function Services() {
   }, [api]);
 
   return (
-    <section id="servicios" className="py-32 bg-secondary/50 dark:bg-white/[0.02] border-y overflow-hidden">
+    <section id="servicios" className="py-16 sm:py-24 bg-secondary/50 dark:bg-white/[0.02] border-y overflow-hidden">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-end mb-16 px-6">
           <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter font-headline">
@@ -58,7 +58,7 @@ export default function Services() {
               return (
                 <CarouselItem key={i} className="basis-[90%] md:basis-1/2 lg:basis-[40%]">
                   <div className={cn("p-4 transition-transform duration-500", current === i ? 'scale-100' : 'scale-90 opacity-60')}>
-                    <div className="h-[60vh] relative rounded-lg overflow-hidden group border">
+                    <div className="h-[55vh] relative rounded-lg overflow-hidden group border">
                       {image && (
                         <Image
                           src={image.imageUrl}
