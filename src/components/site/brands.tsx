@@ -5,10 +5,10 @@ import React, { useState, useEffect, useRef } from 'react';
 
 export default function Brands() {
     const [rotation, setRotation] = useState(0);
-    const [radius, setRadius] = useState(320); 
+    const [radius, setRadius] = useState(280); 
     const requestRef = useRef<number>();
 
-    // Duplicate brands to make the ring look fuller
+    // Duplicate brands to make the ring look fuller and animation smoother
     const displayBrands = [...brands, ...brands];
     const totalDisplayBrands = displayBrands.length;
 
@@ -61,7 +61,7 @@ export default function Brands() {
                         return (
                             <div
                                 key={`${brand}-${index}`}
-                                className="absolute flex h-20 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-secondary/50 p-4 text-center dark:bg-white/[0.03] backdrop-blur-sm"
+                                className="absolute left-1/2 top-1/2 flex h-20 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-secondary/50 p-4 text-center dark:bg-white/[0.03] backdrop-blur-sm"
                                 style={{
                                     transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
                                 }}
