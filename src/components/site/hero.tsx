@@ -8,8 +8,8 @@ import { Badge } from '@/components/ui/badge';
 export default function Hero() {
   return (
     <section className="min-h-screen flex flex-col justify-center px-6">
-      <div className="max-w-6xl mx-auto w-full flex flex-col items-center text-center">
-        <div className="flex flex-col items-center">
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
           <Badge
             variant="outline"
             className="border-primary/20 bg-primary/10 text-primary py-1 px-4 text-[10px] font-black uppercase tracking-widest mb-6"
@@ -30,14 +30,14 @@ export default function Hero() {
             </Link>
           </Button>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-20 w-full max-w-4xl">
+        <div className="grid grid-cols-2 gap-4 w-full">
           {stats.map((m, i) => (
             <div
               key={i}
-              className="bg-secondary/50 dark:bg-white/[0.03] p-8 md:p-10 rounded-lg border text-left"
+              className="bg-secondary/50 dark:bg-white/[0.03] p-8 rounded-lg border text-left"
             >
               <div className="text-primary mb-4">
-                <m.icon className="size-6 md:size-8" />
+                <m.icon className="size-8" />
               </div>
               <div className="text-4xl font-bold mb-1 tracking-tighter">
                 {m.val}
