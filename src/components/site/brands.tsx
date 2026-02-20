@@ -8,9 +8,7 @@ export default function Brands() {
     const [radius, setRadius] = useState(280); 
     const requestRef = useRef<number>();
 
-    // Duplicate brands to make the ring look fuller and animation smoother
-    const displayBrands = [...brands, ...brands];
-    const totalDisplayBrands = displayBrands.length;
+    const totalDisplayBrands = brands.length;
 
     useEffect(() => {
         const handleResize = () => {
@@ -55,12 +53,12 @@ export default function Brands() {
                         transform: `rotateX(-15deg) rotateY(${rotation}deg)` 
                     }}
                 >
-                    {displayBrands.map((brand, index) => {
+                    {brands.map((brand, index) => {
                         const angle = (360 / totalDisplayBrands) * index;
                         
                         return (
                             <div
-                                key={`${brand}-${index}`}
+                                key={brand}
                                 className="absolute left-1/2 top-1/2 flex h-20 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-secondary/50 p-4 text-center dark:bg-white/[0.03] backdrop-blur-sm"
                                 style={{
                                     transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
