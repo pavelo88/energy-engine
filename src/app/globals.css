@@ -79,15 +79,15 @@
     .text-balance {
       text-wrap: balance;
     }
-    @keyframes rotation {
+    @keyframes brand-rotation {
       from {
-        transform: rotate(0deg);
+        transform: rotateX(-10deg) rotateY(0deg);
       }
       to {
-        transform: rotate(360deg);
+        transform: rotateX(-10deg) rotateY(360deg);
       }
     }
-    .animate-rotation {
-      animation: rotation 50s linear infinite;
+    .animate-brand-rotation {
+      animation: brand-rotation 40s linear infinite;
     }
 }
