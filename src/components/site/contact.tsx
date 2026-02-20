@@ -64,7 +64,7 @@ export default function Contact() {
   }
 
   return (
-    <section id="contacto" className="py-16 sm:py-24 px-6 scroll-mt-20">
+    <section id="contacto" className="py-16 px-6 scroll-mt-20">
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
         <div className="bg-secondary/50 dark:bg-white/[0.03] p-8 md:p-10 rounded-lg border">
           <h3 className="text-3xl font-black uppercase mb-8 font-headline">Solicitar Asistencia</h3>

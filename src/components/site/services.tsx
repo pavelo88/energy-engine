@@ -29,7 +29,7 @@ export default function Services() {
   }, [api]);
 
   return (
-    <section id="servicios" className="py-16 sm:py-24 bg-secondary/50 dark:bg-white/[0.02] border-y overflow-hidden scroll-mt-20">
+    <section id="servicios" className="py-16 bg-secondary/50 dark:bg-white/[0.02] border-y overflow-hidden scroll-mt-20">
       <div className="max-w-6xl mx-auto">
         <div className="flex justify-between items-end mb-16 px-6">
           <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter font-headline">

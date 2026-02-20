@@ -35,7 +35,7 @@ export default function Brands() {
     }, []);
     
     return (
-        <section id="marcas" className="py-16 sm:py-24 scroll-mt-20">
+        <section id="marcas" className="py-16 scroll-mt-20">
           <div className="mx-auto max-w-6xl px-6 lg:px-8">
             <h2 className="text-center text-3xl font-black uppercase tracking-tighter font-headline text-foreground/80">
               Aliados Tecnológicos Multimarca
