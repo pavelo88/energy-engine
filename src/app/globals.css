@@ -79,4 +79,15 @@
     .text-balance {
       text-wrap: balance;
     }
+    @keyframes rotation {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .animate-rotation {
+      animation: rotation 50s linear infinite;
+    }
 }
