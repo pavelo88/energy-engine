@@ -56,7 +56,7 @@ export default function BlueprintBackground({ type }: BlueprintBackgroundProps) 
         <svg {...svgProps}>
           <g transform="translate(200, 200)" className="bp-spin">
             {[...Array(6)].map((_, i) => (
-              <circle key={i} cx={Math.cos(i * (Math.PI / 3)) * 100} cy={Math.sin(i * (Math.PI / 3)) * 100} r="10" fill="currentColor" />
+              <circle key={i} cx={(Math.cos(i * (Math.PI / 3)) * 100).toFixed(3)} cy={(Math.sin(i * (Math.PI / 3)) * 100).toFixed(3)} r="10" fill="currentColor" />
             ))}
           </g>
         </svg>

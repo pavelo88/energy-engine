@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 export default function Hero() {
   return (
     <section className="min-h-screen flex flex-col justify-center px-6">
-      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="max-w-6xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16 items-center">
         <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
           <Badge
             variant="outline"
@@ -16,7 +16,7 @@ export default function Hero() {
           >
             Misión Crítica Garantizada
           </Badge>
-          <h1 className="text-5xl md:text-8xl font-black uppercase leading-[0.85] tracking-tighter mb-8 font-headline">
+          <h1 className="text-5xl md:text-6xl font-black uppercase leading-[0.85] tracking-tighter mb-8 font-headline">
             Energía <br /> <span className="text-primary">Imparable</span>
           </h1>
           <p className="text-lg text-muted-foreground mb-10 max-w-md text-balance">
@@ -34,12 +34,12 @@ export default function Hero() {
           {stats.map((m, i) => (
             <div
               key={i}
-              className="bg-secondary/50 dark:bg-white/[0.03] p-8 rounded-lg border text-left"
+              className="bg-secondary/50 dark:bg-white/[0.03] p-6 rounded-lg border flex flex-col items-center text-center"
             >
               <div className="text-primary mb-4">
-                <m.icon className="size-8" />
+                <m.icon className="size-7" />
               </div>
-              <div className="text-4xl font-bold mb-1 tracking-tighter">
+              <div className="text-3xl lg:text-4xl font-bold mb-1 tracking-tighter">
                 {m.val}
               </div>
               <div className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">
