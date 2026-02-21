@@ -29,11 +29,11 @@ export default function Services() {
   }, [api]);
 
   return (
-    <section id="servicios" className="py-16 bg-secondary/50 dark:bg-white/[0.02] border-y overflow-hidden scroll-mt-20">
+    <section id="servicios" className="py-16 bg-secondary/50 dark:bg-white/[0.02] border-y overflow-hidden scroll-mt-10">
       <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-end mb-16 px-6">
-          <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter font-headline">
-            Servicios
+      <div className="max-w-6xl mx-auto">
+          <h2 className="text-center text-4xl md:text-5xl font-black uppercase tracking-tighter mb-10 font-headline">
+            Servicios <span className="text-primary">Especializados</span>
           </h2>
         </div>
         <Carousel
@@ -72,7 +72,8 @@ export default function Services() {
                       <BlueprintBackground type={service.bpType} />
                       <div className="absolute inset-0 p-8 md:p-12 flex flex-col justify-between z-10 text-white">
                         <div className="flex justify-between items-start">
-                          <span className="text-6xl font-bold opacity-20">{service.id}</span>
+                        
+                          {/* <span className="text-6xl font-bold opacity-20">{service.id}</span> */}
                           <div className="p-4 bg-primary text-primary-foreground rounded-2xl">
                             <Icon size={32} />
                           </div>

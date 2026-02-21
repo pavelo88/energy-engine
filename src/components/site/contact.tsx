@@ -42,7 +42,7 @@ export default function Contact() {
   }
 
   return (
-    <section id="contacto" className="pt-16 pb-8 px-6 scroll-mt-20">
+    <section id="contacto" className="pt-16 pb-8 px-6 scroll-mt-10">
       <div className="max-w-6xl mx-auto">
         <h2 className="text-center text-4xl md:text-5xl font-black uppercase tracking-tighter mb-10 font-headline">
           Canal de <span className="text-primary">Comunicación</span>

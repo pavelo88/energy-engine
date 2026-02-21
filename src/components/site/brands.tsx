@@ -12,16 +12,22 @@ export default function Brands() {
 
     useEffect(() => {
         const handleResize = () => {
-            // Adjust radius for mobile and desktop
-            setRadius(window.innerWidth < 768 ? 180 : 280);
+            const width = window.innerWidth;
+            // Configuramos 3 tamaños de radio para: Celular, Tablet y Escritorio
+            if (width < 640) {
+                setRadius(130); // Celular
+            } else if (width < 1024) {
+                setRadius(200); // Tablet
+            } else {
+                setRadius(280); // Escritorio
+            }
         };
 
         handleResize();
         window.addEventListener('resize', handleResize);
 
         const animate = () => {
-            // Control rotation speed
-            setRotation(prev => prev - 0.03);
+            setRotation(prev => prev - 0.03); 
             requestRef.current = requestAnimationFrame(animate);
         };
         requestRef.current = requestAnimationFrame(animate);
@@ -35,19 +41,19 @@ export default function Brands() {
     }, []);
     
     return (
-        <section id="marcas" className="py-16 scroll-mt-20">
-          <div className="mx-auto max-w-6xl px-6 lg:px-8">
-            <h2 className="text-center text-3xl font-black uppercase tracking-tighter font-headline text-foreground/80">
-              Aliados Tecnológicos Multimarca
-            </h2>
-            <div 
-                className="relative mt-16 flex items-center justify-center [perspective:1200px] [mask-image:radial-gradient(circle_at_center,white_40%,transparent_80%)]"
-                style={{ 
-                    height: radius < 200 ? "300px" : "450px" 
-                }}
-            >
-                <div
-                    className="absolute h-full w-full"
+        <section id="marcas" className="py-12 scroll-mt-20 overflow-hidden">
+      
+            <div className="max-w-6xl mx-auto px-4">
+                {/* Redujimos el mb-10 a mb-4 para quitar el espacio en blanco gigante */}
+                <h2 className="text-center text-3xl md:text-5xl font-black uppercase tracking-tighter mb-4 font-headline">
+                    Aliados Tecnológicos <span className="text-primary">Multimarca</span>
+                </h2>  
+
+            {/* Redujimos el mt-16 a mt-4 y ajustamos la altura dinámica del contenedor */}
+            <div className="relative mt-4 flex items-center justify-center [perspective:1200px] [mask-image:radial-gradient(circle_at_center,white_40%,transparent_80%)]" 
+                    style={{ height: radius < 150 ? "200px" : radius < 250 ? "250px" : "350px" }}>
+                
+                <div className="absolute h-full w-full"
                     style={{
                         transformStyle: "preserve-3d",
                         transform: `rotateX(-15deg) rotateY(${rotation}deg)` 
@@ -59,12 +65,17 @@ export default function Brands() {
                         return (
                             <div
                                 key={brand}
-                                className="absolute left-1/2 top-1/2 flex h-20 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border bg-secondary/50 p-4 text-center dark:bg-white/[0.03] backdrop-blur-sm"
+                                // ¡OJO AQUÍ! 
+                                // 1. Quitamos los -translate de Tailwind
+                                // 2. Hicimos tarjetas pequeñas en móvil (w-28 h-12) y grandes en compu (md:w-44 md:h-20)
+                                className="absolute left-1/2 top-1/2 flex w-20 h-12 md:w-44 md:h-20 items-center justify-center rounded-2xl border bg-secondary/50 p-2 md:p-4 text-center dark:bg-white/[0.03] backdrop-blur-sm"
                                 style={{
-                                    transform: `rotateY(${angle}deg) translateZ(${radius}px)`,
+                                    // 3. Agregamos translate(-50%, -50%) directo al transform para arreglar el "baile"
+                                    transform: `translate(-50%, -50%) rotateY(${angle}deg) translateZ(${radius}px)`,
                                 }}
                             >
-                                <span className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                                {/* El texto también es más pequeño en móvil (text-[10px]) */}
+                                <span className="text-[10px] md:text-sm font-bold uppercase tracking-widest text-muted-foreground">
                                     {brand}
                                 </span>
                             </div>
