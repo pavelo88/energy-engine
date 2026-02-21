@@ -4,48 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 96.1%; /* #f5f5f5 */
+    --background: 240 5.9% 95%; /* Light Gray like #f0f2f5 */
     --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
-    --primary: 42 100% 50%; /* #ffb300 */
-    --primary-foreground: 240 10% 3.9%;
+    --primary: 221 83% 53%; /* Professional Blue */
+    --primary-foreground: 0 0% 98%;
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 180 100% 25.1%; /* #008080 */
+    --accent: 221 83% 53%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
-    --ring: 240 5.9% 10%;
+    --ring: 221 83% 53%;
     --radius: 1.5rem;
-  }
- 
-  .dark {
-    --background: 0 0% 1.6%; /* #040404 */
-    --foreground: 0 0% 98%;
-    --card: 0 0% 1.6%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 1.6%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 42 100% 50%;
-    --primary-foreground: 240 10% 3.9%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 180 100% 25.1%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 42 100% 50%;
   }
 }
  
@@ -54,17 +32,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground selection:bg-primary/50;
-  }
-
-  .map-filter {
-    filter: grayscale(1) invert(0.9) hue-rotate(180deg) brightness(0.8);
-  }
-  .light .map-filter, .dark .map-filter {
-    filter: grayscale(1) invert(1) contrast(0.9) hue-rotate(200deg) saturate(0.3) brightness(0.9);
-  }
-  .light .map-filter {
-    filter: none;
+    @apply bg-background text-foreground;
+    font-feature-settings: 'cv11', 'ss01';
   }
 }
 
