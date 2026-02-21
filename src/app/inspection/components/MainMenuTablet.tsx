@@ -1,12 +1,10 @@
 'use client';
 
 import React from 'react';
-import { 
-  ClipboardList, Activity, Receipt, User, ArrowUpRight, 
-  LayoutGrid, Maximize, Home, Settings
+import {
+  ClipboardList, Activity, Receipt, User, ArrowUpRight
 } from 'lucide-react';
-// --- CORRECCIÓN AQUÍ: CAMBIO DE IMPORTACIÓN NOMBRADA A DEFAULT ---
-import TABS from '../constants'; 
+import TABS from '../constants';
 
 // --- PROPS DE LA INTERFAZ ---
 interface MainMenuProps {
@@ -14,98 +12,87 @@ interface MainMenuProps {
   userName: string;
 }
 
-// --- PALETA PARA BOTONES PRINCIPALES (CON IDs CORREGIDOS) ---
+// ======================================================================
+// ===> PALETA DE 4 COLORES CON IDENTIDAD (MODO CLARO)
+// ======================================================================
 const menuItems = [
   {
-    id: TABS.NEW_INSPECTION, 
+    id: TABS.NEW_INSPECTION,
     label: 'Inspección',
-    desc: 'Inicia una nueva revisión vehicular.',
-    icon: <ClipboardList size={40} />,
-    textColor: 'text-blue-600',
-    borderColor: 'border-blue-600/70',
-    shadowColor: 'shadow-blue-500/20',
-    hoverShadowColor: 'hover:shadow-blue-400/40',
+    desc: 'Inicia una nueva revisión.',
+    icon: <ClipboardList className="w-1/3 h-1/3" />,
+    classes: 'bg-amber-500/10 border-amber-500/70 text-amber-600',
+    labelColor: 'text-slate-800',
+    descColor: 'text-slate-500',
+    shadow: 'hover:shadow-amber-600/20',
   },
   {
-    id: TABS.TASKS, 
+    id: TABS.TASKS,
     label: 'Historial',
-    desc: 'Consulta tus revisiones pasadas.',
-    icon: <Activity size={40} />,
-    textColor: 'text-green-600',
-    borderColor: 'border-green-600/70',
-    shadowColor: 'shadow-green-500/20',
-    hoverShadowColor: 'hover:shadow-green-400/40',
+    desc: 'Consulta revisiones pasadas.',
+    icon: <Activity className="w-1/3 h-1/3" />,
+    classes: 'bg-green-600/10 border-green-600/70 text-green-600',
+    labelColor: 'text-slate-800',
+    descColor: 'text-slate-500',
+    shadow: 'hover:shadow-green-600/20',
   },
   {
     id: TABS.EXPENSES,
     label: 'Recibos',
-    desc: 'Gestiona tus pagos y facturas.',
-    icon: <Receipt size={40} />,
-    textColor: 'text-amber-600',
-    borderColor: 'border-amber-600/70',
-    shadowColor: 'shadow-amber-500/20',
-    hoverShadowColor: 'hover:shadow-amber-400/40',
+    desc: 'Gestiona tus pagos.',
+    icon: <Receipt className="w-1/3 h-1/3" />,
+    classes: 'bg-slate-900 border-slate-700 text-amber-500',
+    labelColor: 'text-white',
+    descColor: 'text-slate-400',
+    shadow: 'hover:shadow-slate-900/40',
   },
   {
-    id: TABS.PROFILE, 
+    id: TABS.PROFILE,
     label: 'Mi Perfil',
-    desc: 'Ajusta la configuración de tu cuenta.',
-    icon: <User size={40} />,
-    textColor: 'text-purple-600',
-    borderColor: 'border-purple-600/70',
-    shadowColor: 'shadow-purple-500/20',
-    hoverShadowColor: 'hover:shadow-purple-400/40',
+    desc: 'Ajusta tu cuenta.',
+    icon: <User className="w-1/3 h-1/3" />,
+    classes: 'bg-slate-200 border-slate-300 text-slate-600',
+    labelColor: 'text-slate-800',
+    descColor: 'text-slate-500',
+    shadow: 'hover:shadow-slate-300/50',
   },
 ];
 
-// --- COMPONENTE TABLET CON FOOTER DE NAVEGACIÓN ---
+// --- VISTA TABLET CON NUEVO DISEÑO Y FUENTES MÁS GRANDES ---
 export default function MainMenuTablet({ onNavigate, userName }: MainMenuProps) {
   return (
-    <div className="min-h-screen w-full bg-white flex flex-col justify-between p-8 lg:p-12 font-sans">
-      
-      <main>
-        <header className="w-full mb-16 text-left">
-            <h2 className="text-slate-500 text-xl font-bold tracking-wider uppercase">Hola, {userName}</h2>
-            <h1 className="text-slate-900 text-8xl font-black mt-1 tracking-tighter">Panel de Control</h1>
-        </header>
+    <div className="h-full w-full bg-slate-100 flex flex-col p-6 pb-32 font-sans">
+      <header className="w-full mb-8 text-center flex-shrink-0">
+          <h2 className="text-slate-500 text-lg font-bold tracking-wider uppercase">Hola, {userName}</h2>
+          <h1 className="text-slate-800 text-6xl font-black mt-1 tracking-tighter">Panel de Control</h1>
+      </header>
 
-        <div className="w-full grid grid-cols-2 gap-10">
+      <main className="w-full max-w-4xl mx-auto flex-grow flex flex-col">
+        <div className="w-full grid grid-cols-2 gap-6 flex-grow">
           {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => onNavigate(item.id)}
-              style={{ 
-                clipPath: 'polygon(1.5rem 0, calc(100% - 1.5rem) 0, 100% 1.5rem, 100% calc(100% - 1.5rem), calc(100% - 1.5rem) 100%, 1.5rem 100%, 0 calc(100% - 1.5rem), 0 1.5rem)',
-              }}
-              className={`group relative h-48 backdrop-blur-md bg-slate-50/80 border-2 ${item.borderColor} shadow-lg ${item.shadowColor} ${item.hoverShadowColor} transition-all duration-300 transform hover:-translate-y-2`}
-            >
-              <div className="flex flex-col h-full justify-start items-start p-8 text-left">
-                <div className={`p-3 mb-4 bg-white rounded-xl shadow-inner-lg ${item.textColor}`}>
-                    {item.icon}
+              <button
+                key={item.id}
+                onClick={() => onNavigate(item.id)}
+                className={`group relative aspect-square flex flex-col justify-center items-center p-4 rounded-3xl border-4 shadow-xl transition-all duration-200 transform hover:-translate-y-2 active:scale-[0.98] active:shadow-inner ${item.classes} ${item.shadow}`}>
+                
+                <div className={`flex-grow w-full flex items-center justify-center transition-transform duration-200 group-active:scale-110`}>
+                  {item.icon}
                 </div>
-                <div>
-                    <h3 className={`text-3xl font-black uppercase tracking-tight ${item.textColor}`}>
-                      {item.label}
-                    </h3>
-                    <p className={`mt-2 font-medium text-slate-500`}>{item.desc}</p>
+
+                {/* ===> FUENTES AUMENTADAS EN UN 40% */}
+                <div className="text-center flex-shrink-0">
+                  <h3 className={`text-5xl font-bold tracking-tight ${item.labelColor}`}>
+                    {item.label}
+                  </h3>
+                  <p className={`mt-2 text-xl font-medium ${item.descColor}`}>{item.desc}</p>
                 </div>
-              </div>
-              <ArrowUpRight className="absolute top-8 right-8 text-slate-300 opacity-80 group-hover:opacity-100 group-hover:text-slate-500 transition-all duration-300 transform group-hover:scale-110" />
-            </button>
-          ))}
+
+                <ArrowUpRight className="absolute top-6 right-6 text-slate-400 opacity-50 group-hover:opacity-100 transition-opacity" />
+              </button>
+            )
+          )}
         </div>
       </main>
-
-      <footer className="w-full mt-16 py-4 px-8 bg-slate-800 rounded-3xl shadow-2xl shadow-slate-400">
-        <div className="flex items-center justify-around">
-          {[<LayoutGrid/>, <Maximize/>, <Home/>, <User/>, <Settings/>].map((Icon, index) => (
-            <button key={index} className="p-3 text-slate-400 hover:text-white transition-colors duration-300">
-              {React.cloneElement(Icon, { size: 36 })}
-            </button>
-          ))}
-        </div>
-      </footer>
-
     </div>
   );
 }

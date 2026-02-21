@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getSystemPrompt } from '@/lib/ai-prompt-logic';
+import { getSystemPrompt } from '@/app/inspection/lib/ai-prompt-logic';
 
 export async function POST(req: Request) {
   try {
