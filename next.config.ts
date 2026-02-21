@@ -1,3 +1,4 @@
+
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -7,10 +8,6 @@ const nextConfig: NextConfig = {
   },
   eslint: {
     ignoreDuringBuilds: true,
-  },
-  experimental: {
-    // Esto permite que el servidor acepte peticiones desde el túnel de Firebase Studio
-    allowedDevOrigins: ["*.cloudworkstations.dev", "*.firebaseapp.com"]
   },
   images: {
     remotePatterns: [
