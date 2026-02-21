@@ -85,7 +85,6 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [inspectorName, setInspectorName] = useState('Antonio Ugena');
   const [isRecording, setIsRecording] = useState(false);
-  const [libLoaded, setLibLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -109,15 +108,8 @@ export default function App() {
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    const s1 = document.createElement('script');
-    s1.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s1.onload = () => {
-      const s2 = document.createElement('script');
-      s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js';
-      s2.onload = () => setLibLoaded(true);
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(s1);
+    // Los scripts de PDF ahora se cargan globalmente en layout.tsx.
+    // Este efecto ahora solo se encarga de la autenticación del usuario.
     signInAnonymously(auth).then(() => onAuthStateChanged(auth, (u) => setCurrentUser(u)));
   }, []);
 
@@ -250,13 +242,18 @@ export default function App() {
   };
 
   const generatePDF = (type) => {
-    if (!libLoaded) return alert("Cargando motor PDF...");
-    if (!window.jspdf || !window.jspdf.jsPDF) return alert("Fallo al inicializar jsPDF.");
+    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+      alert("El motor PDF no está listo. Por favor, espere un momento y vuelva a intentarlo.");
+      return;
+    }
     
     const { jsPDF } = window.jspdf;
     const docPDF = new jsPDF();
     
-    if (typeof docPDF.autoTable !== 'function') return alert("El plugin autoTable para PDF no se cargó correctamente. Inténtalo de nuevo.");
+    if (typeof docPDF.autoTable !== 'function') {
+      alert("El plugin autoTable para PDF no se cargó correctamente. Inténtalo de nuevo.");
+      return;
+    }
     
     const prefix = type === 'tecnico' ? 'TEC' : type === 'revision' ? 'REV' : 'ALB';
     const finalID = isSaved && reportBaseID ? `${prefix}-${reportBaseID}` : `${prefix}-BORRADOR`;
