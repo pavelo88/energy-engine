@@ -1,93 +1,100 @@
-
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import { TABS } from './constants';
-import Sidebar from './components/Sidebar';
-import Header from './components/Header';
-import MainMenu from './components/MainMenu';
-import { TasksTabLazy, InspectionFormTabLazy, ExpensesTabLazy, ProfileTabLazy } from './lazy-tabs';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { X } from 'lucide-react';
 
-// Mapeo de componentes para las pestañas, usando carga diferida (lazy loading)
-const tabComponents = {
-  [TABS.TASKS]: TasksTabLazy,
-  [TABS.NEW_INSPECTION]: InspectionFormTabLazy,
-  [TABS.EXPENSES]: ExpensesTabLazy,
-  [TABS.PROFILE]: ProfileTabLazy,
-};
+// Importar componentes principales
+import MainMenuDesktop from './components/MainMenuDesktop';
+import MainMenuTablet from './components/MainMenuTablet';
+import MainMenuMobile from './components/MainMenuMobile';
 
-// Función para renderizar el contenido de la pestaña activa
-function renderTab(activeTab: string, setActiveTab: (tab: string) => void) {
-  if (activeTab === TABS.MENU) return null;
+// Importar componentes de las pestañas (usando carga diferida)
+import InspectionFormTab from './components/InspectionFormTab';
+import TasksTab from './components/TasksTab';
+import ExpensesTab from './components/ExpensesTab';
+import ProfileTab from './components/ProfileTab';
 
-  const TabComponent = tabComponents[activeTab as keyof typeof tabComponents];
+// Importar constantes de pestañas
+import TABS from './constants';
 
-  return (
-    <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-      <header className="mb-10 hidden md:block border-l-4 border-blue-600 pl-8">
-        <h2 className="text-6xl lg:text-9xl font-black text-slate-900 uppercase tracking-tighter leading-none">
-          {activeTab.replace(/_/g, ' ')}
-        </h2>
-      </header>
-      <Suspense fallback={<div className='text-slate-800'>Cargando...</div>}>
-        <TabComponent {...(activeTab === TABS.TASKS && { onStartInspection: () => setActiveTab(TABS.NEW_INSPECTION) })} />
-      </Suspense>
-    </div>
-  );
-}
+// Hook para detectar el tamaño de la pantalla
+import { useScreenSize } from '@/hooks/use-screen-size';
 
-// Componente principal de la página de inspección
+// --- COMPONENTE DE LA PÁGINA DE INSPECCIÓN ---
 export default function InspectionPage() {
-  const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState(TABS.MENU);
-  const [isOnline, setIsOnline] = useState(true);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true); // Estado para la pantalla de carga inicial
+  const [activeTab, setActiveTab] = useState<string>(TABS.MAIN_MENU); 
+  const router = useRouter();
 
+  const { width } = useScreenSize();
+
+  // Efecto para verificar la sesión del usuario
   useEffect(() => {
-    // Manejo de la autenticación de Firebase
-    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
-    
-    // Manejo del estado de conexión
-    const handleStatus = () => setIsOnline(navigator.onLine);
-    window.addEventListener('online', handleStatus);
-    window.addEventListener('offline', handleStatus);
-    
-    return () => {
-      unsubscribe();
-      window.removeEventListener('online', handleStatus);
-      window.removeEventListener('offline', handleStatus);
-    };
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        // Si no hay usuario, redirigir a la página de inicio
+        router.push('/');
+      }
+      setLoading(false); // Finalizar la carga cuando se resuelve la autenticación
+    });
 
-  // Pantalla de carga mientras se verifica el usuario
-  if (!user) {
+    // Limpiar el observador al desmontar el componente
+    return () => unsubscribe();
+  }, [router]);
+
+  // Función para manejar la navegación entre pestañas
+  const handleNavigate = (tab: string) => {
+    setActiveTab(tab);
+  };
+
+  // --- PANTALLA DE CARGA INICIAL ---
+  if (loading) {
     return (
-      <div className="h-screen bg-slate-100 flex flex-col items-center justify-center font-sans">
-        <div className="text-center">
-          <span className="font-black italic text-4xl tracking-tighter block leading-none text-slate-900">ENERGY</span>
-          <span className="font-black italic text-4xl tracking-tighter block leading-none text-blue-600">ENGINE</span>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white text-center">
+        <div className="flex items-center gap-3">
+          <h1 className="font-black text-2xl tracking-tighter text-slate-800">ENERGY</h1>
+          <h1 className="font-black text-2xl tracking-tighter text-amber-500">ENGINE</h1>
         </div>
-        <p className="text-sm text-slate-500 mt-4">Cargando panel de control...</p>
+        <p className="text-slate-500 font-medium mt-2">Cargando panel de control...</p>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col xl:flex-row font-sans overflow-x-hidden">
-      <Sidebar activeTab={activeTab} onNavigate={setActiveTab} />
-      <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* Fondo con degradado sutil */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50 to-slate-100 opacity-80"></div>
-        
-        <Header activeTab={activeTab} isOnline={isOnline} onNavigate={setActiveTab} />
-        
-        <main className={`flex-1 p-4 md:p-12 xl:p-20 max-w-[1500px] mx-auto w-full flex flex-col relative z-10 ${activeTab === TABS.MENU ? 'justify-start md:justify-center' : ''}`}>
-          {activeTab === TABS.MENU ? (
-            <MainMenu userName={user.email?.split('@')[0].toUpperCase() || 'Admin'} onNavigate={setActiveTab} />
-          ) : renderTab(activeTab, setActiveTab)}
-        </main>
-      </div>
-    </div>
-  );
+  // --- RENDERIZADO DEL CONTENIDO ---
+  const renderContent = () => {
+    if (activeTab === TABS.MAIN_MENU) {
+        if (width < 768) return <MainMenuMobile onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
+        if (width < 1024) return <MainMenuTablet onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
+        return <MainMenuDesktop onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
+    }
+
+    let TabComponent;
+    switch (activeTab) {
+        case TABS.NEW_INSPECTION: TabComponent = InspectionFormTab; break;
+        case TABS.TASKS: TabComponent = TasksTab; break;
+        case TABS.EXPENSES: TabComponent = ExpensesTab; break;
+        case TABS.PROFILE: TabComponent = ProfileTab; break;
+        default: return <p>Pestaña no encontrada</p>;
+    }
+
+    return (
+        <div className="animate-in slide-in-from-right duration-500">
+            <button 
+                onClick={() => setActiveTab(TABS.MAIN_MENU)} // Volver al menú principal
+                className="fixed top-6 left-6 z-[210] bg-white/80 backdrop-blur-md p-3 rounded-2xl border shadow-sm hover:bg-amber-50 text-slate-600 transition-all"
+            >
+                <X size={24} />
+            </button>
+            <TabComponent />
+        </div>
+    );
+  };
+
+  return <main>{renderContent()}</main>;
 }

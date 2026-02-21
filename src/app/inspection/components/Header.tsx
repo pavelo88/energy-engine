@@ -19,7 +19,7 @@ export default function Header({ activeTab, isOnline, onNavigate }: HeaderProps)
       {/* Contenedor del logo y botón de regreso */}
       <div className="flex items-center gap-4">
         {activeTab !== TABS.MENU && (
-          <button onClick={() => onNavigate(TABS.MENU)} className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-slate-700 border border-black/10 hover:bg-black/10 transition-all">
+          <button onClick={() => onNavigate(TABS.MENU)} className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-white border border-black/10 hover:bg-black/10 transition-all">
             <ChevronLeft size={20} />
           </button>
         )}
