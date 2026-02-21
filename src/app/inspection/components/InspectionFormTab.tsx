@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
@@ -11,38 +12,34 @@ import { db, auth } from '../../../lib/firebase';
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'energy-engine-enterprise';
 
-// --- UTILIDAD GEMINI API (CORREGIDA Y SEGURA) ---
+// --- UTILIDAD GEMINI API (CORREGIDA Y SIMPLIFICADA) ---
 const callGemini = async (prompt, isJson = false) => {
   let delay = 1000;
   for (let i = 0; i < 4; i++) {
     try {
-      // CORRECCIÓN: Llamamos a nuestra propia API segura en lugar de a Google directamente.
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // Enviamos el prompt y la configuración a nuestro servidor.
         body: JSON.stringify({ prompt, isJson })
       });
 
       if (!response.ok) {
-        // Si la respuesta del servidor no es OK, lanzamos un error.
         throw new Error(`API Error: ${response.statusText}`);
       }
 
       const data = await response.json();
 
-      // La clave de API ya no es necesaria en el cliente.
-      // El servidor se encarga de todo.
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-      if (!text) {
+      // SIMPLIFICADO: El backend ahora devuelve { text: "..." }
+      if (!data.text) {
         throw new Error("Respuesta inesperada de la IA.");
       }
 
-      return isJson ? JSON.parse(text) : text;
+      // Si se esperaba un JSON, lo parseamos desde el texto.
+      return isJson ? JSON.parse(data.text) : data.text;
+
     } catch (e) {
       console.error("Fallo en callGemini:", e);
-      if (i === 3) throw e; // Si es el último reintento, lanzamos el error.
+      if (i === 3) throw e;
       await new Promise(resolve => setTimeout(resolve, delay));
       delay *= 2;
     }
@@ -108,12 +105,9 @@ export default function App() {
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    // Los scripts de PDF ahora se cargan globalmente en layout.tsx.
-    // Este efecto ahora solo se encarga de la autenticación del usuario.
     signInAnonymously(auth).then(() => onAuthStateChanged(auth, (u) => setCurrentUser(u)));
   }, []);
 
-  // --- IA AGENT ✨ ---
   const toggleRecording = () => {
     if (isRecording) {
       if (recognitionRef.current) recognitionRef.current.stop();
