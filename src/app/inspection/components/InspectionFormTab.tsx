@@ -9,42 +9,10 @@ import {
 } from 'lucide-react';
 
 import { db, auth } from '../../../lib/firebase';
+import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
+import { processDictation } from '@/ai/flows/process-dictation-flow';
 
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'energy-engine-enterprise';
-
-// --- UTILIDAD GEMINI API (CORREGIDA Y SIMPLIFICADA) ---
-const callGemini = async (prompt, isJson = false) => {
-  let delay = 1000;
-  for (let i = 0; i < 4; i++) {
-    try {
-      const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, isJson })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-
-      // SIMPLIFICADO: El backend ahora devuelve { text: "..." }
-      if (!data.text) {
-        throw new Error("Respuesta inesperada de la IA.");
-      }
-
-      // Si se esperaba un JSON, lo parseamos desde el texto.
-      return isJson ? JSON.parse(data.text) : data.text;
-
-    } catch (e) {
-      console.error("Fallo en callGemini:", e);
-      if (i === 3) throw e;
-      await new Promise(resolve => setTimeout(resolve, delay));
-      delay *= 2;
-    }
-  }
-};
 
 const EnergyLogo = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -155,25 +123,9 @@ export default function App({ task }: { task?: any }) {
 
   const processAiCommand = async (text) => {
     setAiLoading(true);
-    const prompt = `Analiza detalladamente este dictado técnico: "${text}".
-    
-    INSTRUCCIONES DE EXTRACCIÓN SÚPER ESTRICTAS Y PRIORITARIAS:
-    1. IDENTIDAD: Extrae "Cliente" (ej. Doménica), "Instalación" (ej. Calderón), "Nº Grupo" (ej. 4), "Potencia" (ej. 12 KVA), "Marca" (ej. Hyundai), "Modelo" (ej. ang), "SN/Serie" (ej. 1714), "Persona que recibe" (ej. Guadalupe Flores).
-    2. MEDICIONES: Extrae los valores numéricos correspondientes a: horas (ej. 100), presión de aceite (ej. 100), tensiones (RS, ST, RT), intensidades (R, S, T), y potencia con carga (kW).
-    3. RECAMBIOS/PIEZAS: Presta MUCHA ATENCIÓN a los verbos. Si dice "cambio de", "se cambiaron", "reemplazo", debes asignar el valor "CMB" a la pieza mencionada (ej. Filtro de aceite -> CMB). Si dice "averiado", "descompuesto", "defecto", asigna "AVR" o "DEF".
-    4. COMANDO MAESTRO OK: Si el técnico dice explícitamente "todos los niveles en okay", "marcar pendientes como okay", "todos los ítems revisados están okay", la respuesta "all_ok" DEBE ser true.
-    
-    Devuelve estrictamente un JSON:
-    {
-      "identidad": { "cliente": "", "instalacion": "", "n_grupo": "", "potencia": "", "marca": "", "modelo": "", "sn": "", "recibe": "" },
-      "all_ok": false,
-      "checklist_updates": { "Nombre Exacto del Item en la lista": "OK/DEF/AVR/CMB" },
-      "mediciones": { "horas": "", "presion": "", "rs": "", "st": "", "rt": "", "r": "", "s": "", "t": "", "kw": "" },
-      "observations_summary": "Resumen técnico formal de lo mencionado, especificando los cambios y fallos."
-    }`;
     
     try {
-      const res = await callGemini(prompt, true);
+      const res = await processDictation({ dictation: text });
       
       setIntervention(prev => {
         let newCheck = { ...prev.check, ...res.checklist_updates };
@@ -226,23 +178,24 @@ export default function App({ task }: { task?: any }) {
         }
       });
     } catch (e) {
-        console.error(e);
+        console.error("Fallo en processAiCommand:", e);
         alert("La IA tuvo problemas procesando el dictado. Intente de nuevo.");
     } finally { setAiLoading(false); }
   };
 
   const improveReport = async () => {
     setAiLoading(true);
-    const prompt = `Profesionaliza este informe. Notas: ${intervention.observaciones}. Extrae datos faltantes si aparecen en el texto (Nº Grupo, Potencia, Serie, etc).
-    JSON: { "improved": "", "extra": { "cliente": "", "modelo": "", "sn": "", "n_grupo": "", "potencia": "", "recibe": "" } }`;
     try {
-      const res = await callGemini(prompt, true);
+      const res = await enhanceTechnicalRequest({ technicalRequest: intervention.observaciones });
       setIntervention(p => ({
         ...p, observaciones: res.improved,
         cliente: { ...p.cliente, nombre: res.extra?.cliente || p.cliente.nombre, n_grupo: res.extra?.n_grupo || p.cliente.n_grupo, potencia_kva: res.extra?.potencia || p.cliente.potencia_kva },
         equipo: { ...p.equipo, modelo: res.extra?.modelo || p.equipo.modelo, sn: res.extra?.sn || p.equipo.sn },
         recibidoPor: res.extra?.recibe || p.recibidoPor
       }));
+    } catch(e) {
+        console.error("Fallo en improveReport:", e);
+        alert("La IA tuvo problemas al refinar el informe. Intente de nuevo.");
     } finally { setAiLoading(false); }
   };
 
