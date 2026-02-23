@@ -78,7 +78,7 @@ const CHECKLIST_SECTIONS = {
 
 const ALL_CHECKLIST_ITEMS = Object.values(CHECKLIST_SECTIONS).flat();
 
-export default function App() {
+export default function App({ task }: { task?: any }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [inspectorName, setInspectorName] = useState('Antonio Ugena');
   const [isRecording, setIsRecording] = useState(false);
@@ -103,6 +103,31 @@ export default function App() {
 
   const canvasRef = useRef(null);
   const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    if (task) {
+        setIntervention(prev => ({
+            ...prev,
+            cliente: { 
+              ...prev.cliente, 
+              nombre: task.cliente?.nombre || prev.cliente.nombre, 
+              instalacion: task.cliente?.instalacion || prev.cliente.instalacion,
+            },
+            equipo: { 
+              ...prev.equipo, 
+              marca: task.equipo?.marca || prev.equipo.marca,
+              modelo: task.equipo?.modelo || prev.equipo.modelo, 
+            },
+            // Reset fields for new inspection
+            check: {},
+            mediciones: { horas: '', presion: '', temp: '', combustible: '', tensionAlt: '', frecuencia: '', cargaBat: '' },
+            pruebasCarga: { rs: '', st: '', rt: '', r: '', s: '', t: '', kw: '' },
+            observaciones: '',
+            recibidoPor: '',
+            firmaCliente: null
+        }));
+    }
+  }, [task]);
 
   useEffect(() => {
     signInAnonymously(auth).then(() => onAuthStateChanged(auth, (u) => setCurrentUser(u)));

@@ -1,11 +1,148 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 
+// Importar componentes de Header y Footer
+import Header from '../inspection/components/Header';
+import Footer from '../inspection/components/Footer';
+
+// Importar componentes principales
+import MainMenuDesktop from '../inspection/components/MainMenuDesktop';
+import MainMenuTablet from '../inspection/components/MainMenuTablet';
+import MainMenuMobile from '../inspection/components/MainMenuMobile';
+
+// Importar componentes de las pestañas
+import InspectionFormTab from '../inspection/components/InspectionFormTab';
+import TasksTab from '../inspection/components/TasksTab';
+import ExpensesTab from '../inspection/components/ExpensesTab';
+import ProfileTab from '../inspection/components/ProfileTab';
+
+// Importar constantes de pestañas
+import TABS from '../inspection/constants';
+
+// Hook para detectar el tamaño de la pantalla
+import { useScreenSize } from '@/hooks/use-screen-size';
+
+// --- COMPONENTE DE LA PÁGINA DE ADMINISTRACIÓN ---
 export default function AdminPage() {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>(TABS.MAIN_MENU);
+  const [isOnline, setIsOnline] = useState(true);
+  const router = useRouter();
+  const screenSize = useScreenSize();
+  const [hasMounted, setHasMounted] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
+
+  useEffect(() => {
+    setHasMounted(true);
+    if (typeof window !== "undefined") {
+      setIsOnline(navigator.onLine);
+      const handleOnline = () => setIsOnline(true);
+      const handleOffline = () => setIsOnline(false);
+      window.addEventListener('online', handleOnline);
+      window.addEventListener('offline', handleOffline);
+      return () => {
+        window.removeEventListener('online', handleOnline);
+        window.removeEventListener('offline', handleOffline);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      if (currentUser) {
+        setUser(currentUser);
+      } else {
+        router.push('/');
+      }
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [router]);
+
+  const handleNavigate = (tab: string) => {
+    setSelectedTask(null);
+    setActiveTab(tab);
+  };
+  
+  const handleStartInspection = (task: any) => {
+    setSelectedTask(task);
+    setActiveTab(TABS.NEW_INSPECTION);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white text-center">
+        <div className="flex items-center gap-3">
+          <h1 className="font-black text-2xl tracking-tighter text-slate-800">ENERGY</h1>
+          <h1 className="font-black text-2xl tracking-tighter text-amber-500">ENGINE</h1>
+        </div>
+        <p className="text-slate-500 font-medium mt-2">Cargando panel de control...</p>
+      </div>
+    );
+  }
+
+  const renderContent = () => {
+    if (!hasMounted) return null;
+
+    if (activeTab === TABS.MAIN_MENU) {
+      switch (screenSize) {
+        case 'mobile':
+          return <MainMenuMobile onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
+        case 'tablet':
+          return <MainMenuTablet onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
+        case 'desktop':
+          return <MainMenuDesktop onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
+        default:
+          return null;
+      }
+    }
+
+    let TabComponent: React.ElementType;
+    let props: any = {};
+    
+    switch (activeTab) {
+        case TABS.NEW_INSPECTION: 
+          TabComponent = InspectionFormTab;
+          props = { task: selectedTask };
+          break;
+        case TABS.TASKS: 
+          TabComponent = TasksTab;
+          props = { onStartInspection: handleStartInspection };
+          break;
+        case TABS.EXPENSES: 
+          TabComponent = ExpensesTab; 
+          break;
+        case TABS.PROFILE: 
+          TabComponent = ProfileTab; 
+          break;
+        default: return <p>Pestaña no encontrada</p>;
+    }
+
+    return (
+        <div className="animate-in slide-in-from-right duration-300">
+            <TabComponent {...props} />
+        </div>
+    );
+  };
+
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center p-8 text-center">
-      <h1 className="text-3xl font-bold">hpla</h1>
-    </div>
+    <main className="bg-slate-100 min-h-screen flex flex-col">
+      <Header 
+        activeTab={activeTab} 
+        isOnline={isOnline} 
+        onNavigate={handleNavigate} 
+      />
+      
+      <div className="flex-grow">
+        {renderContent()}
+      </div>
+      
+      {activeTab === TABS.MAIN_MENU && <Footer />}
+    </main>
   );
 }
