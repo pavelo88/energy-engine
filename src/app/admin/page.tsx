@@ -2,122 +2,146 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/firebase/config'; // Asegúrate de tener tu config de firebase
+import { db, COLLECTIONS } from '@/lib/firebase';
 import { 
   collection, 
+  query, 
+  where, 
   getDocs, 
   doc, 
-  updateDoc, 
-  deleteDoc, 
-  addDoc, 
-  query 
+  updateDoc 
 } from 'firebase/firestore';
+import InspectionForm from 'inspection/components/InspectionFormTab'; // Asumiendo que así se llama tu componente principal
 
-export default function AdminPage() {
-  const [inspectores, setInspectores] = useState([]);
-  const [loading, setLoading] = useState(true);
+export default function InspectionPage() {
+  const [step, setStep] = useState<'login' | 'setup' | 'main'>('login');
+  const [loading, setLoading] = useState(false);
+  const [userDocId, setUserDocId] = useState<string | null>(null);
+  
+  // Estados de formulario
+  const [dni, setDni] = useState('');
+  const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [signature, setSignature] = useState(''); // Aquí guardarías el Base64 de la firma
 
-  // Cargar datos
-  const fetchInspectores = async () => {
+  const handleLogin = async () => {
     setLoading(true);
-    const q = query(collection(db, "inspectores"));
-    const querySnapshot = await getDocs(q);
-    const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    setInspectores(docs);
-    setLoading(false);
-  };
+    try {
+      const q = query(collection(db, COLLECTIONS.USUARIOS), where("dni", "==", dni));
+      const querySnapshot = await getDocs(q);
 
-  useEffect(() => {
-    fetchInspectores();
-  }, []);
+      if (querySnapshot.empty) {
+        alert("Usuario no encontrado.");
+        return;
+      }
 
-  // Función para cambiar estado activo/inactivo
-  const toggleEstado = async (id, estadoActual) => {
-    const docRef = doc(db, "inspectores", id);
-    await updateDoc(docRef, { activo: !estadoActual });
-    fetchInspectores();
-  };
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+      setUserDocId(userDoc.id);
 
-  // Función para borrar (Usar con cuidado)
-  const eliminarInspector = async (id) => {
-    if(confirm("¿Estás seguro de eliminar a este inspector?")) {
-      await deleteDoc(doc(db, "inspectores", id));
-      fetchInspectores();
+      if (userData.esPrimerIngreso) {
+        setStep('setup');
+      } else {
+        // Validar contraseña (en una app real, usa Firebase Auth o hashing)
+        if (userData.password === password) {
+          setStep('main');
+        } else {
+          alert("Contraseña incorrecta");
+        }
+      }
+    } catch (error) {
+      console.error("Error en login:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Función para crear los inspectores iniciales (puedes llamarla una vez)
-  const seedInspectores = async () => {
-    const lista = [
-      { nombre: "Carlos Esteban Amarilla Bogado", dni: "70287885-T", email: "", activo: true, rol: "inspector" },
-      { nombre: "Antonio Ugena Del Cerro", dni: "50475775-K", email: "", activo: true, rol: "inspector" },
-      { nombre: "Mocanu Baluta", dni: "X4266252-M", email: "", activo: true, rol: "inspector" },
-      { nombre: "Juan Carlos Cabral", dni: "X-6112156-K", email: "", activo: true, rol: "inspector" },
-      { nombre: "Pablo Garcia", dni: "Admin", email: "pablofgarciaf@gmail.com", activo: true, rol: "admin" }
-    ];
-
-    for (const ins of lista) {
-      await addDoc(collection(db, "inspectores"), ins);
+  const handleSetup = async () => {
+    if (!userDocId || !newPassword || !signature) return;
+    
+    setLoading(true);
+    try {
+      const userRef = doc(db, COLLECTIONS.USUARIOS, userDocId);
+      await updateDoc(userRef, {
+        password: newPassword,
+        firma: signature,
+        esPrimerIngreso: false
+      });
+      setStep('main');
+    } catch (error) {
+      alert("Error guardando datos");
+    } finally {
+      setLoading(false);
     }
-    alert("Inspectores creados correctamente");
-    fetchInspectores();
   };
 
-  return (
-    <div className="p-8 bg-slate-50 min-h-screen">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-800">Panel de Administración</h1>
+  if (step === 'login') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-slate-50">
+        <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg border border-slate-200">
+          <h2 className="text-2xl font-bold mb-6 text-slate-800">Acceso Inspectores</h2>
+          <input 
+            className="w-full p-3 mb-4 border rounded" 
+            placeholder="DNI / NIE" 
+            value={dni} 
+            onChange={(e) => setDni(e.target.value)}
+          />
+          <input 
+            type="password" 
+            className="w-full p-3 mb-6 border rounded" 
+            placeholder="Contraseña" 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
           <button 
-            onClick={seedInspectores}
-            className="bg-blue-600 text-white px-4 py-2 rounded text-sm"
+            onClick={handleLogin}
+            disabled={loading}
+            className="w-full bg-amber-500 text-white p-3 rounded-lg font-bold hover:bg-amber-600"
           >
-            Cargar Inspectores Iniciales
+            {loading ? 'Verificando...' : 'Entrar'}
           </button>
         </div>
+      </div>
+    );
+  }
 
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="w-full text-left">
-            <thead className="bg-slate-100 border-b">
-              <tr>
-                <th className="p-4 font-semibold text-slate-600">Nombre</th>
-                <th className="p-4 font-semibold text-slate-600">DNI/NIE</th>
-                <th className="p-4 font-semibold text-slate-600">Email</th>
-                <th className="p-4 font-semibold text-slate-600">Estado</th>
-                <th className="p-4 font-semibold text-slate-600">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {inspectores.map((ins) => (
-                <tr key={ins.id} className="border-b hover:bg-slate-50">
-                  <td className="p-4">{ins.nombre}</td>
-                  <td className="p-4 text-slate-500">{ins.dni}</td>
-                  <td className="p-4 text-slate-500">{ins.email || '—'}</td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-full text-xs ${ins.activo ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {ins.activo ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </td>
-                  <td className="p-4 flex gap-2">
-                    <button 
-                      onClick={() => toggleEstado(ins.id, ins.activo)}
-                      className="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded"
-                    >
-                      {ins.activo ? 'Desactivar' : 'Activar'}
-                    </button>
-                    <button 
-                      onClick={() => eliminarInspector(ins.id)}
-                      className="text-xs bg-red-50 text-red-600 hover:bg-red-100 px-3 py-1 rounded"
-                    >
-                      Borrar
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+  if (step === 'setup') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-slate-50">
+        <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
+          <h2 className="text-2xl font-bold mb-2">Primer Ingreso</h2>
+          <p className="text-slate-500 mb-6">Configura tu acceso y firma para continuar.</p>
+          
+          <label className="block mb-2 text-sm font-medium">Nueva Contraseña</label>
+          <input 
+            type="password" 
+            className="w-full p-3 mb-4 border rounded" 
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+          />
+
+          <label className="block mb-2 text-sm font-medium">Firma Digital (Base64/Dibujo)</label>
+          <div className="border-2 border-dashed border-slate-300 h-32 mb-6 rounded flex items-center justify-center bg-slate-50">
+            {/* Aquí deberías integrar un componente de Canvas para firmas */}
+            <input 
+              type="text" 
+              placeholder="Simular firma con texto por ahora" 
+              className="p-2 w-full mx-4"
+              onChange={(e) => setSignature(e.target.value)}
+            />
+          </div>
+
+          <button 
+            onClick={handleSetup}
+            className="w-full bg-green-600 text-white p-3 rounded-lg font-bold"
+          >
+            Finalizar Configuración
+          </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Si ya se logueó, mostrar el formulario de inspección
+  return <InspectionForm />;
 }
