@@ -50,8 +50,8 @@ export default function Navbar() {
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Button className="hidden md:block bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
-            Área Técnica
+          <Button asChild className="hidden md:block bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
+            <Link href="/inspection">Área Técnica</Link>
           </Button>
           <div className="md:hidden">
             <Sheet>
@@ -63,8 +63,8 @@ export default function Navbar() {
               <SheetContent side="right">
                 <div className="flex flex-col items-center gap-8 mt-16">
                   {renderNavLinks()}
-                  <Button className="w-full bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
-                    Área Técnica
+                  <Button asChild className="w-full bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
+                    <Link href="/inspection">Área Técnica</Link>
                   </Button>
                 </div>
               </SheetContent>

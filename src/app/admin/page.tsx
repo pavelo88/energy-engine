@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
 
 // Importar componentes de Header y Footer
 import Header from '../inspection/components/Header';
@@ -56,10 +56,20 @@ export default function AdminPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setLoading(false);
       } else {
-        router.push('/');
+        signInAnonymously(auth)
+          .then((userCredential) => {
+            setUser(userCredential.user);
+          })
+          .catch((error) => {
+            console.error('Anonymous sign-in failed:', error);
+            router.push('/');
+          })
+          .finally(() => {
+            setLoading(false);
+          });
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, [router]);

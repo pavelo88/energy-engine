@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
 
 // Importar componentes de Header y Footer
 import Header from './components/Header';
@@ -35,6 +35,7 @@ export default function InspectionPage() {
   const router = useRouter();
   const screenSize = useScreenSize();
   const [hasMounted, setHasMounted] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<any | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -55,16 +56,31 @@ export default function InspectionPage() {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
         setUser(currentUser);
+        setLoading(false);
       } else {
-        router.push('/');
+        signInAnonymously(auth)
+          .then((userCredential) => {
+            setUser(userCredential.user);
+          })
+          .catch((error) => {
+            console.error('Anonymous sign-in failed:', error);
+            router.push('/');
+          })
+          .finally(() => {
+            setLoading(false);
+          });
       }
-      setLoading(false);
     });
     return () => unsubscribe();
   }, [router]);
 
   const handleNavigate = (tab: string) => {
     setActiveTab(tab);
+  };
+
+  const handleStartInspection = (task: any) => {
+    setSelectedTask(task);
+    setActiveTab(TABS.NEW_INSPECTION);
   };
 
   if (loading) {
@@ -95,18 +111,30 @@ export default function InspectionPage() {
       }
     }
 
-    let TabComponent;
+    let TabComponent: React.ElementType;
+    let props: any = {};
+    
     switch (activeTab) {
-        case TABS.NEW_INSPECTION: TabComponent = InspectionFormTab; break;
-        case TABS.TASKS: TabComponent = TasksTab; break;
-        case TABS.EXPENSES: TabComponent = ExpensesTab; break;
-        case TABS.PROFILE: TabComponent = ProfileTab; break;
+        case TABS.NEW_INSPECTION: 
+          TabComponent = InspectionFormTab;
+          props = { task: selectedTask };
+          break;
+        case TABS.TASKS: 
+          TabComponent = TasksTab;
+          props = { onStartInspection: handleStartInspection };
+          break;
+        case TABS.EXPENSES: 
+          TabComponent = ExpensesTab; 
+          break;
+        case TABS.PROFILE: 
+          TabComponent = ProfileTab; 
+          break;
         default: return <p>Pestaña no encontrada</p>;
     }
 
     return (
         <div className="animate-in slide-in-from-right duration-300">
-            <TabComponent />
+            <TabComponent {...props} />
         </div>
     );
   };
@@ -123,7 +151,6 @@ export default function InspectionPage() {
         {renderContent()}
       </div>
       
-      {/* El nuevo footer inteligente se muestra solo en el menú principal */}
       {activeTab === TABS.MAIN_MENU && <Footer />}
     </main>
   );
