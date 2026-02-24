@@ -10,6 +10,7 @@ import { Logo } from '@/components/icons';
 import { cn } from '@/lib/utils';
 import { navLinks } from '@/lib/data';
 import { ThemeToggle } from './theme-toggle';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -50,9 +51,22 @@ export default function Navbar() {
         </div>
         <div className="flex items-center gap-4">
           <ThemeToggle />
-          <Button asChild className="hidden md:block bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
-            <Link href="/inspection">Área Técnica</Link>
-          </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button className="hidden md:block bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-full font-bold shadow-lg transition-all uppercase tracking-wide">
+                  Intranet
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">Administración</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/inspection">Inspección</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
           <div className="md:hidden">
             <Sheet>
               <SheetTrigger asChild>
@@ -64,7 +78,10 @@ export default function Navbar() {
                 <div className="flex flex-col items-center gap-8 mt-16">
                   {renderNavLinks()}
                   <Button asChild className="w-full bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
-                    <Link href="/inspection">Área Técnica</Link>
+                    <Link href="/admin">Administración</Link>
+                  </Button>
+                  <Button asChild className="w-full bg-foreground text-background px-6 py-2 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-foreground/80 transition-all">
+                    <Link href="/inspection">Inspección</Link>
                   </Button>
                 </div>
               </SheetContent>

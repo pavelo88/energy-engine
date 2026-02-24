@@ -1,5 +1,7 @@
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
 export const generateProfessionalPDF = (type: string, data: any, tecnico: string, reportID: string) => {
-  const { jsPDF } = (window as any).jspdf;
   const doc = new jsPDF();
   const finalID = reportID || 'BORRADOR';
 
@@ -33,8 +35,8 @@ export const generateProfessionalPDF = (type: string, data: any, tecnico: string
     startY: (doc as any).lastAutoTable.finalY + 10,
     head: [['PRUEBA ELÉCTRICA', 'VALOR']],
     body: [
-      ['TENSIÓN RS / ST / RT', `${data.pruebasCarga.rs}V / ${data.pruebasCarga.st}V / ${data.pruebasCarga.rt}V`],
-      ['INTENSIDAD R / S / T', `${data.pruebasCarga.r}A / ${data.pruebasCarga.s}A / ${data.pruebasCarga.t}A`],
+      [`TENSIÓN RS / ST / RT`, `${data.pruebasCarga.rs}V / ${data.pruebasCarga.st}V / ${data.pruebasCarga.rt}V`],
+      [`INTENSIDAD R / S / T`, `${data.pruebasCarga.r}A / ${data.pruebasCarga.s}A / ${data.pruebasCarga.t}A`],
       ['POTENCIA ACTIVA', `${data.pruebasCarga.kw} kW`],
       ['HORAS OPERACIÓN', `${data.mediciones.horas} H`]
     ],

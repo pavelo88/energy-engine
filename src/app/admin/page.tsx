@@ -1,147 +1,127 @@
-
 'use client';
 
-import { useState, useEffect } from 'react';
-import { db, COLLECTIONS } from '@/lib/firebase';
-import { 
-  collection, 
-  query, 
-  where, 
-  getDocs, 
-  doc, 
-  updateDoc 
-} from 'firebase/firestore';
-import InspectionForm from 'inspection/components/InspectionFormTab'; // Asumiendo que así se llama tu componente principal
+import { useEffect, useState } from 'react';
+import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Users, Briefcase, Clock, CheckCircle } from 'lucide-react';
 
-export default function InspectionPage() {
-  const [step, setStep] = useState<'login' | 'setup' | 'main'>('login');
-  const [loading, setLoading] = useState(false);
-  const [userDocId, setUserDocId] = useState<string | null>(null);
-  
-  // Estados de formulario
-  const [dni, setDni] = useState('');
-  const [password, setPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [signature, setSignature] = useState(''); // Aquí guardarías el Base64 de la firma
+// --- Tipos de Datos ---
+type StatCardProps = {
+  title: string;
+  value: number | string;
+  icon: React.ElementType;
+  color: string;
+};
+type Job = { id: string; clienteNombre: string; estado: string; inspectorNombres: string[]; };
 
-  const handleLogin = async () => {
-    setLoading(true);
-    try {
-      const q = query(collection(db, COLLECTIONS.USUARIOS), where("dni", "==", dni));
-      const querySnapshot = await getDocs(q);
+// --- Componente de Tarjeta de Estadística ---
+const StatCard = ({ title, value, icon: Icon, color }: StatCardProps) => (
+  <div className={`bg-white p-6 rounded-2xl shadow-sm flex items-center justify-between`}>
+    <div>
+      <p className="text-sm font-medium text-slate-500">{title}</p>
+      <p className="text-3xl font-bold text-slate-800">{value}</p>
+    </div>
+    <div className={`rounded-full p-3 ${color}`}>
+      <Icon className="h-6 w-6 text-white" />
+    </div>
+  </div>
+);
 
-      if (querySnapshot.empty) {
-        alert("Usuario no encontrado.");
-        return;
-      }
+// --- Componente Principal del Dashboard ---
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState({ clients: 0, pendingJobs: 0, inProgressJobs: 0, inspectors: 0 });
+  const [recentJobs, setRecentJobs] = useState<Job[]>([]);
+  const [loading, setLoading] = useState(true);
 
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-      setUserDocId(userDoc.id);
+  useEffect(() => {
+    // Suscripción a Clientes
+    const unsubClients = onSnapshot(collection(db, 'clientes'), snapshot => {
+      setStats(prev => ({ ...prev, clients: snapshot.size }));
+    });
 
-      if (userData.esPrimerIngreso) {
-        setStep('setup');
-      } else {
-        // Validar contraseña (en una app real, usa Firebase Auth o hashing)
-        if (userData.password === password) {
-          setStep('main');
-        } else {
-          alert("Contraseña incorrecta");
+    // Suscripción a Inspectores
+    const qInspectors = query(collection(db, 'usuarios'), where("rol", "==", "inspector"));
+    const unsubInspectors = onSnapshot(qInspectors, snapshot => {
+        setStats(prev => ({ ...prev, inspectors: snapshot.size }));
+    });
+
+    // Suscripción a Trabajos (para estadísticas y tabla de recientes)
+    const qJobs = query(collection(db, 'trabajos'), orderBy('fechaCreacion', 'desc'));
+    const unsubJobs = onSnapshot(qJobs, snapshot => {
+      let pending = 0;
+      let inProgress = 0;
+      const jobs: Job[] = [];
+      
+      snapshot.forEach(doc => {
+        const jobData = doc.data() as Job;
+        if (jobData.estado === 'Pendiente') pending++;
+        if (jobData.estado === 'En Progreso') inProgress++;
+        if (jobs.length < 5) { // Limitar a los 5 más recientes para la tabla
+            jobs.push({ id: doc.id, ...jobData });
         }
-      }
-    } catch (error) {
-      console.error("Error en login:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSetup = async () => {
-    if (!userDocId || !newPassword || !signature) return;
-    
-    setLoading(true);
-    try {
-      const userRef = doc(db, COLLECTIONS.USUARIOS, userDocId);
-      await updateDoc(userRef, {
-        password: newPassword,
-        firma: signature,
-        esPrimerIngreso: false
       });
-      setStep('main');
-    } catch (error) {
-      alert("Error guardando datos");
-    } finally {
+
+      setStats(prev => ({ ...prev, pendingJobs: pending, inProgressJobs: inProgress }));
+      setRecentJobs(jobs);
       setLoading(false);
-    }
-  };
+    });
 
-  if (step === 'login') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-slate-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg border border-slate-200">
-          <h2 className="text-2xl font-bold mb-6 text-slate-800">Acceso Inspectores</h2>
-          <input 
-            className="w-full p-3 mb-4 border rounded" 
-            placeholder="DNI / NIE" 
-            value={dni} 
-            onChange={(e) => setDni(e.target.value)}
-          />
-          <input 
-            type="password" 
-            className="w-full p-3 mb-6 border rounded" 
-            placeholder="Contraseña" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          <button 
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full bg-amber-500 text-white p-3 rounded-lg font-bold hover:bg-amber-600"
-          >
-            {loading ? 'Verificando...' : 'Entrar'}
-          </button>
+    // Limpiar suscripciones al desmontar el componente
+    return () => {
+      unsubClients();
+      unsubInspectors();
+      unsubJobs();
+    };
+  }, []);
+
+  return (
+    <div className="space-y-8 text-slate-900">
+      <div>
+          <h1 className="text-3xl font-bold text-slate-800">Dashboard</h1>
+          <p className="text-slate-500 mt-1">Un resumen de la actividad reciente.</p>
+      </div>
+
+      {/* --- Grid de Estadísticas --- */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Clientes Totales" value={stats.clients} icon={Users} color="bg-blue-500" />
+        <StatCard title="Trabajos Pendientes" value={stats.pendingJobs} icon={Clock} color="bg-amber-500" />
+        <StatCard title="Trabajos En Progreso" value={stats.inProgressJobs} icon={Briefcase} color="bg-indigo-500" />
+        <StatCard title="Inspectores Activos" value={stats.inspectors} icon={Users} color="bg-green-500" />
+      </div>
+
+      {/* --- Tabla de Trabajos Recientes --- */}
+      <div className="bg-white p-6 rounded-2xl shadow-sm">
+        <h2 className="text-xl font-bold text-slate-700 mb-4">Trabajos Recientes</h2>
+        <div className="overflow-x-auto">
+          {loading ? <p>Cargando...</p> : (
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b"><th className="p-3">Cliente</th><th className="p-3">Inspectores</th><th className="p-3">Estado</th></tr>
+              </thead>
+              <tbody>
+                {recentJobs.length > 0 ? (
+                  recentJobs.map(job => (
+                    <tr key={job.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3 font-medium">{job.clienteNombre}</td>
+                      <td className="p-3">{job.inspectorNombres.join(', ')}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full 
+                          ${job.estado === 'Pendiente' ? 'bg-amber-100 text-amber-800' : ''}
+                          ${job.estado === 'En Progreso' ? 'bg-indigo-100 text-indigo-800' : ''}
+                          ${job.estado === 'Completado' ? 'bg-green-100 text-green-800' : ''}`}>
+                          {job.estado}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr><td colSpan={3} className="p-4 text-center text-slate-500">No hay trabajos recientes.</td></tr>
+                )}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
-    );
-  }
-
-  if (step === 'setup') {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-4 bg-slate-50">
-        <div className="w-full max-w-md p-8 bg-white rounded-xl shadow-lg">
-          <h2 className="text-2xl font-bold mb-2">Primer Ingreso</h2>
-          <p className="text-slate-500 mb-6">Configura tu acceso y firma para continuar.</p>
-          
-          <label className="block mb-2 text-sm font-medium">Nueva Contraseña</label>
-          <input 
-            type="password" 
-            className="w-full p-3 mb-4 border rounded" 
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-          />
-
-          <label className="block mb-2 text-sm font-medium">Firma Digital (Base64/Dibujo)</label>
-          <div className="border-2 border-dashed border-slate-300 h-32 mb-6 rounded flex items-center justify-center bg-slate-50">
-            {/* Aquí deberías integrar un componente de Canvas para firmas */}
-            <input 
-              type="text" 
-              placeholder="Simular firma con texto por ahora" 
-              className="p-2 w-full mx-4"
-              onChange={(e) => setSignature(e.target.value)}
-            />
-          </div>
-
-          <button 
-            onClick={handleSetup}
-            className="w-full bg-green-600 text-white p-3 rounded-lg font-bold"
-          >
-            Finalizar Configuración
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Si ya se logueó, mostrar el formulario de inspección
-  return <InspectionForm />;
+    </div>
+  );
 }

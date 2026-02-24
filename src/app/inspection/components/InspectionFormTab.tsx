@@ -387,8 +387,7 @@ export default function App({ task }: { task?: any }) {
       <main className="max-w-4xl mx-auto p-6 space-y-10">
         
         <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-8 border border-slate-100">
-          <h2 className="text-2xl font-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">Identificación del ADN</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <h2 className="text-2xl font-black text-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">Identificación del ADN</h2>          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <StableInput label="Empresa / Cliente" icon={Users} value={intervention.cliente.nombre} onChange={v => setIntervention(p => ({...p, cliente: {...p.cliente, nombre: v}}))}/>
             <StableInput label="Instalación / Ubicación" icon={MapPin} value={intervention.cliente.instalacion} onChange={v => setIntervention(p => ({...p, cliente: {...p.cliente, instalacion: v}}))}/>
             <StableInput label="Dirección Postal" icon={Mail} value={intervention.cliente.direccion} onChange={v => setIntervention(p => ({...p, cliente: {...p.cliente, direccion: v}}))}/>
