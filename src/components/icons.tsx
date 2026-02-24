@@ -5,7 +5,7 @@ export const Logo = () => (
     <Zap className="text-primary fill-primary" size={32} />
     <div className="leading-none">
       <h1 className="font-bold text-xl tracking-tighter font-headline">ENERGY ENGINE</h1>
-      <p className="text-[10px] text-primary uppercase tracking-widest font-black">Industrial Sat</p>
+      <p className="text-[10px] text-primary uppercase tracking-widest font-black">Grupos Electrógenos</p>
     </div>
   </div>
 );
