@@ -3,10 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Receipt, MapPin, Save, Loader2, User, Hourglass, Euro, Trash2, Plus, 
-  PenTool, FileText, CheckCircle, ClipboardSignature
+  PenTool, FileText, CheckCircle, ClipboardSignature, Upload
 } from 'lucide-react';
-import { db, auth } from '@/lib/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { db, auth, storage } from '@/lib/firebase';
+import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+
 
 // --- TIPOS DE DATOS ---
 type Gasto = {
@@ -139,6 +143,71 @@ export default function ExpensesTab() {
     setGastos(gastos.filter((_, i) => i !== index));
   };
   
+  const generateAndUploadPartePDF = async (parteData: any, docId: string) => {
+    const doc = new jsPDF();
+    const fecha = parteData.fecha.toDate().toLocaleDateString();
+
+    // Header
+    doc.setFillColor(15, 23, 42); // slate-900
+    doc.rect(0, 0, 210, 25, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(16);
+    doc.text("Parte de Trabajo Diario", 15, 15);
+    doc.setFontSize(10);
+    doc.text(`ID Intervención: ${parteData.id_intervencion}`, 130, 10);
+    doc.text(`Fecha: ${fecha}`, 130, 17);
+    
+    // Body
+    let currentY = 35;
+    (doc as any).autoTable({
+        startY: currentY,
+        head: [['DATOS GENERALES', '']],
+        body: [
+            ['Inspector', parteData.email_inspector],
+            ['Horas Trabajadas', parteData.horas_trabajadas],
+            ['Ubicación (Lat, Lng)', `${parteData.geolocalizacion?.lat.toFixed(4)}, ${parteData.geolocalizacion?.lng.toFixed(4)}`],
+        ],
+        theme: 'grid',
+    });
+    currentY = (doc as any).lastAutoTable.finalY + 10;
+    
+    doc.setFontSize(12);
+    doc.text("Resumen de Trabajos:", 15, currentY);
+    currentY += 7;
+    const splitResumen = doc.splitTextToSize(parteData.resumen_trabajos, 180);
+    doc.setFontSize(10);
+    doc.text(splitResumen, 15, currentY);
+    currentY += splitResumen.length * 5 + 5;
+
+    if (parteData.gastos.length > 0) {
+        (doc as any).autoTable({
+            startY: currentY,
+            head: [['Rubro', 'Descripción', 'Forma de Pago', 'Monto (€)']],
+            body: parteData.gastos.map(g => [g.rubro, g.descripcion, g.forma_pago, g.monto.toFixed(2)]),
+            theme: 'striped',
+        });
+        currentY = (doc as any).lastAutoTable.finalY;
+    }
+    
+    // Firmas
+    currentY += 15;
+    doc.line(15, currentY + 30, 85, currentY + 30);
+    doc.text("Firma del Técnico", 35, currentY + 35);
+    if(parteData.firma_tecnico_url) doc.addImage(parteData.firma_tecnico_url, 'PNG', 20, currentY, 60, 25);
+    
+    doc.line(125, currentY + 30, 195, currentY + 30);
+    doc.text(`Recibido por: ${parteData.nombre_cliente_recibe}`, 135, currentY + 35);
+    if(parteData.firma_cliente_url) doc.addImage(parteData.firma_cliente_url, 'PNG', 130, currentY, 60, 25);
+
+    // Subida a Firebase Storage
+    const pdfDataUri = doc.output('datauristring');
+    const storageRef = ref(storage, `partes_diarios/${docId}.pdf`);
+    const uploadResult = await uploadString(storageRef, pdfDataUri, 'data_url');
+    const downloadURL = await getDownloadURL(uploadResult.ref);
+    return downloadURL;
+  };
+
+
   const handleSaveParte = async () => {
     if (!idIntervencion || !resumenTrabajos || !horasTrabajadas) {
         return alert("El Nº de Intervención, el Resumen de Trabajos y las Horas son obligatorios.");
@@ -152,7 +221,7 @@ export default function ExpensesTab() {
             id_intervencion: idIntervencion,
             id_inspector: auth.currentUser?.uid,
             email_inspector: auth.currentUser?.email,
-            fecha: serverTimestamp(),
+            fecha: new Date(), // Usar un objeto Date para el PDF
             geolocalizacion: geolocalizacion,
             resumen_trabajos: resumenTrabajos,
             horas_trabajadas: parseFloat(horasTrabajadas),
@@ -163,9 +232,17 @@ export default function ExpensesTab() {
             estado: 'Pendiente Aprobación'
         };
 
-        await addDoc(collection(db, "partes_diarios"), parteData);
+        // Guardamos en Firestore pero con el timestamp del servidor
+        const docRef = await addDoc(collection(db, "partes_diarios"), { ...parteData, fecha: serverTimestamp() });
         
-        alert("¡Parte de Trabajo Diario guardado con éxito!");
+        // Generamos y subimos el PDF
+        const pdfUrl = await generateAndUploadPartePDF(parteData, docRef.id);
+
+        // Actualizamos el documento con la URL del PDF
+        await updateDoc(doc(db, "partes_diarios", docRef.id), { pdf_url: pdfUrl });
+
+        alert("¡Parte de Trabajo guardado y PDF generado con éxito!");
+        
         // Reset full form
         setIdIntervencion('');
         setResumenTrabajos('');
@@ -264,8 +341,8 @@ export default function ExpensesTab() {
 
       {/* --- ACCIÓN FINAL --- */}
       <button onClick={handleSaveParte} disabled={loading} className="w-full p-8 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50">
-        {loading ? <Loader2 className="animate-spin text-blue-500" /> : <Save className="text-blue-500" />}
-        FINALIZAR Y GUARDAR PARTE
+        {loading ? <Loader2 className="animate-spin text-blue-500" /> : <Upload className="text-blue-500" />}
+        {loading ? 'GUARDANDO Y SINCRONIZANDO...' : 'FINALIZAR Y SUBIR PARTE'}
       </button>
     </div>
   );
