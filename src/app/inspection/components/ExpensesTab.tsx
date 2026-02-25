@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Receipt, MapPin, Save, Loader2, User, Hourglass, Euro, Trash2, Plus, 
-  PenTool, FileText, CheckCircle
+  PenTool, FileText, CheckCircle, ClipboardSignature
 } from 'lucide-react';
-import { db, COLLECTIONS, auth } from '@/lib/firebase';
+import { db, auth } from '@/lib/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 // --- TIPOS DE DATOS ---
@@ -35,52 +35,72 @@ export default function ExpensesTab() {
   const [gastoActual, setGastoActual] = useState(initialGastoState);
   
   const [loading, setLoading] = useState(false);
+  const [hasTecnicoSignature, setHasTecnicoSignature] = useState(false);
+  const [hasClienteSignature, setHasClienteSignature] = useState(false);
 
   const tecnicoCanvasRef = useRef<HTMLCanvasElement>(null);
   const clienteCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // --- LÓGICA DE FIRMAS ---
-  const setupCanvas = (canvas: HTMLCanvasElement, onDraw: () => void) => {
+  useEffect(() => {
+    const cleanupTecnico = setupCanvas(tecnicoCanvasRef, () => setHasTecnicoSignature(true));
+    const cleanupCliente = setupCanvas(clienteCanvasRef, () => setHasClienteSignature(true));
+    return () => {
+      cleanupTecnico();
+      cleanupCliente();
+    };
+  }, []);
+
+  const setupCanvas = (canvasRef: React.RefObject<HTMLCanvasElement>, onDraw: () => void) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return () => {};
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) return () => {};
 
     let drawing = false;
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.strokeStyle = '#0f172a';
 
+    const getPos = (e: any) => {
+      const rect = canvas.getBoundingClientRect();
+      const clientX = e.clientX || e.touches[0].clientX;
+      const clientY = e.clientY || e.touches[0].clientY;
+      return { x: clientX - rect.left, y: clientY - rect.top };
+    }
+
     const start = (e: any) => {
         drawing = true;
-        draw(e);
+        const { x, y } = getPos(e);
+        ctx.beginPath();
+        ctx.moveTo(x, y);
     };
     const end = () => {
-        drawing = false;
-        ctx.beginPath();
-        onDraw();
+        if(drawing) {
+            drawing = false;
+            onDraw();
+        }
     };
     const draw = (e: any) => {
         if (!drawing) return;
         e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX || e.touches[0].clientX) - rect.left;
-        const y = (e.clientY || e.touches[0].clientY) - rect.top;
+        const { x, y } = getPos(e);
         ctx.lineTo(x, y);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(x, y);
     };
 
     canvas.addEventListener('mousedown', start);
     canvas.addEventListener('mouseup', end);
+    canvas.addEventListener('mouseleave', end);
     canvas.addEventListener('mousemove', draw);
-    canvas.addEventListener('touchstart', start);
+    canvas.addEventListener('touchstart', start, { passive: false });
     canvas.addEventListener('touchend', end);
-    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchmove', draw, { passive: false });
 
-    // Cleanup function
     return () => {
         canvas.removeEventListener('mousedown', start);
         canvas.removeEventListener('mouseup', end);
+        canvas.removeEventListener('mouseleave', end);
         canvas.removeEventListener('mousemove', draw);
         canvas.removeEventListener('touchstart', start);
         canvas.removeEventListener('touchend', end);
@@ -88,11 +108,12 @@ export default function ExpensesTab() {
     };
   };
 
-  const clearCanvas = (canvasRef: React.RefObject<HTMLCanvasElement>) => {
+  const clearCanvas = (canvasRef: React.RefObject<HTMLCanvasElement>, setHasSignature: (has: boolean) => void) => {
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (canvas && ctx) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setHasSignature(false);
     }
   };
 
@@ -122,6 +143,9 @@ export default function ExpensesTab() {
     if (!idIntervencion || !resumenTrabajos || !horasTrabajadas) {
         return alert("El Nº de Intervención, el Resumen de Trabajos y las Horas son obligatorios.");
     }
+    if (!hasTecnicoSignature) return alert("La firma del técnico es obligatoria.");
+    if (!hasClienteSignature) return alert("La firma del cliente es obligatoria.");
+
     setLoading(true);
     try {
         const parteData = {
@@ -149,12 +173,12 @@ export default function ExpensesTab() {
         setNombreClienteRecibe('');
         setGeolocalizacion(null);
         setGastos([]);
-        clearCanvas(tecnicoCanvasRef);
-        clearCanvas(clienteCanvasRef);
+        clearCanvas(tecnicoCanvasRef, setHasTecnicoSignature);
+        clearCanvas(clienteCanvasRef, setHasClienteSignature);
 
-    } catch (e) {
+    } catch (e: any) {
         console.error("Error al guardar el parte: ", e);
-        alert("Error al guardar: " + e);
+        alert("Error al guardar: " + e.message);
     } finally {
         setLoading(false);
     }
@@ -171,7 +195,7 @@ export default function ExpensesTab() {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input value={idIntervencion} onChange={e => setIdIntervencion(e.target.value)} type="text" placeholder="Nº de Intervención / OT" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-slate-900" />
-            <button onClick={getGeoLocation} disabled={!!geolocalizacion} className={`p-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all ${geolocalizacion ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+            <button onClick={getGeoLocation} disabled={!!geolocalizacion} className={`p-4 rounded-2xl flex items-center justify-center gap-2 font-bold text-sm transition-all ${geolocalizacion ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>
                 <MapPin size={16} /> {geolocalizacion ? `GPS OK: ${geolocalizacion.lat.toFixed(3)}...` : 'Capturar Ubicación'}
             </button>
         </div>
@@ -227,14 +251,14 @@ export default function ExpensesTab() {
         <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-1 flex items-center gap-1"><PenTool size={12}/> Firma del Técnico</label>
             <canvas ref={tecnicoCanvasRef} width={600} height={200} className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-crosshair touch-none" />
-            <button onClick={() => clearCanvas(tecnicoCanvasRef)} className="text-xs text-red-500 font-bold">Limpiar</button>
+            <button onClick={() => clearCanvas(tecnicoCanvasRef, setHasTecnicoSignature)} className="text-xs text-red-500 font-bold">Limpiar</button>
         </div>
         {/* Firma Cliente */}
         <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-1 flex items-center gap-1"><User size={12}/> Recibido por (Cliente)</label>
             <input value={nombreClienteRecibe} onChange={e => setNombreClienteRecibe(e.target.value)} type="text" placeholder="Nombre y Apellido de quien recibe" className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold text-slate-900 mb-2" />
             <canvas ref={clienteCanvasRef} width={600} height={200} className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-crosshair touch-none" />
-            <button onClick={() => clearCanvas(clienteCanvasRef)} className="text-xs text-red-500 font-bold">Limpiar</button>
+            <button onClick={() => clearCanvas(clienteCanvasRef, setHasClienteSignature)} className="text-xs text-red-500 font-bold">Limpiar</button>
         </div>
       </section>
 
