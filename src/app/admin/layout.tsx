@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
-import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import Sidebar from '@/app/admin/components/Sidebar';
 import Header from '@/app/admin/components/Header';
+import { useUser } from '@/firebase';
+import { Loader2 } from 'lucide-react';
 
-// Mapeo de rutas a títulos para el Header
+
 const pageTitles: { [key: string]: string } = {
   '/admin': 'Dashboard',
   '/admin/users': 'Gestión de Usuarios',
@@ -16,13 +18,18 @@ const pageTitles: { [key: string]: string } = {
   '/admin/import': 'Importar Datos',
 };
 
-// ************************************************************************************
-// **                          GUARDIÁN DE SEGURIDAD TEMPORALMENTE DESACTIVADO         **
-// ************************************************************************************
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isUserLoading } = useUser();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/auth/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleMenuClick = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -31,6 +38,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const handleSidebarClose = () => {
     setSidebarOpen(false);
   };
+  
+  if (isUserLoading || !user) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin" />
+      </div>
+    )
+  }
 
   const title = pageTitles[pathname] || 'Administración';
 

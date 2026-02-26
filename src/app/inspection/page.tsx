@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
-import { onAuthStateChanged, type User, signInAnonymously } from 'firebase/auth';
+import { useUser, useFirebase } from '@/firebase';
 
 // Importar componentes de Header y Footer
 import Header from './components/Header';
@@ -14,23 +13,24 @@ import MainMenuDesktop from './components/MainMenuDesktop';
 import MainMenuTablet from './components/MainMenuTablet';
 import MainMenuMobile from './components/MainMenuMobile';
 
-// Importar componentes de las pestañas
-import InspectionFormTab from './components/InspectionFormTab';
-import TasksTab from './components/TasksTab';
-import ExpensesTab from './components/ExpensesTab';
-import ProfileTab from './components/ProfileTab';
-
 // Importar constantes de pestañas
 import TABS from './constants';
 
 // Hook para detectar el tamaño de la pantalla
 import { useScreenSize } from '@/hooks/use-screen-size';
+import { Loader2 } from 'lucide-react';
+import { FirebaseClientProvider } from '@/firebase';
 
-// --- COMPONENTE DE LA PÁGINA DE INSPECCIÓN ---
-export default function InspectionPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>(TABS.MAIN_MENU);
+// Lazy loading components
+const InspectionFormTab = React.lazy(() => import('./components/InspectionFormTab'));
+const TasksTab = React.lazy(() => import('./components/TasksTab'));
+const ExpensesTab = React.lazy(() => import('./components/ExpensesTab'));
+const ProfileTab = React.lazy(() => import('./components/ProfileTab'));
+
+
+const InspectionPageContent = () => {
+  const { user, isUserLoading } = useUser();
+  const [activeTab, setActiveTab] = useState<string>(TABS.MENU);
   const [isOnline, setIsOnline] = useState(true);
   const router = useRouter();
   const screenSize = useScreenSize();
@@ -53,26 +53,10 @@ export default function InspectionPage() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser);
-        setLoading(false);
-      } else {
-        signInAnonymously(auth)
-          .then((userCredential) => {
-            setUser(userCredential.user);
-          })
-          .catch((error) => {
-            console.error('Anonymous sign-in failed:', error);
-            router.push('/');
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-      }
-    });
-    return () => unsubscribe();
-  }, [router]);
+    if (!isUserLoading && !user) {
+        router.push('/auth/login');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleNavigate = (tab: string) => {
     setActiveTab(tab);
@@ -83,7 +67,7 @@ export default function InspectionPage() {
     setActiveTab(TABS.NEW_INSPECTION);
   };
 
-  if (loading) {
+  if (isUserLoading || !user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-white text-center">
         <div className="flex items-center gap-3">
@@ -91,6 +75,7 @@ export default function InspectionPage() {
           <h1 className="font-black text-2xl tracking-tighter text-amber-500">ENGINE</h1>
         </div>
         <p className="text-slate-500 font-medium mt-2">Cargando panel de control...</p>
+        <Loader2 className="animate-spin mt-4" />
       </div>
     );
   }
@@ -98,7 +83,7 @@ export default function InspectionPage() {
   const renderContent = () => {
     if (!hasMounted) return null;
 
-    if (activeTab === TABS.MAIN_MENU) {
+    if (activeTab === TABS.MENU) {
       switch (screenSize) {
         case 'mobile':
           return <MainMenuMobile onNavigate={handleNavigate} userName={user?.displayName || 'Admin'} />;
@@ -134,7 +119,9 @@ export default function InspectionPage() {
 
     return (
         <div className="animate-in slide-in-from-right duration-300">
-            <TabComponent {...props} />
+            <Suspense fallback={<Loader2 className="animate-spin" />}>
+              <TabComponent {...props} />
+            </Suspense>
         </div>
     );
   };
@@ -151,7 +138,16 @@ export default function InspectionPage() {
         {renderContent()}
       </div>
       
-      {activeTab === TABS.MAIN_MENU && <Footer />}
+      {activeTab === TABS.MENU && <Footer />}
     </main>
   );
+}
+
+// --- COMPONENTE DE LA PÁGINA DE INSPECCIÓN ---
+export default function InspectionPage() {
+    return (
+        <FirebaseClientProvider>
+            <InspectionPageContent />
+        </FirebaseClientProvider>
+    )
 }
