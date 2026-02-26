@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Receipt, MapPin, Save, Loader2, User, Hourglass, Euro, Trash2, Plus, 
-  PenTool, FileText, CheckCircle, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, Briefcase
+  PenTool, FileText, CheckCircle, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, Briefcase, FileSearch
 } from 'lucide-react';
 import { db, auth, storage } from '@/lib/firebase';
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
@@ -132,52 +132,129 @@ export default function ExpensesTab() {
   };
 
   const totalHoras = useMemo(() => interventions.reduce((acc, curr) => acc + curr.horas, 0), [interventions]);
+  const totalGastos = useMemo(() => gastos.reduce((acc, curr) => acc + curr.monto, 0), [gastos]);
 
-  const generateAndUploadPDF = async (data: any, docId: string) => {
+  // --- LÓGICA DE PDF ---
+  const createParteDiarioPDF = (data: any) => {
     const doc = new jsPDF();
+    const primaryColor = '#F59E0B'; // Amber-500
+    const darkColor = '#0F172A'; // Slate-900
+
+    // Header
+    doc.setFillColor(darkColor);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setTextColor('#FFFFFF');
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text("PARTE DE TRABAJO DIARIO", 15, 18);
     
-    doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 25, 'F');
-    doc.setTextColor(255); doc.setFontSize(16); doc.text("Parte de Trabajo Diario", 15, 15);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Inspector: ${data.email_inspector || 'No especificado'}`, 130, 12);
+    doc.text(`Fecha: ${format(data.fecha, 'dd \'de\' MMMM \'de\' yyyy', { locale: es })}`, 130, 19);
+
+    let currentY = 40;
+
+    // Summary Cards
+    doc.setFillColor('#F1F5F9'); // Slate-100
+    doc.roundedRect(15, currentY, 88, 20, 3, 3, 'F');
+    doc.roundedRect(107, currentY, 88, 20, 3, 3, 'F');
+    
+    doc.setTextColor(darkColor);
     doc.setFontSize(10);
-    doc.text(`Inspector: ${data.email_inspector}`, 120, 10);
-    doc.text(`Fecha: ${format(data.fecha, 'PPP', { locale: es })}`, 120, 17);
+    doc.text('HORAS TOTALES REPORTADAS', 20, currentY + 7);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${data.total_horas.toFixed(2)} h`, 20, currentY + 15);
     
-    let currentY = 35;
-    (doc as any).autoTable({
-        startY: currentY,
-        head: [['RESUMEN DEL DÍA', '']],
-        body: [['Horas Totales Reportadas', `${data.total_horas} h`]],
-        theme: 'grid',
-    });
-    currentY = (doc as any).lastAutoTable.finalY + 10;
-    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('GASTOS TOTALES DEL DÍA', 112, currentY + 7);
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${data.total_gastos.toFixed(2)} €`, 112, currentY + 15);
+
+    currentY += 30;
+
+    // Interventions Table
     if (data.intervenciones.length > 0) {
-      doc.setFontSize(12); doc.text("Intervenciones Realizadas:", 15, currentY); currentY += 7;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Intervenciones Realizadas", 15, currentY);
+      currentY += 7;
       (doc as any).autoTable({
         startY: currentY,
-        head: [['Descripción', 'Horas']],
-        body: data.intervenciones.map(i => [i.descripcion, i.horas.toFixed(2)]),
-        theme: 'striped',
+        head: [['Descripción de la Tarea', 'Horas Dedicadas']],
+        body: data.intervenciones.map((i: any) => [i.descripcion, i.horas.toFixed(2)]),
+        theme: 'grid',
+        headStyles: { fillColor: darkColor },
       });
       currentY = (doc as any).lastAutoTable.finalY + 10;
     }
-    
+
+    // Expenses Table
     if (data.gastos.length > 0) {
-        doc.setFontSize(12); doc.text("Gastos y Viáticos:", 15, currentY); currentY += 7;
-        (doc as any).autoTable({
-            startY: currentY,
-            head: [['Rubro', 'Descripción', 'Forma Pago', 'Comprobante', 'Monto (€)']],
-            body: data.gastos.map(g => [g.rubro, g.descripcion, g.forma_pago, g.comprobanteUrl ? 'Sí' : 'No', g.monto.toFixed(2)]),
-            theme: 'striped',
-        });
-        currentY = (doc as any).lastAutoTable.finalY;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text("Gastos y Viáticos", 15, currentY);
+      currentY += 7;
+      (doc as any).autoTable({
+        startY: currentY,
+        head: [['Rubro', 'Descripción', 'Forma Pago', 'Comprobante', 'Monto (€)']],
+        body: data.gastos.map((g: any) => [g.rubro, g.descripcion, g.forma_pago, g.comprobanteUrl || g.comprobanteFile ? 'Sí' : 'No', g.monto.toFixed(2)]),
+        theme: 'grid',
+        headStyles: { fillColor: darkColor },
+        didParseCell: function (data: any) {
+          if (data.column.dataKey === 4) { // Monto column
+            data.cell.styles.halign = 'right';
+          }
+        }
+      });
+      currentY = (doc as any).lastAutoTable.finalY;
+    }
+
+    // Signature
+    const signatureY = doc.internal.pageSize.height - 50;
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(darkColor);
+    doc.line(15, signatureY + 25, 85, signatureY + 25);
+    doc.setFontSize(10);
+    doc.text("Firma del Inspector", 40, signatureY + 30);
+    if(data.firma_inspector_url) {
+      doc.addImage(data.firma_inspector_url, 'PNG', 20, signatureY, 60, 25);
     }
     
-    currentY = doc.internal.pageSize.height - 50;
-    doc.line(15, currentY + 30, 85, currentY + 30);
-    doc.text("Firma del Inspector", 35, currentY + 35);
-    if(data.firma_inspector_url) doc.addImage(data.firma_inspector_url, 'PNG', 20, currentY, 60, 25);
+    // Footer
+    const pageCount = (doc as any).internal.getNumberOfPages();
+    for(let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor('#94A3B8'); // Slate-400
+        doc.text(`Energy Engine © ${new Date().getFullYear()}`, 15, 290);
+        doc.text(`Página ${i} de ${pageCount}`, 180, 290);
+    }
 
+    return doc;
+  }
+
+  const handlePreviewPDF = () => {
+    if (!user) return alert("Error de autenticación. Por favor, recarga la página.");
+    
+    const parteDataForPreview = {
+        email_inspector: user.email,
+        fecha: reportDate,
+        total_horas: totalHoras,
+        intervenciones: interventions,
+        gastos: gastos,
+        total_gastos: totalGastos,
+        firma_inspector_url: signature,
+    };
+    const doc = createParteDiarioPDF(parteDataForPreview);
+    doc.output('dataurlnewwindow');
+  }
+
+  const generateAndUploadPDF = async (data: any, docId: string) => {
+    const doc = createParteDiarioPDF(data);
     const pdfDataUri = doc.output('datauristring');
     const storageRef = ref(storage, `partes_diarios/${docId}.pdf`);
     await uploadString(storageRef, pdfDataUri, 'data_url');
@@ -214,17 +291,18 @@ export default function ExpensesTab() {
             email_inspector: user.email,
             fecha: reportDate,
             total_horas: totalHoras,
+            total_gastos: totalGastos,
             intervenciones: interventions,
-            gastos: uploadedGastos,
+            gastos: uploadedGastos.map(({comprobanteFile, ...rest}) => rest), // No guardar el File object
             firma_inspector_url: firmaUrl,
             estado: 'Pendiente Aprobación'
         };
 
         // 3. Guardar en Firestore
-        const docRef = await addDoc(collection(db, "partes_diarios"), { ...parteData, fecha: serverTimestamp() });
+        const docRef = await addDoc(collection(db, "partes_diarios"), parteData);
         
         // 4. Generar y subir el PDF
-        const pdfUrl = await generateAndUploadPDF(parteData, docRef.id);
+        const pdfUrl = await generateAndUploadPDF({...parteData, fecha: new Date(parteData.fecha)}, docRef.id);
 
         // 5. Actualizar el documento con la URL del PDF
         await updateDoc(doc(db, "partes_diarios", docRef.id), { pdf_url: pdfUrl });
@@ -244,6 +322,7 @@ export default function ExpensesTab() {
         setLoading(false);
     }
   };
+
 
   return (
     <div className="space-y-6 pb-10 animate-in fade-in slide-in-from-right-4 duration-500">
@@ -265,7 +344,7 @@ export default function ExpensesTab() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={reportDate} onSelect={setReportDate} initialFocus/>
+                <Calendar mode="single" selected={reportDate} onSelect={(date) => date && setReportDate(date)} initialFocus/>
               </PopoverContent>
             </Popover>
         </div>
@@ -345,11 +424,16 @@ export default function ExpensesTab() {
       </section>
 
       {/* ACCIÓN FINAL */}
-      <button onClick={handleSaveParte} disabled={loading} className="w-full p-8 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50">
-        {loading ? <Loader2 className="animate-spin text-blue-500" /> : <Upload className="text-blue-500" />}
-        {loading ? 'GUARDANDO Y SINCRONIZANDO...' : 'FINALIZAR Y SUBIR PARTE'}
-      </button>
+      <div className="flex flex-col md:flex-row gap-4">
+        <button onClick={handlePreviewPDF} disabled={loading} className="w-full p-8 bg-white text-slate-900 border-2 border-slate-200 rounded-[2.5rem] font-bold text-lg shadow-lg flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50">
+            <FileSearch size={22} />
+            VISTA PREVIA
+        </button>
+        <button onClick={handleSaveParte} disabled={loading} className="w-full p-8 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50">
+          {loading ? <Loader2 className="animate-spin text-blue-500" /> : <Upload className="text-blue-500" />}
+          {loading ? 'GUARDANDO Y SINCRONIZANDO...' : 'FINALIZAR Y SUBIR PARTE'}
+        </button>
+      </div>
     </div>
   );
 }
-
