@@ -10,7 +10,8 @@
       "GET",
       "POST",
       "PUT",
-      "DELETE"
+      "DELETE",
+      "OPTIONS"
     ],
     "responseHeader": [
       "Content-Type",
