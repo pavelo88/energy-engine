@@ -1,0 +1,198 @@
+rules_version = '2'; // Moved to the very top as the first statement.
+// This ruleset enforces a Database-Backed Access Control (DBAC) model for the AssetTrack AI application.
+//
+// Core Philosophy:
+// The security model is built on the principle of 'Authorization Independence'. Instead of using
+// custom claims, which are opaque to the database, user roles are stored in dedicated
+// top-level collections (e.g., /roles/admin/{userId}). This allows rules to perform fast,
+// efficient exists() checks to determine permissions, making the security logic transparent,
+// debuggable, and scalable.
+//
+// Data Structure:
+// - /users/{userId}: Private user profiles, owned by the user.
+// - /roles/*/{userId}: Role-lookup collections. The existence of a document grants a role.
+// - /assets/{assetId}: A global collection of assets, readable by all roles, writable by admins.
+// - /reports/{reportId}: Inspection reports, readable by owners (inspectors) and management (admins, gerentes),
+//   with strict controls on modification and deletion.
+// - /web_content/{configId}: Publicly readable data for the landing page.
+// - /global_stats/{configId}: Internal analytics, readable by management only.
+//
+// Key Security Decisions:
+// - Role Management: All role checks use exists() on the /roles/* collections. This DBAC approach
+//   is more explicit and manageable than relying on custom claims. Client-side modifications to roles
+//   are disabled; they must be managed by a trusted backend process.
+// - Denormalization for Authorization: To avoid slow and costly get() calls in rules, authorization-critical
+//   data is denormalized. For example, multimedia documents under a report contain a 'reportOwnerId' field,
+//   allowing for direct ownership checks without reading the parent report document.
+// - Auditability: Deletion of critical records like inspection reports (/reports) is explicitly forbidden
+//   to maintain a permanent audit trail.
+// - User Privacy: Listing users is disallowed to prevent data scraping and protect user privacy.
+// - Prototyping Flexibility: The rules strictly enforce authorization (who can access what) but do not
+//   validate the shape or data types of most fields, allowing for rapid front-end development and iteration.
+//   Validation is limited to fields essential for relational integrity and ownership (e.g., creator IDs).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the requesting user's UID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Checks if the requesting user has the 'admin' role by verifying
+     * the existence of their UID in the /roles/admin collection.
+     */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles/admin/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the requesting user has the 'gerente' (manager) role.
+     */
+    function isGerente() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles/gerente/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the requesting user has the 'inspector' role.
+     */
+    function isInspector() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles/inspector/$(request.auth.uid));
+    }
+
+    /**
+     * Checks if the user has a management-level role (admin or gerente).
+     */
+    function isManagement() {
+      return isAdmin() || isGerente();
+    }
+    
+    /**
+     * Checks if the user has any valid role in the system.
+     */
+    function isAnyRole() {
+      return isManagement() || isInspector();
+    }
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Publicly readable content for the application's landing page.
+     * @path /web_content/{configId}
+     * @allow (get) Any user, including unauthenticated ones, can read this content.
+     * @deny (update) A non-admin user attempts to change the hero text.
+     * @principle Segregates public data from internal data. Writes are restricted to admins.
+     */
+    match /web_content/{configId} {
+      allow get, list: if true;
+      allow create, update: if isAdmin();
+      allow delete: if false;
+    }
+
+    /**
+     * @description User profile data. Each user can manage their own profile. Admins have override access.
+     * @path /users/{userId}
+     * @allow (create) A new user signs up and creates their own profile document, where `{userId}` matches their auth UID.
+     * @deny (get) A user tries to read the profile data of another user.
+     * @deny (list) Any user attempts to list all documents in the /users collection.
+     * @principle Restricts access to a user's own data tree and prevents user enumeration.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if (isOwner(userId) || isAdmin()) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if (isOwner(userId) || isAdmin()) && resource != null;
+    }
+
+    /**
+     * @description Role-defining collections. The existence of a doc grants a role.
+     * @path /roles/{role}/{userId} where role is 'admin', 'gerente', or 'inspector'.
+     * @allow (get) An admin checks if a specific user is also an admin.
+     * @deny (create) A regular user attempts to add themselves to the /roles/admin collection.
+     * @principle Implements Database-Backed Access Control (DBAC). Client-side writes are forbidden.
+     */
+    match /roles/{role}/{userId} {
+      allow get, list: if isAdmin();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Master list of all industrial assets.
+     * @path /assets/{assetId}
+     * @allow (list) Any authenticated user (inspector, gerente, admin) can list all assets.
+     * @deny (create) An inspector attempts to add a new asset to the system.
+     * @principle Provides global read access to authenticated users for core app functionality, while centralizing write control with admins.
+     */
+    match /assets/{assetId} {
+      allow get, list: if isAnyRole();
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Detailed inspection reports created by inspectors.
+     * @path /reports/{reportId}
+     * @allow (create) An inspector creates a new report, setting the `technicianId` to their own UID.
+     * @allow (get) A manager ('gerente') reads a report submitted by any inspector.
+     * @deny (update) An inspector attempts to modify another inspector's report.
+     * @deny (delete) Anyone attempts to delete a report, ensuring auditability.
+     * @principle Enforces document ownership for creators and grants global read access to management roles.
+     */
+    match /reports/{reportId} {
+      allow get: if isManagement() || (isInspector() && resource.data.technicianId == request.auth.uid);
+      allow list: if isManagement() || isInspector();
+      allow create: if isInspector() && request.resource.data.technicianId == request.auth.uid;
+      allow update: if isAdmin() && resource != null && request.resource.data.technicianId == resource.data.technicianId;
+      allow delete: if false;
+
+      /**
+       * @description Multimedia files (photos, etc.) attached to an inspection report.
+       * @path /reports/{reportId}/multimedia/{multimediaId}
+       * @allow (create) An inspector uploads a photo for a report they are creating, correctly setting `reportOwnerId` and `reportId`.
+       * @deny (get) An inspector tries to access multimedia files from a report that does not belong to them.
+       * @principle Uses a denormalized `reportOwnerId` field to enforce ownership without requiring a `get()` call on the parent document.
+       */
+      match /multimedia/{multimediaId} {
+        allow get: if isManagement() || (isInspector() && resource.data.reportOwnerId == request.auth.uid);
+        allow list: if isManagement() || isInspector();
+        allow create: if isInspector() && request.resource.data.reportOwnerId == request.auth.uid && request.resource.data.reportId == reportId;
+        allow update: if isInspector() && resource.data.reportOwnerId == request.auth.uid && resource != null && request.resource.data.reportOwnerId == resource.data.reportOwnerId && request.resource.data.reportId == resource.data.reportId;
+        allow delete: if isInspector() && resource.data.reportOwnerId == request.auth.uid && resource != null;
+      }
+    }
+    
+    /**
+     * @description Aggregated system-wide statistics for internal dashboards.
+     * @path /global_stats/{configId}
+     * @allow (get) A manager ('gerente') reads the global stats document for a dashboard.
+     * @deny (update) Any user attempts to modify the stats from the client-side.
+     * @principle Protects sensitive internal data, making it read-only for management and preventing all client-side writes.
+     */
+    match /global_stats/{configId} {
+      allow get, list: if isManagement();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
