@@ -99,21 +99,21 @@ export default function InspectionHub({ onSelectInspectionType }: HubProps) {
       {/* Sección para crear un nuevo informe */}
       <section className="space-y-4">
         <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] px-2">O crea un nuevo documento</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
           {reportTypes.map(type => (
             <button 
               key={type.id}
               onClick={() => handleLoadInspection(type.id)}
-              className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-start gap-4 group active:scale-[0.98] transition-all text-left hover:border-blue-500/50 hover:shadow-lg"
+              className="relative bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col text-center justify-center items-center gap-4 group active:scale-[0.98] transition-all hover:border-blue-500/50 hover:shadow-lg md:aspect-square"
             >
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex-shrink-0 flex items-center justify-center">
-                <type.icon size={24} />
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-3xl flex-shrink-0 flex items-center justify-center transition-transform group-hover:scale-110">
+                <type.icon size={32} />
               </div>
-              <div className="flex-grow">
-                <h3 className="font-black text-slate-900 tracking-tight text-lg">{type.title}</h3>
-                <p className="text-xs text-slate-500 mt-1">{type.desc}</p>
+              <div>
+                <h3 className="font-black text-slate-900 tracking-tight text-xl md:text-2xl">{type.title}</h3>
+                <p className="text-sm text-slate-500 mt-1 max-w-[250px] mx-auto">{type.desc}</p>
               </div>
-              <ArrowRight className="text-slate-300 group-hover:text-blue-500 transition-colors mt-1" size={20} />
+              <ArrowRight className="text-slate-300 group-hover:text-blue-500 transition-colors absolute top-6 right-6" size={24}/>
             </button>
           ))}
         </div>
