@@ -116,7 +116,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
-        <Card className="w-full max-w-xl rounded-2xl shadow-xl">
+        <Card className="w-full max-w-2xl rounded-2xl shadow-xl">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto mb-2 flex justify-center">
               <Logo />

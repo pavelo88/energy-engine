@@ -4,7 +4,11 @@ import { useState } from 'react';
 import { updatePassword } from 'firebase/auth';
 import { doc, updateDoc } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import { Loader2, Lock, ShieldCheck } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ForceChangePasswordProps {
   onPasswordChanged: () => void;
@@ -65,45 +69,47 @@ export default function ForceChangePassword({ onPasswordChanged }: ForceChangePa
   };
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-slate-50 p-4">
-      <div className="w-full max-w-md mx-auto bg-white p-8 rounded-2xl shadow-xl text-center space-y-4">
-        <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
-          <ShieldCheck size={32}/>
-        </div>
-        <h1 className="text-3xl font-bold text-slate-800">Crea tu Contraseña</h1>
-        <p className="text-slate-500">
-          Por seguridad, establece una nueva contraseña para tu cuenta.
-        </p>
-        <form onSubmit={handleSetPassword} className="w-full space-y-4 pt-4">
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <input 
-              required 
-              type="password" 
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Nueva Contraseña" 
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500" 
-            />
-          </div>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-            <input 
-              required 
-              type="password" 
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirmar Nueva Contraseña" 
-              className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-amber-500" 
-            />
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button type="submit" disabled={loading} className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Establecer y Continuar
-          </button>
-        </form>
-      </div>
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
+      <Card className="w-full max-w-2xl rounded-2xl shadow-xl">
+        <CardHeader className="text-center space-y-4 p-6">
+           <div className="w-16 h-16 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+             <ShieldCheck size={32}/>
+           </div>
+          <CardTitle className="text-2xl font-bold text-slate-800">Crea tu Contraseña</CardTitle>
+          <CardDescription>Por seguridad, establece una nueva contraseña para tu cuenta.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSetPassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Nueva Contraseña</Label>
+              <Input 
+                id="newPassword"
+                required 
+                type="password" 
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres" 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmar Nueva Contraseña</Label>
+              <Input 
+                id="confirmPassword"
+                required 
+                type="password" 
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Repite la contraseña"
+              />
+            </div>
+            {error && <p className="text-red-500 text-sm text-center pt-2">{error}</p>}
+            <Button type="submit" disabled={loading} className="w-full font-bold !mt-6">
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Establecer y Continuar
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   );
 }
