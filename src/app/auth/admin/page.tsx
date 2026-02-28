@@ -35,6 +35,12 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
 
+    if (!email || !password) {
+      setError("El correo y la contraseña no pueden estar vacíos.");
+      setLoading(false);
+      return;
+    }
+    
     if (!auth || !firestore) {
       setError("Servicios de Firebase no disponibles.");
       setLoading(false);
@@ -42,61 +48,59 @@ export default function AdminLoginPage() {
     }
 
     try {
-      // 1. Standard sign-in attempt (for users who already set a password)
+      // 1. Standard sign-in attempt
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const loggedInUser = userCredential.user;
-
-      if (loggedInUser.email) {
-        const userDocRef = doc(firestore, 'usuarios', loggedInUser.email);
+      if (userCredential.user.email) {
+        const userDocRef = doc(firestore, 'usuarios', userCredential.user.email);
         const userDocSnap = await getDoc(userDocRef);
         if (userDocSnap.exists() && userDocSnap.data().roles?.includes('admin')) {
           router.push('/admin');
-          return; // Success
+          return;
         } else {
           await auth.signOut();
           setError('No tienes permisos de administrador.');
         }
       }
     } catch (authError: any) {
-      // 2. If standard sign-in fails, check if it's a first-time (DNI) login
+      // 2. If sign-in fails, check the specific error
       if (authError.code === 'auth/invalid-credential') {
+        // This could be "user not found" or "wrong password". Proceed to DNI check.
         try {
           const q = query(
             collection(firestore, 'usuarios'),
             where('email', '==', email),
-            where('dni', '==', password) // Use password field for DNI
+            where('dni', '==', password)
           );
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
-            // DNI/Email match found in Firestore, it's a first-time login.
+            // DNI/Email match found. It's a first-time login.
             try {
-              // Create the user in Firebase Auth using DNI as temp password.
-              // This automatically signs the user in.
               await createUserWithEmailAndPassword(auth, email, password);
-
-              // The layout will now handle role checks and password change redirection.
               router.push('/admin');
-              return; // Success
+              return;
             } catch (creationError: any) {
               if (creationError.code === 'auth/email-already-in-use') {
-                 // This is a key edge case: user exists in Auth, but the DNI password failed.
-                 // This means they already set a custom password.
-                 setError('Credenciales incorrectas. Si ya estableciste una contraseña, úsala. De lo contrario, contacta a un administrador.');
+                setError('Este correo ya está registrado, pero la contraseña es incorrecta. Si ya estableciste una clave personal, úsala.');
+              } else if (creationError.code === 'auth/weak-password') {
+                setError('La contraseña (DNI) es demasiado débil. Debe tener al menos 6 caracteres.');
               } else {
-                 setError('Error al crear el usuario. Inténtalo de nuevo.');
+                setError('Error al registrar la cuenta. Por favor, intenta de nuevo.');
+                console.error("Creation Error:", creationError);
               }
             }
           } else {
-            // No match found for DNI/Email combo
-            setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
+            // No DNI match, and standard login failed. Definitely wrong credentials.
+            setError('Credenciales incorrectas. Verifica tu correo y contraseña/DNI.');
           }
         } catch (dbError) {
           console.error("Firestore query error:", dbError);
           setError('Error al consultar la base de datos.');
         }
+      } else if (authError.code === 'auth/invalid-email') {
+        setError('El formato del correo electrónico no es válido.');
       } else {
-        // Handle other auth errors (network, etc.)
+        // Handle other auth errors
         console.error("Authentication error:", authError);
         setError('Ha ocurrido un error inesperado durante el inicio de sesión.');
       }
