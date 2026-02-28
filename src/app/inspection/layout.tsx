@@ -2,45 +2,60 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth, FirebaseClientProvider } from '@/firebase';
+import { useUser, useAuth } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
+import ForceChangePassword from '@/components/auth/ForceChangePassword';
 
 export default function InspectionLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'needs_password_change'>('loading');
 
   useEffect(() => {
     if (isUserLoading) return;
 
     if (user && user.email) {
-      const checkInspectorRole = async () => {
+      const checkUserStatus = async () => {
         try {
           const userDocRef = doc(db, 'usuarios', user.email!);
           const userDocSnap = await getDoc(userDocRef);
           
-          if (userDocSnap.exists() && userDocSnap.data().roles?.includes('inspector')) {
-            setIsAuthorized(true);
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            if (userData.roles?.includes('inspector')) {
+               if (userData.forcePasswordChange) {
+                setAuthStatus('needs_password_change');
+              } else {
+                setAuthStatus('authorized');
+              }
+            } else {
+              setAuthStatus('unauthorized');
+              await auth.signOut();
+              router.push('/auth/inspection');
+            }
           } else {
+            setAuthStatus('unauthorized');
             await auth.signOut();
             router.push('/auth/inspection');
           }
         } catch (error) {
             console.error("Error al verificar el rol del inspector:", error);
+            setAuthStatus('unauthorized');
             await auth.signOut();
             router.push('/auth/inspection');
         }
       };
-      checkInspectorRole();
+      checkUserStatus();
     } else {
+      setAuthStatus('unauthorized');
       router.push('/auth/inspection');
     }
-  }, [user, isUserLoading, router, auth]);
+  }, [user, isUserLoading, router, auth, authStatus]);
 
-  if (isUserLoading || !isAuthorized) {
+  if (authStatus === 'loading' || authStatus === 'unauthorized') {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin" />
@@ -48,5 +63,9 @@ export default function InspectionLayout({ children }: { children: React.ReactNo
     );
   }
 
+  if (authStatus === 'needs_password_change') {
+    return <ForceChangePassword onPasswordChanged={() => setAuthStatus('authorized')} />;
+  }
+  
   return <>{children}</>;
 }

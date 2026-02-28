@@ -8,7 +8,7 @@ import { useUser, useAuth } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
-
+import ForceChangePassword from '@/components/auth/ForceChangePassword';
 
 const pageTitles: { [key: string]: string } = {
   '/admin': 'Dashboard',
@@ -20,44 +20,54 @@ const pageTitles: { [key: string]: string } = {
   '/admin/import': 'Importar Datos',
 };
 
-
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState(false); // Nuevo estado de autorización
+  const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'needs_password_change'>('loading');
 
   useEffect(() => {
-    if (isUserLoading) return; // Esperar a que se resuelva el estado del usuario
+    if (isUserLoading) return;
 
     if (user && user.email) {
-      // El usuario está logueado, verificar su rol
-      const checkAdminRole = async () => {
+      const checkUserStatus = async () => {
         try {
           const userDocRef = doc(db, 'usuarios', user.email!);
           const userDocSnap = await getDoc(userDocRef);
           
-          if (userDocSnap.exists() && userDocSnap.data().roles?.includes('admin')) {
-            setIsAuthorized(true); // El usuario es un admin autorizado
+          if (userDocSnap.exists()) {
+            const userData = userDocSnap.data();
+            if (userData.roles?.includes('admin')) {
+              if (userData.forcePasswordChange) {
+                setAuthStatus('needs_password_change');
+              } else {
+                setAuthStatus('authorized');
+              }
+            } else {
+              setAuthStatus('unauthorized');
+              await auth.signOut();
+              router.push('/auth/admin');
+            }
           } else {
-            // Si el perfil no existe o no tiene el rol de admin, expulsarlo
+            setAuthStatus('unauthorized');
             await auth.signOut();
             router.push('/auth/admin');
           }
         } catch (error) {
             console.error("Error al verificar el rol del admin:", error);
+            setAuthStatus('unauthorized');
             await auth.signOut();
             router.push('/auth/admin');
         }
       };
-      checkAdminRole();
+      checkUserStatus();
     } else {
-      // El usuario no está logueado, redirigir al login de admin
+      setAuthStatus('unauthorized');
       router.push('/auth/admin');
     }
-  }, [user, isUserLoading, router, auth]);
+  }, [user, isUserLoading, router, auth, authStatus]);
 
   const handleMenuClick = () => {
     setSidebarOpen(!isSidebarOpen);
@@ -67,16 +77,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setSidebarOpen(false);
   };
   
-  // Muestra un loader mientras se verifica la autenticación y autorización
-  if (isUserLoading || !isAuthorized) {
+  if (authStatus === 'loading' || authStatus === 'unauthorized') {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-16 w-16 animate-spin" />
       </div>
-    )
+    );
   }
 
-  // Una vez autorizado, renderiza el layout del panel
+  if (authStatus === 'needs_password_change') {
+    return <ForceChangePassword onPasswordChanged={() => setAuthStatus('authorized')} />;
+  }
+
+  // Once authorized, render the layout of the panel
   const title = pageTitles[pathname] || 'Administración';
 
   return (
