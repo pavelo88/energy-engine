@@ -5,13 +5,12 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Loader2, FileText, AlertTriangle } from 'lucide-react';
 
-// Definimos la interfaz para el objeto de trabajo
+// Interfaz actualizada para coincidir con los datos de la colección 'trabajos'
 interface Job {
   id: string;
-  jobId: string;
-  clientName: string;
-  status: string;
-  date: string;
+  clienteNombre: string;
+  estado: string;
+  fechaCreacion: any; // Puede ser un Timestamp de Firebase
 }
 
 export default function ReportsPage() {
@@ -23,7 +22,8 @@ export default function ReportsPage() {
     const fetchCompletedJobs = async () => {
       try {
         setLoading(true);
-        const q = query(collection(db, 'jobs'), where('status', '==', 'completado'));
+        // Corregido: Query a 'trabajos' y filtrado por 'estado' y 'Completado'
+        const q = query(collection(db, 'trabajos'), where('estado', '==', 'Completado'));
         const querySnapshot = await getDocs(q);
         
         const completedJobs = querySnapshot.docs.map(doc => ({
@@ -81,12 +81,16 @@ export default function ReportsPage() {
             <tbody className="bg-white divide-y divide-slate-200">
               {jobs.map((job) => (
                 <tr key={job.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{job.jobId}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{job.clientName}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{job.date}</td>
+                  {/* Corregido: Usar job.id en lugar de job.jobId */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{job.id}</td>
+                  {/* Corregido: Usar job.clienteNombre en lugar de job.clientName */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{job.clienteNombre}</td>
+                  {/* Corregido: Usar y formatear job.fechaCreacion */}
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{job.fechaCreacion?.toDate().toLocaleDateString() || 'N/A'}</td>
                   <td className="px-6 py-4 whitespace-nowrap">
+                    {/* Corregido: Usar job.estado en lugar de job.status */}
                     <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                      {job.status}
+                      {job.estado}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
