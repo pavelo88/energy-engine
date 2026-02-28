@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,16 +25,8 @@ export default function InspectionLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Si el usuario ya está logueado, intentar redirigirlo si tiene el rol correcto
-    if (!isUserLoading && user && user.email) {
-      const checkRoleAndRedirect = async () => {
-        const userDocRef = doc(db, 'usuarios', user.email!);
-        const userDocSnap = await getDoc(userDocRef);
-        if (userDocSnap.exists() && userDocSnap.data().roles?.includes('inspector')) {
-          router.push('/inspection');
-        }
-      };
-      checkRoleAndRedirect();
+    if (!isUserLoading && user) {
+      router.push('/inspection');
     }
   }, [user, isUserLoading, router]);
 
@@ -42,31 +34,45 @@ export default function InspectionLoginPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
-      // 1. Autenticar con Firebase Auth
+      // Step 1: Try standard sign-in first
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
       if (loggedInUser && loggedInUser.email) {
-        // 2. Autorización: Verificar rol en Firestore
         const userDocRef = doc(db, 'usuarios', loggedInUser.email);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists() && userDocSnap.data().roles?.includes('inspector')) {
-          // 3. Redirección Exitosa
           router.push('/inspection');
         } else {
-          // Rol no encontrado o incorrecto
           setError('No tienes permisos de inspector.');
-          await auth.signOut(); // Desloguear por seguridad
+          await auth.signOut();
         }
-      } else {
-        throw new Error('No se pudo obtener la información del usuario.');
       }
-    } catch (err: any) {
-      // Manejo de errores de autenticación
-      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
-        setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
+    } catch (authError: any) {
+      // Step 2: If standard login fails, try DNI-based first-time login
+      if (authError.code === 'auth/invalid-credential') {
+        try {
+          const q = query(
+            collection(db, 'usuarios'),
+            where('email', '==', email),
+            where('dni', '==', password) // Using password field for DNI
+          );
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            // First-time login detected
+            await createUserWithEmailAndPassword(auth, email, password);
+            await signInWithEmailAndPassword(auth, email, password);
+            router.push('/inspection');
+          } else {
+            setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
+          }
+        } catch (creationError: any) {
+          setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
+        }
       } else {
         setError('Ha ocurrido un error inesperado.');
       }
@@ -75,7 +81,6 @@ export default function InspectionLoginPage() {
     }
   };
 
-  // Evita mostrar el login si el usuario ya está autenticado y en proceso de redirección
   if (isUserLoading || user) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-100">
@@ -129,7 +134,7 @@ export default function InspectionLoginPage() {
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? 'Verificando...' : 'Iniciar Sesión'}
             </Button>
-             <div className="mt-4 text-center text-xs">
+            <div className="mt-4 text-center text-xs">
               <Link href="/auth/admin" className="underline text-muted-foreground hover:text-primary">
                 Ir al Módulo de Administración
               </Link>
