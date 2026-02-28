@@ -2,13 +2,13 @@
 'use client';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { collection, addDoc, Timestamp } from 'firebase/firestore';
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { 
   Mic, StopCircle, Type, MapPin, Save, Printer, FileText, Settings, Users, 
   LogOut, CheckCircle2, ShieldCheck, BrainCircuit, X, Zap, Mail, Wand2, RefreshCcw
 } from 'lucide-react';
 
-import { db, auth } from '../../../lib/firebase';
+import { db } from '../../../lib/firebase';
+import { useUser } from '@/firebase';
 import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
 import { processDictation } from '@/ai/flows/process-dictation-flow';
 
@@ -47,8 +47,8 @@ const CHECKLIST_SECTIONS = {
 const ALL_CHECKLIST_ITEMS = Object.values(CHECKLIST_SECTIONS).flat();
 
 export default function App({ task }: { task?: any }) {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [inspectorName, setInspectorName] = useState('Antonio Ugena');
+  const { user } = useUser();
+  const inspectorName = user?.displayName || user?.email?.split('@')[0] || 'Técnico';
   const [isRecording, setIsRecording] = useState(false);
   const [saving, setSaving] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
@@ -96,10 +96,6 @@ export default function App({ task }: { task?: any }) {
         }));
     }
   }, [task]);
-
-  useEffect(() => {
-    signInAnonymously(auth).then(() => onAuthStateChanged(auth, (u) => setCurrentUser(u)));
-  }, []);
 
   const toggleRecording = () => {
     if (isRecording) {
@@ -484,4 +480,3 @@ export default function App({ task }: { task?: any }) {
     </div>
   );
 }
-
