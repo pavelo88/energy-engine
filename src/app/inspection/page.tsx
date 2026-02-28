@@ -4,27 +4,28 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useUser } from '@/firebase';
 import { Loader2 } from 'lucide-react';
 
-// Importar componentes de Header y Footer
 import Header from './components/Header';
 import Footer from './components/Footer';
 
-// Importar componentes principales del menú y el nuevo HUB
 import MainMenuDesktop from './components/MainMenuDesktop';
 import MainMenuTablet from './components/MainMenuTablet';
 import MainMenuMobile from './components/MainMenuMobile';
-import InspectionHub from './components/InspectionHub'; // <-- NUEVO
+import InspectionHub from './components/InspectionHub';
 
-// Importar constantes de pestañas y hook de tamaño de pantalla
 import TABS from './constants';
 import { useScreenSize } from '@/hooks/use-screen-size';
 
-// Lazy loading para las pestañas de contenido
-const InspectionFormTab = React.lazy(() => import('./components/InspectionFormTab'));
-const TasksTab = React.lazy(() => import('./components/TasksTab'));
-const ExpensesTab = React.lazy(() => import('./components/ExpensesTab'));
-const ProfileTab = React.lazy(() => import('./components/ProfileTab'));
+import { 
+  TasksTabLazy, 
+  ExpensesTabLazy, 
+  ProfileTabLazy,
+  AlbaranFormLazy,
+  InformeTrabajoFormLazy,
+  HojaRevisionFormLazy,
+  RevisionBasicaFormLazy,
+} from './lazy-tabs';
 
-// --- TIPOS ---
+
 type FormType = 'albaran' | 'informe-trabajo' | 'hoja-revision' | 'revision-basica';
 
 const InspectionPageContent = () => {
@@ -53,7 +54,6 @@ const InspectionPageContent = () => {
 
   const handleNavigate = (tab: string) => {
     setActiveTab(tab);
-    // Si navegamos a cualquier otra pestaña, reseteamos la selección de formulario de inspección
     if (tab !== TABS.NEW_INSPECTION) {
       setActiveInspectionForm(null);
     }
@@ -94,34 +94,34 @@ const InspectionPageContent = () => {
       }
     }
 
-    // Lógica para la pestaña de "Inspección"
     if (activeTab === TABS.NEW_INSPECTION) {
-      return (
-        <Suspense fallback={<div className="flex h-full items-center justify-center p-20"><Loader2 className="animate-spin" /></div>}>
-          {activeInspectionForm ? (
-            <InspectionFormTab formType={activeInspectionForm} initialData={selectedTask} />
-          ) : (
-            <InspectionHub onSelectInspectionType={handleSelectInspectionType} />
-          )}
-        </Suspense>
-      );
+        if (!activeInspectionForm) {
+            return <InspectionHub onSelectInspectionType={handleSelectInspectionType} />;
+        }
+        
+        let FormComponent;
+        switch (activeInspectionForm) {
+            case 'albaran': FormComponent = AlbaranFormLazy; break;
+            case 'informe-trabajo': FormComponent = InformeTrabajoFormLazy; break;
+            case 'hoja-revision': FormComponent = HojaRevisionFormLazy; break;
+            case 'revision-basica': FormComponent = RevisionBasicaFormLazy; break;
+            default: return <p>Formulario no encontrado</p>;
+        }
+
+        return (
+            <Suspense fallback={<div className="flex h-full items-center justify-center p-20"><Loader2 className="animate-spin" /></div>}>
+                <FormComponent initialData={selectedTask} />
+            </Suspense>
+        );
     }
 
-    // Renderizado del resto de las pestañas
     let TabComponent: React.ElementType;
     let props: any = {};
     
     switch (activeTab) {
-        case TABS.TASKS: 
-          TabComponent = TasksTab;
-          props = { onStartInspection: handleStartInspectionFromTask };
-          break;
-        case TABS.EXPENSES: 
-          TabComponent = ExpensesTab; 
-          break;
-        case TABS.PROFILE: 
-          TabComponent = ProfileTab; 
-          break;
+        case TABS.TASKS: TabComponent = TasksTabLazy; props = { onStartInspection: handleStartInspectionFromTask }; break;
+        case TABS.EXPENSES: TabComponent = ExpensesTabLazy; break;
+        case TABS.PROFILE: TabComponent = ProfileTabLazy; break;
         default: return <p>Pestaña no encontrada</p>;
     }
 
