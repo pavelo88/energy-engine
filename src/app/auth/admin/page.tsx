@@ -27,7 +27,7 @@ export default function AdminLoginPage() {
   useEffect(() => {
     if (!isUserLoading && user) {
       const checkUserRole = async () => {
-        if (user && user.email) {
+        if (user && user.email && firestore) {
           const userDocRef = doc(firestore, 'usuarios', user.email);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists() && userDocSnap.data().roles?.includes('admin')) {
@@ -62,7 +62,7 @@ export default function AdminLoginPage() {
       // On success, the useEffect hook will redirect to /admin
     } catch (authError: any) {
       // 2. If sign-in fails (e.g., user not found in Auth), try DNI/first-login flow
-      if (authError.code === 'auth/invalid-credential') {
+      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
         try {
           // Check Firestore for a user matching email and DNI (password)
           const q = query(
@@ -73,7 +73,7 @@ export default function AdminLoginPage() {
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
-            // User found in DB, attempt to create them in Auth
+            // User found in DB, attempt to create them in Auth, which also signs them in
             await createUserWithEmailAndPassword(auth, email, password);
             // On success, the useEffect will handle redirection.
           } else {
@@ -95,6 +95,8 @@ export default function AdminLoginPage() {
         }
       } else if (authError.code === 'auth/invalid-email') {
         setError('El formato del correo electrónico no es válido.');
+      } else if (authError.code === 'auth/wrong-password') {
+        setError('La contraseña es incorrecta. Por favor, inténtalo de nuevo.');
       } else {
         console.error("Authentication error:", authError);
         setError('Ha ocurrido un error inesperado durante el inicio de sesión.');
@@ -114,7 +116,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
-        <Card className="w-full max-w-lg rounded-2xl shadow-xl">
+        <Card className="w-full max-w-xl rounded-2xl shadow-xl">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto mb-2 flex justify-center">
               <Logo />

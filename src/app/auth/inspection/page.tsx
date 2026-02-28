@@ -27,7 +27,7 @@ export default function InspectionLoginPage() {
   useEffect(() => {
     if (!isUserLoading && user) {
       const checkUserRole = async () => {
-        if (user && user.email) {
+        if (user && user.email && firestore) {
           const userDocRef = doc(firestore, 'usuarios', user.email);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists() && userDocSnap.data().roles?.includes('inspector')) {
@@ -59,7 +59,7 @@ export default function InspectionLoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (authError: any) {
-      if (authError.code === 'auth/invalid-credential') {
+      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
         try {
           const q = query(
             collection(firestore, 'usuarios'),
@@ -87,6 +87,8 @@ export default function InspectionLoginPage() {
         }
       } else if (authError.code === 'auth/invalid-email') {
         setError('El formato del correo electrónico no es válido.');
+      } else if (authError.code === 'auth/wrong-password') {
+        setError('La contraseña es incorrecta. Por favor, inténtalo de nuevo.');
       } else {
         console.error("Authentication error:", authError);
         setError('Ha ocurrido un error inesperado durante el inicio de sesión.');
@@ -106,7 +108,7 @@ export default function InspectionLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
-        <Card className="w-full max-w-lg rounded-2xl shadow-xl">
+        <Card className="w-full max-w-xl rounded-2xl shadow-xl">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto mb-2 flex justify-center">
               <Logo />
