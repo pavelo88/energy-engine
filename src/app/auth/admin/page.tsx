@@ -3,9 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { useAuth, useUser } from '@/firebase';
+import { useAuth, useUser, useFirestore } from '@/firebase';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +16,7 @@ import Link from 'next/link';
 export default function AdminLoginPage() {
   const router = useRouter();
   const auth = useAuth();
+  const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
 
   const [email, setEmail] = useState('');
@@ -41,7 +41,7 @@ export default function AdminLoginPage() {
       const loggedInUser = userCredential.user;
 
       if (loggedInUser && loggedInUser.email) {
-        const userDocRef = doc(db, 'usuarios', loggedInUser.email);
+        const userDocRef = doc(firestore, 'usuarios', loggedInUser.email);
         const userDocSnap = await getDoc(userDocRef);
 
         if (userDocSnap.exists() && userDocSnap.data().roles?.includes('admin')) {
@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
       if (authError.code === 'auth/invalid-credential') {
         try {
           const q = query(
-            collection(db, 'usuarios'),
+            collection(firestore, 'usuarios'),
             where('email', '==', email),
             where('dni', '==', password) // Using password field for DNI
           );
