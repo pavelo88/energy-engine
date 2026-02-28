@@ -8,10 +8,11 @@ import { Loader2 } from 'lucide-react';
 import Header from './components/Header';
 import Footer from './components/Footer';
 
-// Importar componentes principales del menú
+// Importar componentes principales del menú y el nuevo HUB
 import MainMenuDesktop from './components/MainMenuDesktop';
 import MainMenuTablet from './components/MainMenuTablet';
 import MainMenuMobile from './components/MainMenuMobile';
+import InspectionHub from './components/InspectionHub'; // <-- NUEVO
 
 // Importar constantes de pestañas y hook de tamaño de pantalla
 import TABS from './constants';
@@ -23,9 +24,13 @@ const TasksTab = React.lazy(() => import('./components/TasksTab'));
 const ExpensesTab = React.lazy(() => import('./components/ExpensesTab'));
 const ProfileTab = React.lazy(() => import('./components/ProfileTab'));
 
+// --- TIPOS ---
+type FormType = 'albaran' | 'informe-trabajo' | 'hoja-revision' | 'revision-basica';
+
 const InspectionPageContent = () => {
-  const { user } = useUser(); // El layout ya se encarga de la autorización
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState<string>(TABS.MENU);
+  const [activeInspectionForm, setActiveInspectionForm] = useState<FormType | null>(null);
   const [isOnline, setIsOnline] = useState(true);
   const screenSize = useScreenSize();
   const [hasMounted, setHasMounted] = useState(false);
@@ -48,14 +53,25 @@ const InspectionPageContent = () => {
 
   const handleNavigate = (tab: string) => {
     setActiveTab(tab);
+    // Si navegamos a cualquier otra pestaña, reseteamos la selección de formulario de inspección
+    if (tab !== TABS.NEW_INSPECTION) {
+      setActiveInspectionForm(null);
+    }
   };
 
-  const handleStartInspection = (task: any) => {
+  const handleSelectInspectionType = (formType: FormType) => {
+    setActiveInspectionForm(formType);
+  };
+  
+  const handleStartInspectionFromTask = (task: any) => {
     setSelectedTask(task);
     setActiveTab(TABS.NEW_INSPECTION);
   };
 
-  // El loader principal ya está en el layout, aquí podemos poner uno más específico si es necesario
+  const handleBackToHub = () => {
+    setActiveInspectionForm(null);
+  }
+
   if (!user) {
      return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
   }
@@ -73,21 +89,31 @@ const InspectionPageContent = () => {
         case 'desktop':
           return <MainMenuDesktop onNavigate={handleNavigate} userName={userName} />;
         default:
-          return null; // O un loader genérico
+          return null;
       }
     }
 
+    // Lógica para la pestaña de "Inspección"
+    if (activeTab === TABS.NEW_INSPECTION) {
+      return (
+        <Suspense fallback={<div className="flex h-full items-center justify-center p-20"><Loader2 className="animate-spin" /></div>}>
+          {activeInspectionForm ? (
+            <InspectionFormTab formType={activeInspectionForm} initialData={selectedTask} />
+          ) : (
+            <InspectionHub onSelectInspectionType={handleSelectInspectionType} />
+          )}
+        </Suspense>
+      );
+    }
+
+    // Renderizado del resto de las pestañas
     let TabComponent: React.ElementType;
     let props: any = {};
     
     switch (activeTab) {
-        case TABS.NEW_INSPECTION: 
-          TabComponent = InspectionFormTab;
-          props = { task: selectedTask };
-          break;
         case TABS.TASKS: 
           TabComponent = TasksTab;
-          props = { onStartInspection: handleStartInspection };
+          props = { onStartInspection: handleStartInspectionFromTask };
           break;
         case TABS.EXPENSES: 
           TabComponent = ExpensesTab; 
@@ -110,9 +136,10 @@ const InspectionPageContent = () => {
   return (
     <main className="bg-slate-100 min-h-screen flex flex-col">
       <Header 
-        activeTab={activeTab} 
-        isOnline={isOnline} 
-        onNavigate={handleNavigate} 
+        activeTab={activeTab}
+        isSubNavActive={!!activeInspectionForm}
+        onBack={activeInspectionForm ? handleBackToHub : () => handleNavigate(TABS.MENU)}
+        isOnline={isOnline}
       />
       <div className="flex-grow p-4 sm:p-6 md:p-8">
         {renderContent()}
@@ -122,9 +149,6 @@ const InspectionPageContent = () => {
   );
 }
 
-
 export default function InspectionPage() {
-    // El FirebaseClientProvider ya está en el layout.tsx raíz, no es necesario aquí.
-    // El InspectionLayout se encargará de la protección de la ruta.
     return <InspectionPageContent />;
 }

@@ -7,16 +7,19 @@ import TABS from '../constants';
 interface HeaderProps {
   activeTab: string;
   isOnline: boolean;
-  onNavigate: (tab: string) => void;
+  onBack: () => void;
+  isSubNavActive: boolean; // Nuevo: para saber si estamos dentro de un sub-menú como el de inspección
 }
 
-export default function Header({ activeTab, isOnline, onNavigate }: HeaderProps) {
+export default function Header({ activeTab, isOnline, onBack, isSubNavActive }: HeaderProps) {
+  const showBackButton = activeTab !== TABS.MENU || isSubNavActive;
+
   return (
     <header className="px-6 py-4 bg-slate-800 backdrop-blur-lg border-b border-white/80 flex justify-between items-center sticky top-0 z-50 shadow-sm">
       
       <div className="flex items-center gap-4">
-        {activeTab !== TABS.MAIN_MENU && (
-          <button onClick={() => onNavigate(TABS.MAIN_MENU)} className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-white border border-black/10 hover:bg-black/10 transition-all">
+        {showBackButton && (
+          <button onClick={onBack} className="w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-white border border-black/10 hover:bg-black/10 transition-all">
             <ChevronLeft size={20} />
           </button>
         )}

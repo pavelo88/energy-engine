@@ -1,17 +1,16 @@
-
 'use client';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { collection, addDoc, Timestamp } from 'firebase/firestore';
+import React, { useState, useEffect, useRef } from 'react';
+import { collection, addDoc, Timestamp, doc, getDoc } from 'firebase/firestore';
 import { 
   Mic, StopCircle, Type, MapPin, Save, Printer, FileText, Settings, Users, 
-  LogOut, CheckCircle2, ShieldCheck, BrainCircuit, X, Zap, Mail, Wand2, RefreshCcw
+  CheckCircle2, ShieldCheck, BrainCircuit, X, Zap, Mail, Wand2, RefreshCcw
 } from 'lucide-react';
 
 import { useFirestore, useUser } from '@/firebase';
 import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
 import { processDictation } from '@/ai/flows/process-dictation-flow';
 
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'energy-engine-enterprise';
+type FormType = 'albaran' | 'informe-trabajo' | 'hoja-revision' | 'revision-basica';
 
 const EnergyLogo = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="none" className={className} xmlns="http://www.w3.org/2000/svg">
@@ -45,7 +44,14 @@ const CHECKLIST_SECTIONS = {
 
 const ALL_CHECKLIST_ITEMS = Object.values(CHECKLIST_SECTIONS).flat();
 
-export default function App({ task }: { task?: any }) {
+const formTitles = {
+  'albaran': 'Albarán de Trabajo',
+  'informe-trabajo': 'Informe de Trabajo',
+  'hoja-revision': 'Hoja de Revisión Completa',
+  'revision-basica': 'Revisión Básica de Motor'
+}
+
+export default function InspectionFormTab({ formType, initialData }: { formType: FormType, initialData?: any }) {
   const { user } = useUser();
   const db = useFirestore();
   const inspectorName = user?.displayName || user?.email?.split('@')[0] || 'Técnico';
@@ -55,9 +61,7 @@ export default function App({ task }: { task?: any }) {
   const [isSaved, setIsSaved] = useState(false);
   const [reportBaseID, setReportBaseID] = useState('');
   const [isAiMenuOpen, setIsAiMenuOpen] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(null); 
 
-  // --- ESTADO DE LA INTERVENCIÓN ---
   const [intervention, setIntervention] = useState({
     cliente: { nombre: '', instalacion: '', direccion: '', potencia_kva: '', n_grupo: '' },
     equipo: { marca: '', modelo: '', sn: '' },
@@ -73,29 +77,14 @@ export default function App({ task }: { task?: any }) {
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    if (task) {
+    if (initialData) {
         setIntervention(prev => ({
             ...prev,
-            cliente: { 
-              ...prev.cliente, 
-              nombre: task.cliente?.nombre || prev.cliente.nombre, 
-              instalacion: task.cliente?.instalacion || prev.cliente.instalacion,
-            },
-            equipo: { 
-              ...prev.equipo, 
-              marca: task.equipo?.marca || prev.equipo.marca,
-              modelo: task.equipo?.modelo || prev.equipo.modelo, 
-            },
-            // Reset fields for new inspection
-            check: {},
-            mediciones: { horas: '', presion: '', temp: '', combustible: '', tensionAlt: '', frecuencia: '', cargaBat: '' },
-            pruebasCarga: { rs: '', st: '', rt: '', r: '', s: '', t: '', kw: '' },
-            observaciones: '',
-            recibidoPor: '',
-            firmaCliente: null
+            cliente: initialData.cliente || prev.cliente,
+            equipo: initialData.equipo || prev.equipo,
         }));
     }
-  }, [task]);
+  }, [initialData]);
 
   const toggleRecording = () => {
     if (isRecording) {
@@ -201,19 +190,21 @@ export default function App({ task }: { task?: any }) {
     if (!db) return;
     setSaving(true);
     try {
-      const id = Date.now().toString().slice(-6);
+      const id = formType.substring(0,3).toUpperCase() + '-' + Date.now().toString().slice(-6);
       const sanitize = (obj) => JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
-      const cleanData = sanitize({ ...intervention, tecnico: inspectorName, fecha: Timestamp.now(), reportCode: id });
+      const cleanData = sanitize({ ...intervention, tecnico: inspectorName, fecha: Timestamp.now(), reportCode: id, formType: formType });
       
-      await addDoc(collection(db, 'trabajos'), cleanData);
+      const docRef = doc(db, 'trabajos', id);
+      await setDoc(docRef, cleanData);
       
       setReportBaseID(id);
       setIsSaved(true);
+      generatePDF(id, cleanData);
     } catch (e) { alert("Error al guardar en la nube: " + e.message); } finally { setSaving(false); }
   };
 
-  const generatePDF = (type) => {
-    if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
+  const generatePDF = (finalID, data) => {
+     if (typeof window.jspdf === 'undefined' || !window.jspdf.jsPDF) {
       alert("El motor PDF no está listo. Por favor, espere un momento y vuelva a intentarlo.");
       return;
     }
@@ -225,9 +216,6 @@ export default function App({ task }: { task?: any }) {
       alert("El plugin autoTable para PDF no se cargó correctamente. Inténtalo de nuevo.");
       return;
     }
-    
-    const prefix = type === 'tecnico' ? 'TEC' : type === 'revision' ? 'REV' : 'ALB';
-    const finalID = isSaved && reportBaseID ? `${prefix}-${reportBaseID}` : `${prefix}-BORRADOR`;
 
     const primary = [16, 185, 129];
     const textDark = [15, 23, 42];
@@ -248,13 +236,13 @@ export default function App({ task }: { task?: any }) {
       startY: 45,
       head: [[' DATOS DE IDENTIFICACIÓN', 'INFORMACIÓN REGISTRADA']],
       body: [
-        ['CLIENTE / EMPRESA', intervention.cliente.nombre || '---'],
-        ['DIRECCIÓN', intervention.cliente.direccion || '---'],
-        ['INSTALACIÓN / UBICACIÓN', intervention.cliente.instalacion || '---'],
-        ['Nº DE GRUPO', intervention.cliente.n_grupo || '---'],
-        ['POTENCIA (KVA/KW)', intervention.cliente.potencia_kva || '---'],
-        ['MARCA / MODELO', `${intervention.equipo.marca || '---'} ${intervention.equipo.modelo || '---'}`],
-        ['Nº DE MOTOR (SN)', intervention.equipo.sn || '---']
+        ['CLIENTE / EMPRESA', data.cliente.nombre || '---'],
+        ['DIRECCIÓN', data.cliente.direccion || '---'],
+        ['INSTALACIÓN / UBICACIÓN', data.cliente.instalacion || '---'],
+        ['Nº DE GRUPO', data.cliente.n_grupo || '---'],
+        ['POTENCIA (KVA/KW)', data.cliente.potencia_kva || '---'],
+        ['MARCA / MODELO', `${data.equipo.marca || '---'} ${data.equipo.modelo || '---'}`],
+        ['Nº DE MOTOR (SN)', data.equipo.sn || '---']
       ],
       theme: 'grid', 
       headStyles: { fillColor: textDark, cellPadding: 3, fontSize: 10 },
@@ -263,13 +251,14 @@ export default function App({ task }: { task?: any }) {
     });
 
     let currentY = docPDF.lastAutoTable.finalY + 8;
-
-    if (type === 'revision') {
+    
+    if (formType === 'hoja-revision' || formType === 'revision-basica') {
+      const sectionsToInclude = formType === 'hoja-revision' ? CHECKLIST_SECTIONS : { "INSPECCION EN EL MOTOR": CHECKLIST_SECTIONS["INSPECCION EN EL MOTOR"] };
       const body = [];
-      Object.entries(CHECKLIST_SECTIONS).forEach(([title, items]) => {
+      Object.entries(sectionsToInclude).forEach(([title, items]) => {
         body.push([{ content: title, colSpan: 5, styles: { fillColor: [245, 245, 245], fontStyle: 'bold', textColor: [0,0,0], cellPadding: 3 } }]);
         items.forEach(it => {
-          const v = intervention.check[it] || '';
+          const v = data.check[it] || '';
           body.push([it, v==='OK'?'X':'', v==='DEF'?'X':'', v==='AVR'?'X':'', v==='CMB'?'X':'']);
         });
       });
@@ -283,20 +272,21 @@ export default function App({ task }: { task?: any }) {
         columnStyles: { 0: { halign: 'left' } },
         margin: { bottom: 15 } 
       });
-      
       currentY = docPDF.lastAutoTable.finalY + 8;
-      
+    }
+
+    if (formType !== 'albaran') {
       docPDF.autoTable({
         startY: currentY,
         head: [['Parámetro General', 'Valor', 'Pruebas con Carga', 'Valor (V / A)']],
         body: [
-          ['Horas Funcionamiento', intervention.mediciones.horas || '---', 'Tensión RS', intervention.pruebasCarga.rs || '---'],
-          ['Presión Aceite', intervention.mediciones.presion || '---', 'Tensión ST', intervention.pruebasCarga.st || '---'],
-          ['Temperatura', intervention.mediciones.temp || '---', 'Tensión RT', intervention.pruebasCarga.rt || '---'],
-          ['Nivel Combustible', intervention.mediciones.combustible || '---', 'Intensidad R', intervention.pruebasCarga.r || '---'],
-          ['---', '---', 'Intensidad S', intervention.pruebasCarga.s || '---'],
-          ['---', '---', 'Intensidad T', intervention.pruebasCarga.t || '---'],
-          ['---', '---', 'Potencia (kW)', intervention.pruebasCarga.kw || '---']
+          ['Horas Funcionamiento', data.mediciones.horas || '---', 'Tensión RS', data.pruebasCarga.rs || '---'],
+          ['Presión Aceite', data.mediciones.presion || '---', 'Tensión ST', data.pruebasCarga.st || '---'],
+          ['Temperatura', data.mediciones.temp || '---', 'Tensión RT', data.pruebasCarga.rt || '---'],
+          ['Nivel Combustible', data.mediciones.combustible || '---', 'Intensidad R', data.pruebasCarga.r || '---'],
+          ['---', '---', 'Intensidad S', data.pruebasCarga.s || '---'],
+          ['---', '---', 'Intensidad T', data.pruebasCarga.t || '---'],
+          ['---', '---', 'Potencia (kW)', data.pruebasCarga.kw || '---']
         ],
         theme: 'striped', 
         headStyles: { fillColor: textDark, cellPadding: 3, fontSize: 9 },
@@ -309,7 +299,7 @@ export default function App({ task }: { task?: any }) {
     docPDF.autoTable({
         startY: currentY,
         head: [['OBSERVACIONES TÉCNICAS Y REPORTE DE INTERVENCIÓN']],
-        body: [[intervention.observaciones || 'Sin incidencias reportadas o trabajos adicionales que detallar.']],
+        body: [[data.observaciones || 'Sin incidencias reportadas o trabajos adicionales que detallar.']],
         theme: 'plain',
         headStyles: { fillColor: [240, 240, 240], textColor: textDark, fontStyle: 'bold', cellPadding: 4, fontSize: 10 },
         styles: { cellPadding: 5, fontSize: 9, lineColor: [200, 200, 200], lineWidth: 0.1 },
@@ -321,72 +311,83 @@ export default function App({ task }: { task?: any }) {
         theme: 'plain',
         head: [['Firma del Técnico', 'Firma del Cliente']],
         headStyles: { halign: 'center', textColor: textDark, fontStyle: 'bold', fontSize: 10 },
-        body: [[inspectorName || 'Técnico Energy Engine', intervention.recibidoPor || 'No Especificado']],
+        body: [[inspectorName || 'Técnico Energy Engine', data.recibidoPor || 'No Especificado']],
         styles: { halign: 'center', cellPadding: 20, fontSize: 9 },
-        didDrawCell: (data) => {
-            if (data.section === 'body' && data.column.index === 1 && intervention.firmaCliente) {
-                docPDF.addImage(intervention.firmaCliente, 'PNG', data.cell.x + 15, data.cell.y + 5, 45, 18);
+        didDrawCell: (cellData) => {
+            if (cellData.section === 'body' && cellData.column.index === 1 && data.firmaCliente) {
+                docPDF.addImage(data.firmaCliente, 'PNG', cellData.cell.x + 15, cellData.cell.y + 5, 45, 18);
             }
         },
         margin: { bottom: 20 }
     });
 
     docPDF.save(`EnergyEngine_${finalID}.pdf`);
-    setShowConfirmModal(null);
   };
+  
+
+  const renderChecklist = (sections) => (
+    Object.entries(sections).map(([section, items]) => (
+      <section key={section} className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
+        <h3 className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] opacity-30">{section}</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {(items as string[]).map(it => (
+            <div key={it} className={`p-4 rounded-2xl flex justify-between items-center transition-all border-2 ${intervention.check[it] ? 'bg-emerald-50 border-emerald-100 shadow-inner' : 'bg-slate-50 border-transparent shadow-sm'}`}>
+              <span className="text-[12px] font-bold text-slate-700 leading-tight pr-2">{it}</span>
+              <div className="flex gap-1">
+                {["OK", "DEF", "AVR", "CMB"].map(st => (
+                  <button key={st} onClick={() => setIntervention(p => ({...p, check: {...p.check, [it]: st}}))} className={`w-10 h-8 rounded-lg text-[8px] font-black border-2 transition-all ${intervention.check[it] === st ? 'bg-emerald-600 border-emerald-600 text-white shadow-md scale-110' : 'bg-white border-slate-200 text-slate-300 hover:border-slate-300 hover:bg-slate-100'}`}>{st}</button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+    ))
+  );
+
+  const renderMediciones = () => (
+     <section className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 space-y-8 text-left">
+        <h2 className="text-xl font-black flex items-center gap-3 text-emerald-600 uppercase tracking-tighter"><Zap size={20}/> Mediciones y Pruebas</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+            <StableInput label="Horas Operat." value={intervention.mediciones.horas} onChange={v => setIntervention(p => ({...p, mediciones: {...p.mediciones, horas: v}}))}/>
+            <StableInput label="Presión Aceite" value={intervention.mediciones.presion} onChange={v => setIntervention(p => ({...p, mediciones: {...p.mediciones, presion: v}}))}/>
+            <StableInput label="Tensión RS (V)" value={intervention.pruebasCarga.rs} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, rs: v}}))}/>
+            <StableInput label="Tensión ST (V)" value={intervention.pruebasCarga.st} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, st: v}}))}/>
+            <StableInput label="Intensidad R (A)" value={intervention.pruebasCarga.r} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, r: v}}))}/>
+            <StableInput label="Intensidad S (A)" value={intervention.pruebasCarga.s} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, s: v}}))}/>
+            <StableInput label="Potencia kW" value={intervention.pruebasCarga.kw} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, kw: v}}))}/>
+        </div>
+      </section>
+  );
+
+  const renderObservaciones = () => (
+     <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
+        <div className="flex justify-between items-center">
+            <h2 className="text-xl font-black text-slate-900 flex items-center gap-3"><Type className="text-emerald-500"/> Notas / Trabajos Realizados</h2>
+            <button onClick={improveReport} className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100">
+                {aiLoading ? <Loader2 size={14} className="animate-spin"/> : <Wand2 size={14} />}
+                Pulir con IA
+            </button>
+        </div>
+        <textarea className="w-full h-64 bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 outline-none focus:border-emerald-500 font-medium text-slate-600 shadow-inner resize-none leading-relaxed" placeholder="Las notas dictadas aparecerán aquí..." value={intervention.observaciones} onChange={e => setIntervention(p => ({...p, observaciones: e.target.value}))}/>
+     </section>
+  );
+
 
   return (
     <div className="min-h-screen bg-slate-50 pb-48 font-sans text-left selection:bg-emerald-100">
       
       <div className="fixed bottom-10 right-8 z-[200] flex flex-col items-end gap-4">
-        {isAiMenuOpen && (
-          <div className="flex flex-col items-end gap-3 mb-4 animate-in slide-in-from-bottom-6">
-            <button onClick={() => { toggleRecording(); setIsAiMenuOpen(false); }} className={`flex items-center gap-3 bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-[10px] uppercase border-2 border-white transition-all ${isRecording ? 'bg-red-500 animate-pulse' : ''}`}>
-              {isRecording ? <StopCircle size={18}/> : <Mic size={18}/>} Dictado IA ✨
-            </button>
-            <button onClick={() => { improveReport(); setIsAiMenuOpen(false); }} className="flex items-center gap-3 bg-indigo-600 text-white px-6 py-4 rounded-2xl shadow-2xl font-black text-[10px] uppercase border-2 border-white transition-all">
-              <Wand2 size={18}/> Refinar / Extraer Datos ✨
-            </button>
-          </div>
-        )}
-        <button onClick={() => setIsAiMenuOpen(!isAiMenuOpen)} className={`w-20 h-20 rounded-[2.5rem] flex items-center justify-center shadow-2xl border-4 border-white ${isAiMenuOpen ? 'bg-slate-900 rotate-90' : 'bg-emerald-600'}`}>
-          {isAiMenuOpen ? <X className="text-white" size={32}/> : <BrainCircuit className="text-white" size={32}/>}
-          {aiLoading && <div className="absolute inset-0 rounded-[2.5rem] border-4 border-emerald-300 border-t-transparent animate-spin"></div>}
+        <button onClick={() => toggleRecording()} className={`flex items-center justify-center w-20 h-20 rounded-[2.5rem] shadow-2xl border-4 border-white transition-all ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-emerald-600'}`}>
+            {isRecording ? <StopCircle className="text-white" size={32}/> : <Mic className="text-white" size={32}/>}
+            {aiLoading && <div className="absolute inset-0 rounded-[2.5rem] border-4 border-emerald-300 border-t-transparent animate-spin"></div>}
         </button>
       </div>
-
-      {showConfirmModal && (
-        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[300] flex items-center justify-center p-6">
-          <div className="bg-white rounded-[3rem] p-10 max-w-md w-full shadow-2xl animate-in zoom-in-95 space-y-6 text-center">
-             <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto"><Printer size={32}/></div>
-             <div className="space-y-2">
-                <h3 className="font-black text-2xl uppercase tracking-tighter">Confirmar Informe</h3>
-                {isSaved ? (
-                   <p className="text-slate-500">Se imprimirá el documento oficial <span className="font-bold text-slate-900">{showConfirmModal === 'tecnico' ? 'TEC' : showConfirmModal === 'revision' ? 'REV' : 'ALB'}-{reportBaseID}</span>.</p>
-                ) : (
-                   <p className="text-amber-600 font-bold bg-amber-50 p-4 rounded-2xl">Atención: Aún no has guardado en la nube. Se generará un <span className="font-black">BORRADOR</span> sin validez oficial.</p>
-                )}
-             </div>
-             <div className="flex gap-4 pt-2">
-                <button onClick={() => setShowConfirmModal(null)} className="flex-1 p-5 rounded-2xl font-bold bg-slate-100 text-slate-400 uppercase text-xs tracking-widest hover:bg-slate-200">Atrás</button>
-                <button onClick={() => generatePDF(showConfirmModal)} className="flex-1 p-5 rounded-2xl font-black bg-emerald-600 text-white shadow-lg uppercase text-xs tracking-widest hover:bg-emerald-700 active:scale-95">Imprimir</button>
-             </div>
-          </div>
-        </div>
-      )}
-
-      <nav className="p-6 bg-white border-b sticky top-0 z-50 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-2 text-slate-900"><EnergyLogo className="w-8 h-8"/><span className="font-black text-lg uppercase tracking-tighter">Energy Engine</span></div>
-        <div className="text-right">
-          <p className="text-[8px] font-black text-slate-400 uppercase leading-none tracking-widest">Técnico RTS</p>
-          <p className="text-sm font-black text-emerald-600 uppercase">{inspectorName}</p>
-        </div>
-      </nav>
-
+      
       <main className="max-w-4xl mx-auto p-6 space-y-10">
         
         <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-8 border border-slate-100">
-             <h2 className="text-2xl font-black text-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">Identificación del ADN</h2>          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+             <h2 className="text-2xl font-black text-black border-l-4 border-emerald-500 pl-4 uppercase tracking-tighter">{formTitles[formType]}</h2>          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <StableInput label="Empresa / Cliente" icon={Users} value={intervention.cliente.nombre} onChange={v => setIntervention(p => ({...p, cliente: {...p.cliente, nombre: v}}))}/>
             <StableInput label="Instalación / Ubicación" icon={MapPin} value={intervention.cliente.instalacion} onChange={v => setIntervention(p => ({...p, cliente: {...p.cliente, instalacion: v}}))}/>
             <StableInput label="Dirección Postal" icon={Mail} value={intervention.cliente.direccion} onChange={v => setIntervention(p => ({...p, cliente: {...p.cliente, direccion: v}}))}/>
@@ -402,41 +403,12 @@ export default function App({ task }: { task?: any }) {
           </div>
         </section>
 
-        {Object.entries(CHECKLIST_SECTIONS).map(([section, items]) => (
-          <section key={section} className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
-            <h3 className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] opacity-30">{section}</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {items.map(it => (
-                <div key={it} className={`p-4 rounded-2xl flex justify-between items-center transition-all border-2 ${intervention.check[it] ? 'bg-emerald-50 border-emerald-100 shadow-inner' : 'bg-slate-50 border-transparent shadow-sm'}`}>
-                  <span className="text-[12px] font-bold text-slate-700 leading-tight pr-2">{it}</span>
-                  <div className="flex gap-1">
-                    {["OK", "DEF", "AVR", "CMB"].map(st => (
-                      <button key={st} onClick={() => setIntervention(p => ({...p, check: {...p.check, [it]: st}}))} className={`w-10 h-8 rounded-lg text-[8px] font-black border-2 transition-all ${intervention.check[it] === st ? 'bg-emerald-600 border-emerald-600 text-white shadow-md scale-110' : 'bg-white border-slate-200 text-slate-300 hover:border-slate-300 hover:bg-slate-100'}`}>{st}</button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        ))}
+        {formType === 'hoja-revision' && renderChecklist(CHECKLIST_SECTIONS)}
+        {formType === 'revision-basica' && renderChecklist({ "INSPECCION EN EL MOTOR": CHECKLIST_SECTIONS["INSPECCION EN EL MOTOR"] })}
 
-        <section className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 space-y-8 text-left">
-          <h2 className="text-xl font-black flex items-center gap-3 text-emerald-600 uppercase tracking-tighter"><Zap size={20}/> Pruebas Eléctricas y Carga</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-             <StableInput label="Horas Operat." value={intervention.mediciones.horas} onChange={v => setIntervention(p => ({...p, mediciones: {...p.mediciones, horas: v}}))}/>
-             <StableInput label="Presión Aceite" value={intervention.mediciones.presion} onChange={v => setIntervention(p => ({...p, mediciones: {...p.mediciones, presion: v}}))}/>
-             <StableInput label="Tensión RS (V)" value={intervention.pruebasCarga.rs} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, rs: v}}))}/>
-             <StableInput label="Tensión ST (V)" value={intervention.pruebasCarga.st} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, st: v}}))}/>
-             <StableInput label="Intensidad R (A)" value={intervention.pruebasCarga.r} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, r: v}}))}/>
-             <StableInput label="Intensidad S (A)" value={intervention.pruebasCarga.s} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, s: v}}))}/>
-             <StableInput label="Potencia kW" value={intervention.pruebasCarga.kw} onChange={v => setIntervention(p => ({...p, pruebasCarga: {...p.pruebasCarga, kw: v}}))}/>
-          </div>
-        </section>
-
-        <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
-           <h2 className="text-xl font-black text-slate-900 flex items-center gap-3"><Type className="text-emerald-500"/> Notas del Informe</h2>
-           <textarea className="w-full h-64 bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8 outline-none focus:border-emerald-500 font-medium text-slate-600 shadow-inner resize-none leading-relaxed" placeholder="Las notas dictadas aparecerán aquí..." value={intervention.observaciones} onChange={e => setIntervention(p => ({...p, observaciones: e.target.value}))}/>
-        </section>
+        {formType !== 'albaran' && renderMediciones()}
+        
+        {renderObservaciones()}
 
         <section className="bg-white p-10 rounded-[3rem] shadow-sm border border-slate-100 space-y-6 text-center">
           <StableInput label="Persona que recibe (Nombre)" icon={Users} value={intervention.recibidoPor} onChange={v => setIntervention(p => ({...p, recibidoPor: v}))}/>
@@ -448,36 +420,15 @@ export default function App({ task }: { task?: any }) {
 
         <button disabled={saving || isSaved} onClick={saveIntervention} className={`w-full p-10 rounded-[3rem] shadow-2xl flex items-center justify-center gap-6 hover:scale-[1.02] active:scale-95 transition-all ${isSaved ? 'bg-emerald-50 text-emerald-600 border-2 border-emerald-500' : 'bg-slate-900 text-white'}`}>
           <div className="text-left">
-            <p className="font-black text-2xl uppercase tracking-tighter tracking-widest">{isSaved ? 'Sincronizado RTS' : 'FINALIZAR INTERVENCIÓN ✨'}</p>
-            <p className="text-xs font-bold uppercase tracking-widest opacity-60">{isSaved ? `ID: RTS-${reportBaseID}` : 'Guardar y oficializar documento en la nube'}</p>
+            <p className="font-black text-2xl uppercase tracking-tighter tracking-widest">{isSaved ? 'Documento Guardado y Generado' : 'FINALIZAR Y GUARDAR'}</p>
+            <p className="text-xs font-bold uppercase tracking-widest opacity-60">{isSaved ? `ID: ${reportBaseID}` : 'Guardar en la nube y generar PDF'}</p>
           </div>
           {saving ? <RefreshCcw className="animate-spin text-emerald-500" size={40}/> : isSaved ? <CheckCircle2 size={40}/> : <Save size={40} className="text-emerald-500"/>}
         </button>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <button onClick={() => setShowConfirmModal('tecnico')} className={`p-8 rounded-[2.5rem] border-2 shadow-lg text-left group transition-all bg-white border-slate-100 hover:border-emerald-500 hover:shadow-xl`}>
-            <FileText className={`text-emerald-500 mb-3 group-hover:scale-110 transition-transform`} size={32}/>
-            <p className="font-black text-slate-800 uppercase text-[10px]">Informe Técnico</p>
-            <p className="text-[8px] font-bold text-slate-400">{isSaved ? `TEC-${reportBaseID}` : 'Imprimir Borrador'}</p>
-          </button>
-          <button onClick={() => setShowConfirmModal('revision')} className={`p-8 rounded-[2.5rem] border-2 shadow-lg text-left group transition-all bg-white border-slate-100 hover:border-emerald-500 hover:shadow-xl`}>
-            <ShieldCheck className={`text-emerald-500 mb-3 group-hover:scale-110 transition-transform`} size={32}/>
-            <p className="font-black text-slate-800 uppercase text-[10px]">Ficha Getafe</p>
-            <p className="text-[8px] font-bold text-slate-400">{isSaved ? `REV-${reportBaseID}` : 'Imprimir Borrador'}</p>
-          </button>
-          <button onClick={() => setShowConfirmModal('albaran')} className={`p-8 rounded-[2.5rem] shadow-xl text-left group transition-all ${isSaved ? 'bg-emerald-600 text-white' : 'bg-slate-800 text-slate-300'}`}>
-            <Printer className={`${isSaved ? 'text-white' : 'text-slate-400'} mb-3 group-hover:scale-110 transition-transform`} size={32}/>
-            <p className="font-black uppercase text-[10px]">Albarán Final</p>
-            <p className={`text-[8px] font-bold ${isSaved ? 'text-emerald-200' : 'text-slate-500'}`}>{isSaved ? `ALB-${reportBaseID}` : 'Imprimir Borrador'}</p>
-          </button>
-        </div>
         
-        {isSaved && <button onClick={() => { setIsSaved(false); setIntervention({cliente: { nombre: '', instalacion: '', direccion: '', potencia_kva: '', n_grupo: '' }, equipo: { marca: '', modelo: '', sn: '' }, check: {}, mediciones: { horas: '', presion: '', temp: '', combustible: '', tensionAlt: '', frecuencia: '', cargaBat: '' }, pruebasCarga: { rs: '', st: '', rt: '', r: '', s: '', t: '', kw: '' }, observaciones: '', fotos: { equipo: null, recepcion: null }, recibidoPor: '', firmaCliente: null}); setReportBaseID(''); }} className="w-full text-center text-slate-400 font-black text-xs uppercase hover:text-emerald-600 transition-colors">Iniciar Nueva Revisión</button>}
+        {isSaved && <button onClick={() => { setIsSaved(false); setIntervention({cliente: { nombre: '', instalacion: '', direccion: '', potencia_kva: '', n_grupo: '' }, equipo: { marca: '', modelo: '', sn: '' }, check: {}, mediciones: { horas: '', presion: '', temp: '', combustible: '', tensionAlt: '', frecuencia: '', cargaBat: '' }, pruebasCarga: { rs: '', st: '', rt: '', r: '', s: '', t: '', kw: '' }, observaciones: '', recibidoPor: '', firmaCliente: null}); setReportBaseID(''); }} className="w-full text-center text-slate-400 font-black text-xs uppercase hover:text-emerald-600 transition-colors">Iniciar Nuevo Informe</button>}
       </main>
 
-      <footer className="fixed bottom-0 w-full bg-white/90 backdrop-blur-md p-4 border-t flex items-center justify-center gap-4 text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] z-50">
-           <div className="flex items-center gap-2"><div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div> Gemini AI Enabled • Energy Engine RTS v6.2</div>
-      </footer>
     </div>
   );
 }
