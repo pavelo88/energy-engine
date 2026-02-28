@@ -59,7 +59,7 @@ export default function InspectionLoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (authError: any) {
-      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
+      if (authError.code === 'auth/invalid-credential') {
         try {
           const q = query(
             collection(firestore, 'usuarios'),
@@ -73,15 +73,15 @@ export default function InspectionLoginPage() {
           } else {
             setError('Credenciales incorrectas. Verifica tu correo y contraseña/DNI.');
           }
-        } catch (dbError: any) {
-          if (dbError.code === 'auth/email-already-in-use') {
+        } catch (creationError: any) {
+          if (creationError.code === 'auth/email-already-in-use') {
              setError('Este correo ya está registrado, pero la contraseña es incorrecta. Si ya estableciste una clave personal, úsala.');
-          } else if (dbError.code === 'auth/weak-password') {
+          } else if (creationError.code === 'auth/weak-password') {
             setError('La contraseña (DNI) es demasiado débil. Debe tener al menos 6 caracteres.');
-          } else if (dbError.code === 'auth/invalid-email') {
+          } else if (creationError.code === 'auth/invalid-email') {
             setError('El formato del correo electrónico no es válido.');
           } else {
-            console.error("Firestore query or Auth creation error:", dbError);
+            console.error("Firestore query or Auth creation error:", creationError);
             setError('Error al consultar la base de datos o crear el usuario.');
           }
         }
@@ -106,7 +106,7 @@ export default function InspectionLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
-        <Card className="w-full max-w-md rounded-2xl shadow-xl">
+        <Card className="w-full max-w-lg rounded-2xl shadow-xl">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto mb-2 flex justify-center">
               <Logo />

@@ -57,10 +57,14 @@ export default function AdminLoginPage() {
     }
 
     try {
+      // 1. Try to sign in normally
       await signInWithEmailAndPassword(auth, email, password);
+      // On success, the useEffect hook will redirect to /admin
     } catch (authError: any) {
-      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
+      // 2. If sign-in fails (e.g., user not found in Auth), try DNI/first-login flow
+      if (authError.code === 'auth/invalid-credential') {
         try {
+          // Check Firestore for a user matching email and DNI (password)
           const q = query(
             collection(firestore, 'usuarios'),
             where('email', '==', email),
@@ -69,19 +73,23 @@ export default function AdminLoginPage() {
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
+            // User found in DB, attempt to create them in Auth
             await createUserWithEmailAndPassword(auth, email, password);
+            // On success, the useEffect will handle redirection.
           } else {
+            // No user found with those credentials in DB either
             setError('Credenciales incorrectas. Verifica tu correo y contraseña/DNI.');
           }
-        } catch (dbError: any) {
-           if (dbError.code === 'auth/email-already-in-use') {
+        } catch (creationError: any) {
+           // Handle specific errors during the creation attempt
+           if (creationError.code === 'auth/email-already-in-use') {
              setError('Este correo ya está registrado, pero la contraseña es incorrecta. Si ya estableciste una clave personal, úsala.');
-          } else if (dbError.code === 'auth/weak-password') {
+          } else if (creationError.code === 'auth/weak-password') {
             setError('La contraseña (DNI) es demasiado débil. Debe tener al menos 6 caracteres.');
-          } else if (dbError.code === 'auth/invalid-email') {
+          } else if (creationError.code === 'auth/invalid-email') {
             setError('El formato del correo electrónico no es válido.');
           } else {
-            console.error("Firestore query or Auth creation error:", dbError);
+            console.error("Firestore query or Auth creation error:", creationError);
             setError('Error al consultar la base de datos o crear el usuario.');
           }
         }
@@ -106,7 +114,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
-        <Card className="w-full max-w-md rounded-2xl shadow-xl">
+        <Card className="w-full max-w-lg rounded-2xl shadow-xl">
           <CardHeader className="text-center space-y-4">
             <div className="mx-auto mb-2 flex justify-center">
               <Logo />
