@@ -2,7 +2,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { User, PenTool, Trash2, Save, CheckCircle2, LogOut } from 'lucide-react';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 
 export default function ProfileTab() {
@@ -10,6 +10,7 @@ export default function ProfileTab() {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignature, setHasSignature] = useState(false);
   const [savedSignature, setSavedSignature] = useState<string | null>(null);
+  const auth = useAuth();
 
   // Cargar firma previa si existe
   useEffect(() => {

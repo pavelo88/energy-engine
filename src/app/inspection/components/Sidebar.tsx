@@ -4,7 +4,8 @@
 import React from 'react';
 import { LayoutDashboard, ClipboardList, Activity, Receipt, User as UserIcon, LogOut } from 'lucide-react';
 import { TABS } from '../constants';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 
 interface SidebarProps {
   activeTab: string;
@@ -21,6 +22,8 @@ const menuItems = [
 ];
 
 export default function Sidebar({ activeTab, onNavigate }: SidebarProps) {
+  const auth = useAuth();
+
   return (
     // Barra lateral con estilo Glassmorphism: fondo translúcido y bordes sutiles
     <aside className="hidden xl:flex w-80 bg-white/60 backdrop-blur-xl flex-col p-8 sticky top-0 h-screen border-r border-white/80 shadow-lg">
@@ -45,7 +48,7 @@ export default function Sidebar({ activeTab, onNavigate }: SidebarProps) {
       </nav>
 
       {/* Botón para cerrar sesión */}
-      <button onClick={() => auth.signOut()} className="flex items-center gap-4 p-4 text-red-500/80 font-bold hover:bg-red-500/10 hover:text-red-600 rounded-2xl transition-all duration-300 ease-in-out">
+      <button onClick={() => auth && signOut(auth)} className="flex items-center gap-4 p-4 text-red-500/80 font-bold hover:bg-red-500/10 hover:text-red-600 rounded-2xl transition-all duration-300 ease-in-out">
         <LogOut size={22} /> Cerrar Sesión
       </button>
     </aside>

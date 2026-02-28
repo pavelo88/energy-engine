@@ -7,8 +7,7 @@ import {
   LogOut, CheckCircle2, ShieldCheck, BrainCircuit, X, Zap, Mail, Wand2, RefreshCcw
 } from 'lucide-react';
 
-import { db } from '../../../lib/firebase';
-import { useUser } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
 import { processDictation } from '@/ai/flows/process-dictation-flow';
 
@@ -48,6 +47,7 @@ const ALL_CHECKLIST_ITEMS = Object.values(CHECKLIST_SECTIONS).flat();
 
 export default function App({ task }: { task?: any }) {
   const { user } = useUser();
+  const db = useFirestore();
   const inspectorName = user?.displayName || user?.email?.split('@')[0] || 'Técnico';
   const [isRecording, setIsRecording] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -198,13 +198,14 @@ export default function App({ task }: { task?: any }) {
   };
 
   const saveIntervention = async () => {
+    if (!db) return;
     setSaving(true);
     try {
       const id = Date.now().toString().slice(-6);
       const sanitize = (obj) => JSON.parse(JSON.stringify(obj, (k,v)=>v===undefined?null:v));
       const cleanData = sanitize({ ...intervention, tecnico: inspectorName, fecha: Timestamp.now(), reportCode: id });
       
-      await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'intervenciones'), cleanData);
+      await addDoc(collection(db, 'trabajos'), cleanData);
       
       setReportBaseID(id);
       setIsSaved(true);

@@ -3,16 +3,18 @@
 import React, { useState } from 'react';
 import { Home, Compass, User, Power } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useScreenSize } from '@/hooks/use-screen-size';
 
 export default function Footer() {
   const [activeButton, setActiveButton] = useState('center');
   const router = useRouter();
+  const auth = useAuth();
   const screenSize = useScreenSize();
 
   const handleSignOut = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push('/');
   };

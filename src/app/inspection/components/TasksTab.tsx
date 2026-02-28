@@ -5,7 +5,7 @@ import {
   ClipboardList, MapPin, Calendar, ArrowRight, 
   Search, Filter, Clock, CheckCircle2 
 } from 'lucide-react';
-import { db, COLLECTIONS, auth } from '@/lib/firebase';
+import { useFirestore, useAuth } from '@/firebase';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface Task {
@@ -20,15 +20,17 @@ export default function TasksTab({ onStartInspection }: { onStartInspection: (ta
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const db = useFirestore();
+  const auth = useAuth();
 
   // --- ESCUCHAR TAREAS ASIGNADAS EN TIEMPO REAL ---
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth?.currentUser || !db) return;
 
     // Buscamos intervenciones con estado 'asignada'
     // Nota: En una fase más avanzada, filtraríamos por id_inspector
     const q = query(
-      collection(db, COLLECTIONS.INTERVENCIONES),
+      collection(db, "trabajos"),
       where("estado", "==", "asignada")
     );
 
@@ -43,11 +45,11 @@ export default function TasksTab({ onStartInspection }: { onStartInspection: (ta
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth, db]);
 
   const filteredTasks = tasks.filter(t => 
-    t.cliente.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.equipo.modelo.toLowerCase().includes(searchTerm.toLowerCase())
+    (t.cliente?.nombre || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (t.equipo?.modelo || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (

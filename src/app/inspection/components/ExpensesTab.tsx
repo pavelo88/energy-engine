@@ -6,7 +6,7 @@ import {
   Receipt, MapPin, Save, Loader2, User, Hourglass, Euro, Trash2, Plus, 
   PenTool, FileText, CheckCircle, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, Briefcase, FileSearch
 } from 'lucide-react';
-import { db, auth, storage } from '@/lib/firebase';
+import { useAuth, useFirestore, useStorage } from '@/firebase';
 import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
 import jsPDF from 'jspdf';
@@ -45,7 +45,10 @@ const initialIntervencionState = { descripcion: '', horas: '' };
 
 // --- COMPONENTE PRINCIPAL ---
 export default function ExpensesTab() {
-  const [user, setUser] = useState(auth.currentUser);
+  const { user } = useUser();
+  const db = useFirestore();
+  const storage = useStorage();
+  const auth = useAuth();
   const [reportDate, setReportDate] = useState<Date>(new Date());
   
   const [interventions, setInterventions] = useState<Intervencion[]>([]);
@@ -61,11 +64,6 @@ export default function ExpensesTab() {
 
   const signatureCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(setUser);
-    return unsubscribe;
-  }, []);
 
   // --- LÓGICA DE FIRMA ---
   useEffect(() => {
@@ -272,7 +270,7 @@ export default function ExpensesTab() {
   };
 
   const handleSaveParte = async () => {
-    if (!user) return alert("Error de autenticación. Por favor, recarga la página.");
+    if (!user || !db || !storage) return alert("Error de autenticación o servicios no disponibles. Por favor, recarga la página.");
     if (interventions.length === 0 && gastos.length === 0) return alert("Debes añadir al menos una intervención o un gasto.");
     if (!signature) return alert("La firma del inspector es obligatoria.");
 

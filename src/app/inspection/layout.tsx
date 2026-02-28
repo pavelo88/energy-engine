@@ -2,25 +2,25 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useAuth } from '@/firebase';
+import { useUser, useAuth, useFirestore } from '@/firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Loader2 } from 'lucide-react';
 import ForceChangePassword from '@/components/auth/ForceChangePassword';
 
 export default function InspectionLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  const firestore = useFirestore();
   const router = useRouter();
   const [authStatus, setAuthStatus] = useState<'loading' | 'authorized' | 'unauthorized' | 'needs_password_change'>('loading');
 
   useEffect(() => {
-    if (isUserLoading) return;
+    if (isUserLoading || !firestore) return;
 
     if (user && user.email) {
       const checkUserStatus = async () => {
         try {
-          const userDocRef = doc(db, 'usuarios', user.email!);
+          const userDocRef = doc(firestore, 'usuarios', user.email!);
           const userDocSnap = await getDoc(userDocRef);
           
           if (userDocSnap.exists()) {
@@ -33,27 +33,27 @@ export default function InspectionLayout({ children }: { children: React.ReactNo
               }
             } else {
               setAuthStatus('unauthorized');
-              await auth.signOut();
+              if (auth) await auth.signOut();
               router.push('/auth/inspection');
             }
           } else {
             setAuthStatus('unauthorized');
-            await auth.signOut();
+            if (auth) await auth.signOut();
             router.push('/auth/inspection');
           }
         } catch (error) {
             console.error("Error al verificar el rol del inspector:", error);
             setAuthStatus('unauthorized');
-            await auth.signOut();
+            if (auth) await auth.signOut();
             router.push('/auth/inspection');
         }
       };
       checkUserStatus();
-    } else {
+    } else if (!isUserLoading) {
       setAuthStatus('unauthorized');
       router.push('/auth/inspection');
     }
-  }, [user, isUserLoading, router, auth, authStatus]);
+  }, [user, isUserLoading, router, auth, firestore]);
 
   if (authStatus === 'loading' || authStatus === 'unauthorized') {
     return (
