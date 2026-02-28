@@ -54,7 +54,7 @@ const InspectionPageContent = () => {
 
   useEffect(() => {
     if (!isUserLoading && !user) {
-        router.push('/auth/login');
+        router.push('/auth/inspection');
     }
   }, [user, isUserLoading, router]);
 

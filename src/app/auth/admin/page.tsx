@@ -14,7 +14,7 @@ import { Logo } from '@/components/icons';
 import { Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const auth = useAuth();
   const { user, isUserLoading } = useUser();
@@ -25,7 +25,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // If user is already logged in, redirect them based on their role
+    // If user is already logged in, redirect them if they have admin role
     if (!isUserLoading && user && user.email) {
       const checkRoleAndRedirect = async () => {
         const userDocRef = doc(db, 'usuarios', user.email!);
@@ -34,8 +34,6 @@ export default function LoginPage() {
           const roles = userDocSnap.data().roles || [];
           if (roles.includes('admin')) {
             router.push('/admin');
-          } else if (roles.includes('inspector')) {
-            router.push('/inspection');
           }
         }
       };
@@ -63,10 +61,8 @@ export default function LoginPage() {
           // Role-based redirection
           if (roles.includes('admin')) {
             router.push('/admin');
-          } else if (roles.includes('inspector')) {
-            router.push('/inspection');
           } else {
-            setError('No tienes un rol asignado para acceder a la plataforma.');
+            setError('No tienes permisos de administrador para acceder a este módulo.');
             await auth.signOut();
           }
         } else {
@@ -81,7 +77,6 @@ export default function LoginPage() {
         setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
       } else {
         setError('Ha ocurrido un error inesperado.');
-        console.error(err);
       }
     } finally {
       setLoading(false);
@@ -97,8 +92,6 @@ export default function LoginPage() {
     );
   }
   
-  // If user is logged in, this will be true and the useEffect will handle redirection.
-  // We render null here to avoid a flash of the login page.
   if (user) {
     return null;
   }
@@ -110,8 +103,8 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex justify-center">
             <Logo />
           </div>
-          <CardTitle className="text-2xl font-black tracking-tighter">Acceso de Personal</CardTitle>
-          <CardDescription>Introduce tus credenciales para acceder al sistema.</CardDescription>
+          <CardTitle className="text-2xl font-black tracking-tighter">Módulo Administrativo</CardTitle>
+          <CardDescription>Introduce tus credenciales de administrador.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
@@ -120,7 +113,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="inspector@energyengine.es"
+                placeholder="admin@energyengine.es"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}

@@ -1,0 +1,153 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useAuth, useUser } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Logo } from '@/components/icons';
+import { Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+
+export default function InspectionLoginPage() {
+  const router = useRouter();
+  const auth = useAuth();
+  const { user, isUserLoading } = useUser();
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // If user is already logged in, redirect them if they have inspector role
+    if (!isUserLoading && user && user.email) {
+      const checkRoleAndRedirect = async () => {
+        const userDocRef = doc(db, 'usuarios', user.email!);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const roles = userDocSnap.data().roles || [];
+          if (roles.includes('inspector')) {
+            router.push('/inspection');
+          }
+        }
+      };
+      checkRoleAndRedirect();
+    }
+  }, [user, isUserLoading, router]);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
+
+      if (loggedInUser && loggedInUser.email) {
+        // Fetch user profile from Firestore to determine role
+        const userDocRef = doc(db, 'usuarios', loggedInUser.email);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const roles = userData.roles || [];
+
+          // Role-based redirection
+          if (roles.includes('inspector')) {
+            router.push('/inspection');
+          } else {
+            setError('No tienes permisos de inspector para acceder a este módulo.');
+            await auth.signOut();
+          }
+        } else {
+          setError('No se encontró un perfil de usuario asociado a este correo.');
+          await auth.signOut();
+        }
+      } else {
+        throw new Error('No se pudo obtener la información del usuario tras el login.');
+      }
+    } catch (err: any) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
+      } else {
+        setError('Ha ocurrido un error inesperado.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (isUserLoading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-slate-100">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (user) {
+    return null; // Avoid flashing the login page for logged-in users.
+  }
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-100 p-4">
+      <Card className="w-full max-w-sm shadow-2xl rounded-2xl">
+        <CardHeader className="text-center">
+          <div className="mx-auto mb-4 flex justify-center">
+            <Logo />
+          </div>
+          <CardTitle className="text-2xl font-black tracking-tighter">Módulo de Inspectores</CardTitle>
+          <CardDescription>Introduce tus credenciales de inspector.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="inspector@energyengine.es"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Contraseña</Label>
+              <Input
+                id="password"
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="rounded-lg"
+              />
+            </div>
+            {error && (
+              <div className="flex items-center gap-2 rounded-md border border-red-500/50 bg-red-50 p-3 text-sm font-medium text-red-600">
+                <AlertCircle className="h-4 w-4" />
+                <p>{error}</p>
+              </div>
+            )}
+            <Button type="submit" className="w-full font-bold uppercase rounded-lg" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {loading ? 'Verificando...' : 'Iniciar Sesión'}
+            </Button>
+            <div className="mt-4 text-center text-xs">
+              <Link href="/" className="underline text-muted-foreground hover:text-primary">
+                Volver a la página principal
+              </Link>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
