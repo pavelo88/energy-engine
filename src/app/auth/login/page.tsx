@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useAuth, useUser } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,9 +25,21 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // If user is already logged in, redirect them to the admin dashboard
-    if (!isUserLoading && user) {
-      router.push('/admin');
+    // If user is already logged in, redirect them based on their role
+    if (!isUserLoading && user && user.email) {
+      const checkRoleAndRedirect = async () => {
+        const userDocRef = doc(db, 'usuarios', user.email!);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          const roles = userDocSnap.data().roles || [];
+          if (roles.includes('admin')) {
+            router.push('/admin');
+          } else if (roles.includes('inspector')) {
+            router.push('/inspection');
+          }
+        }
+      };
+      checkRoleAndRedirect();
     }
   }, [user, isUserLoading, router]);
 
@@ -34,27 +48,59 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      // onAuthStateChanged will handle the redirect, but we can push manually
-      router.push('/admin');
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const loggedInUser = userCredential.user;
+
+      if (loggedInUser && loggedInUser.email) {
+        // Fetch user profile from Firestore to determine role
+        const userDocRef = doc(db, 'usuarios', loggedInUser.email);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists()) {
+          const userData = userDocSnap.data();
+          const roles = userData.roles || [];
+
+          // Role-based redirection
+          if (roles.includes('admin')) {
+            router.push('/admin');
+          } else if (roles.includes('inspector')) {
+            router.push('/inspection');
+          } else {
+            setError('No tienes un rol asignado para acceder a la plataforma.');
+            await auth.signOut();
+          }
+        } else {
+          setError('No se encontró un perfil de usuario asociado a este correo.');
+          await auth.signOut();
+        }
+      } else {
+        throw new Error('No se pudo obtener la información del usuario tras el login.');
+      }
     } catch (err: any) {
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
       } else {
         setError('Ha ocurrido un error inesperado.');
+        console.error(err);
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Don't render the form if we are still checking auth state or if user is logged in
-  if (isUserLoading || (!isUserLoading && user)) {
+  // Don't render the form if we are still checking auth state
+  if (isUserLoading) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-slate-100">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
+  }
+  
+  // If user is logged in, this will be true and the useEffect will handle redirection.
+  // We render null here to avoid a flash of the login page.
+  if (user) {
+    return null;
   }
 
   return (
