@@ -64,27 +64,26 @@ export default function MainMenuTablet({ onNavigate, userName }: MainMenuProps) 
     <div className="h-full w-full bg-slate-100 flex flex-col p-6 pb-32 font-sans">
       <header className="w-full mb-8 text-center flex-shrink-0">
           <h2 className="text-slate-500 text-lg font-bold tracking-wider uppercase">Hola, {userName}</h2>
-          <h1 className="text-slate-800 text-6xl font-black mt-1 tracking-tighter">Panel de Control</h1>
+          <h1 className="text-slate-800 text-7xl font-black mt-1 tracking-tighter">Panel de Control</h1>
       </header>
 
       <main className="w-full max-w-4xl mx-auto flex-grow flex flex-col">
-        <div className="w-full grid grid-cols-2 gap-6 flex-grow">
+        <div className="w-full grid grid-cols-2 gap-8 flex-grow">
           {menuItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => onNavigate(item.id)}
-                className={`group relative aspect-square flex flex-col justify-center items-center p-4 rounded-3xl border-4 shadow-xl transition-all duration-200 transform hover:-translate-y-2 active:scale-[0.98] active:shadow-inner ${item.classes} ${item.shadow}`}>
+                className={`group relative aspect-square flex flex-col justify-center items-center p-6 rounded-3xl border-4 shadow-xl transition-all duration-200 transform hover:-translate-y-2 active:scale-[0.98] active:shadow-inner ${item.classes} ${item.shadow}`}>
                 
                 <div className={`flex-grow w-full flex items-center justify-center transition-transform duration-200 group-active:scale-110`}>
                   {item.icon}
                 </div>
 
-                {/* ===> FUENTES AUMENTADAS EN UN 40% */}
                 <div className="text-center flex-shrink-0">
-                  <h3 className={`text-5xl font-bold tracking-tight ${item.labelColor}`}>
+                  <h3 className={`text-6xl font-bold tracking-tight ${item.labelColor}`}>
                     {item.label}
                   </h3>
-                  <p className={`mt-2 text-xl font-medium ${item.descColor}`}>{item.desc}</p>
+                  <p className={`mt-2 text-2xl font-medium ${item.descColor}`}>{item.desc}</p>
                 </div>
 
                 <ArrowUpRight className="absolute top-6 right-6 text-slate-400 opacity-50 group-hover:opacity-100 transition-opacity" />

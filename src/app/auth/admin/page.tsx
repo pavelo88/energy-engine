@@ -58,7 +58,6 @@ export default function AdminLoginPage() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Login successful, useEffect will handle routing
     } catch (authError: any) {
       if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
         try {
@@ -70,25 +69,21 @@ export default function AdminLoginPage() {
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
-            try {
-              await createUserWithEmailAndPassword(auth, email, password);
-              // Creation successful, useEffect will handle routing
-            } catch (creationError: any) {
-              if (creationError.code === 'auth/email-already-in-use') {
-                 setError('Este correo ya está registrado, pero la contraseña es incorrecta. Si ya estableciste una clave personal, úsala.');
-              } else if (creationError.code === 'auth/weak-password') {
-                setError('La contraseña (DNI) es demasiado débil. Debe tener al menos 6 caracteres.');
-              } else {
-                setError('Error al registrar la cuenta. Por favor, intenta de nuevo.');
-                console.error("Creation Error:", creationError);
-              }
-            }
+            await createUserWithEmailAndPassword(auth, email, password);
           } else {
             setError('Credenciales incorrectas. Verifica tu correo y contraseña/DNI.');
           }
-        } catch (dbError) {
-          console.error("Firestore query error:", dbError);
-          setError('Error al consultar la base de datos.');
+        } catch (dbError: any) {
+           if (dbError.code === 'auth/email-already-in-use') {
+             setError('Este correo ya está registrado, pero la contraseña es incorrecta. Si ya estableciste una clave personal, úsala.');
+          } else if (dbError.code === 'auth/weak-password') {
+            setError('La contraseña (DNI) es demasiado débil. Debe tener al menos 6 caracteres.');
+          } else if (dbError.code === 'auth/invalid-email') {
+            setError('El formato del correo electrónico no es válido.');
+          } else {
+            console.error("Firestore query or Auth creation error:", dbError);
+            setError('Error al consultar la base de datos o crear el usuario.');
+          }
         }
       } else if (authError.code === 'auth/invalid-email') {
         setError('El formato del correo electrónico no es válido.');
@@ -110,19 +105,19 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-slate-900 p-4">
-        <Card className="w-full max-w-md bg-white/5 backdrop-blur-lg border-white/10 text-white shadow-2xl rounded-2xl">
-          <CardHeader className="text-center space-y-4 pt-8">
+    <div className="flex min-h-screen w-full items-center justify-center bg-slate-100 p-4">
+        <Card className="w-full max-w-md rounded-2xl shadow-xl">
+          <CardHeader className="text-center space-y-4">
             <div className="mx-auto mb-2 flex justify-center">
               <Logo />
             </div>
-            <CardTitle className="text-2xl font-black tracking-tighter text-white">Módulo Administrativo</CardTitle>
-            <CardDescription className="text-white/60">Introduce tus credenciales de administrador.</CardDescription>
+            <CardTitle className="text-2xl font-bold text-slate-800">Módulo Administrativo</CardTitle>
+            <CardDescription>Introduce tus credenciales de administrador.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin} className="space-y-6">
+            <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-white/60 text-xs uppercase font-bold">Email</Label>
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -130,32 +125,30 @@ export default function AdminLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-lg bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:bg-white/10 focus:ring-primary h-12"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-white/60 text-xs uppercase font-bold">Contraseña o DNI</Label>
+                <Label htmlFor="password">Contraseña o DNI</Label>
                 <Input
                   id="password"
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="rounded-lg bg-white/5 border-white/20 text-white placeholder:text-white/40 focus:bg-white/10 focus:ring-primary h-12"
                 />
               </div>
               {error && (
-                <div className="flex items-center gap-2 rounded-md border border-red-500/50 bg-red-900/40 p-3 text-sm font-medium text-red-300">
+                <div className="flex items-center gap-2 rounded-md border border-red-300 bg-red-50 p-3 text-sm font-medium text-red-800">
                   <AlertCircle className="h-4 w-4" />
                   <p>{error}</p>
                 </div>
               )}
-              <Button type="submit" className="w-full font-bold uppercase rounded-lg h-12 text-sm bg-primary text-primary-foreground hover:bg-primary/90" disabled={loading}>
+              <Button type="submit" className="w-full font-bold" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {loading ? 'Verificando...' : 'Iniciar Sesión'}
               </Button>
-              <div className="pt-2 text-center text-xs">
-                <Link href="/auth/inspection" className="underline text-white/50 hover:text-primary">
+              <div className="pt-2 text-center text-sm">
+                <Link href="/auth/inspection" className="underline text-muted-foreground hover:text-primary">
                   Ir al Módulo de Inspectores
                 </Link>
               </div>
