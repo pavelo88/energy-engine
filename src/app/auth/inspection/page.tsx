@@ -35,46 +35,68 @@ export default function InspectionLoginPage() {
     setLoading(true);
     setError(null);
 
+    if (!auth || !firestore) {
+      setError("Servicios de Firebase no disponibles.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Step 1: Try standard sign-in first
+      // 1. Standard sign-in attempt (for users who already set a password)
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const loggedInUser = userCredential.user;
 
-      if (loggedInUser && loggedInUser.email) {
+      if (loggedInUser.email) {
         const userDocRef = doc(firestore, 'usuarios', loggedInUser.email);
         const userDocSnap = await getDoc(userDocRef);
-
         if (userDocSnap.exists() && userDocSnap.data().roles?.includes('inspector')) {
           router.push('/inspection');
+          return; // Success
         } else {
-          setError('No tienes permisos de inspector.');
           await auth.signOut();
+          setError('No tienes permisos de inspector.');
         }
       }
     } catch (authError: any) {
-      // Step 2: If standard login fails, try DNI-based first-time login
+      // 2. If standard sign-in fails, check if it's a first-time (DNI) login
       if (authError.code === 'auth/invalid-credential') {
         try {
           const q = query(
             collection(firestore, 'usuarios'),
             where('email', '==', email),
-            where('dni', '==', password) // Using password field for DNI
+            where('dni', '==', password) // Use password field for DNI
           );
           const querySnapshot = await getDocs(q);
 
           if (!querySnapshot.empty) {
-            // First-time login detected
-            await createUserWithEmailAndPassword(auth, email, password);
-            await signInWithEmailAndPassword(auth, email, password);
-            router.push('/inspection');
+            // DNI/Email match found in Firestore, it's a first-time login.
+            try {
+              // Create the user in Firebase Auth using DNI as temp password
+              await createUserWithEmailAndPassword(auth, email, password);
+              // Now sign in with the newly created account
+              await signInWithEmailAndPassword(auth, email, password);
+              // The layout will handle role check and password change redirection
+              router.push('/inspection');
+              return; // Success
+            } catch (creationError: any) {
+              if (creationError.code === 'auth/email-already-in-use') {
+                setError('Credenciales incorrectas. Si ya estableciste una contraseña, úsala. De lo contrario, contacta a un administrador.');
+              } else {
+                setError('Error al crear el usuario. Inténtalo de nuevo.');
+              }
+            }
           } else {
+            // No match found for DNI/Email combo
             setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
           }
-        } catch (creationError: any) {
-          setError('Credenciales incorrectas. Por favor, inténtelo de nuevo.');
+        } catch (dbError) {
+          console.error("Firestore query error:", dbError);
+          setError('Error al consultar la base de datos.');
         }
       } else {
-        setError('Ha ocurrido un error inesperado.');
+        // Handle other auth errors (network, etc.)
+        console.error("Authentication error:", authError);
+        setError('Ha ocurrido un error inesperado durante el inicio de sesión.');
       }
     } finally {
       setLoading(false);
@@ -114,7 +136,7 @@ export default function InspectionLoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password">Contraseña o DNI</Label>
               <Input
                 id="password"
                 type="password"
