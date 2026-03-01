@@ -52,7 +52,11 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
   useEffect(() => {
     if (user && user.email && db) {
         getDoc(doc(db, 'usuarios', user.email)).then(snap => {
-            if (snap.exists()) setInspectorName(snap.data().nombre);
+            if (snap.exists()) {
+              setInspectorName(snap.data().nombre);
+            } else {
+              setInspectorName(user.email || '');
+            }
         });
     }
   }, [user, db]);
@@ -110,7 +114,7 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
   const generatePDF = (isDraft = false) => {
     const doc = new jsPDF();
     const finalID = isDraft ? 'BORRADOR' : savedDocId;
-    const darkColor = '#0f172a'; // Slate-900 from theme
+    const darkColor = '#0f172a'; // Slate-900
 
     // Header
     doc.setFillColor(darkColor);
@@ -130,20 +134,25 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
     const headerData = [
         ['Motor:', formData.motor, 'Modelo:', formData.modelo],
         ['Nº de motor:', formData.n_motor, 'Grupo:', formData.grupo],
-        [{content: `Instalación: ${formData.instalacion}`, colSpan: 4}],
+        [{content: `Instalación: ${formData.instalacion}`, colSpan: 4, styles: {fontStyle:'normal'}}],
     ];
 
     autoTable(doc, {
         startY: startY,
         body: headerData,
         theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 1, fontStyle: 'bold' }
+        styles: { fontSize: 9, cellPadding: 1 },
+        columnStyles: {
+            0: { fontStyle: 'bold' },
+            2: { fontStyle: 'bold' },
+        }
     });
 
     startY = (doc as any).lastAutoTable.finalY + 10;
 
     // Report Content
     if (formData.reportContent) {
+        doc.setTextColor(darkColor);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
         const splitText = doc.splitTextToSize(formData.reportContent, 180);
@@ -152,7 +161,7 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
 
 
     // Footer & Signature
-    const pageCount = doc.internal.pages.length;
+    const pageCount = (doc as any).internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         
