@@ -32,11 +32,8 @@ export const generatePDF = (report, inspectorName, reportId) => {
   const darkColor = '#0f172a';
   
   const pageHeight = doc.internal.pageSize.height;
-  const topMargin = 40;
-  const bottomMargin = 20;
-  let currentY = 20; // Start Y position
+  let currentY = 0;
 
-  // This function draws the top header bar, suitable for every page.
   const drawHeader = () => {
     doc.setFillColor(darkColor);
     doc.rect(0, 0, 210, 28, 'F');
@@ -50,7 +47,6 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.text("info@energyengine.es | +34 925 15 43 54", 205, 18, { align: 'right' });
   };
   
-  // This function draws the bottom footer, suitable for every page.
   const drawFooter = (pageNumber, totalPages) => {
     doc.setFontSize(8);
     doc.setTextColor(100);
@@ -59,17 +55,15 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
   };
 
-  // --- START PDF GENERATION ---
-  
-  // Page 1
   drawHeader();
+  currentY = 40;
   
-  // The main title, ONLY on the first page
+  // The main title, ONLY on the first page, centered
   doc.setTextColor(darkColor);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  doc.text(`INFORME TÉCNICO Nº: ${finalID}`, 105, topMargin, { align: 'center' }); // Centered
-  currentY = topMargin + 5;
+  doc.text(`INFORME TÉCNICO Nº: ${finalID}`, 105, currentY, { align: 'center' });
+  currentY += 5;
 
   autoTable(doc, {
     startY: currentY,
@@ -86,33 +80,45 @@ export const generatePDF = (report, inspectorName, reportId) => {
 
   currentY = (doc as any).lastAutoTable.finalY + 10;
   
-  // The Main Content (with pagination logic)
   if (report.reportContent) {
     doc.setTextColor(darkColor);
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
     doc.text("Descripción de la incidencia:", 15, currentY);
-    currentY += 8;
+    currentY += 10;
 
-    doc.setFont('helvetica', 'normal');
-    const splitText = doc.splitTextToSize(report.reportContent, 180);
-    const lineHeight = 5;
+    const lines = doc.splitTextToSize(report.reportContent, 180);
+    const lineHeight = 5.5; 
+    const sectionTitles = ["ANTECEDENTES:", "INTERVENCIÓN:", "RESUMEN Y SITUACIÓN ACTUAL:"];
 
-    for (const line of splitText) {
-      if (currentY + lineHeight > pageHeight - bottomMargin - 10) { // check for space before printing line
+    for (const line of lines) {
+      if (currentY + lineHeight > pageHeight - 30) { 
         drawFooter(doc.internal.pages.length, doc.internal.pages.length);
         doc.addPage();
-        drawHeader(); // Redraw header on new page
-        currentY = 40; // Reset Y position
+        drawHeader();
+        currentY = 40;
       }
-      doc.text(line, 15, currentY);
+      
+      const isTitle = sectionTitles.some(title => line.trim().toUpperCase().startsWith(title));
+
+      if (isTitle) {
+          if (currentY > 50) currentY += lineHeight; 
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(9);
+          doc.text(line, 15, currentY);
+      } else if (line.trim() !== '') {
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(9);
+          doc.text(line, 15, currentY);
+      } else {
+          currentY -= lineHeight; 
+      }
       currentY += lineHeight;
     }
   }
 
-  // Signature Block (always at the end)
   const signatureBlockHeight = 45;
-  if (currentY + signatureBlockHeight > pageHeight - bottomMargin) {
+  if (currentY + signatureBlockHeight > pageHeight - 20) {
     drawFooter(doc.internal.pages.length, doc.internal.pages.length);
     doc.addPage();
     drawHeader();
@@ -128,7 +134,6 @@ export const generatePDF = (report, inspectorName, reportId) => {
   doc.text(`Firmado: ${inspectorName}`, 15, currentY + 32);
   doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, currentY + 39);
 
-  // Finalize all pages with footers
   const totalPages = doc.internal.pages.length;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
