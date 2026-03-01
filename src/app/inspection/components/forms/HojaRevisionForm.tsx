@@ -3,12 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Wind, Gauge, Thermometer, Droplets, Battery, Zap, Mic } from 'lucide-react';
+import { ProcessDictationOutput } from '@/ai/flows/process-dictation-flow';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SignaturePad from '../SignaturePad';
 import { CHECKLIST_SECTIONS, INITIAL_FORM_DATA } from '../../lib/form-constants';
-import { processDictation } from '@/ai/flows/process-dictation-flow';
+
 
 const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "text", placeholder = '' }) => (
   <div className="space-y-1 w-full text-left">
@@ -33,7 +34,7 @@ const LoadTestInput = React.memo(({ label, value, onChange }) => (
     </div>
 ));
 
-export default function HojaRevisionForm({ initialData }: { initialData?: any }) {
+export default function HojaRevisionForm({ initialData, aiData }: { initialData?: any, aiData?: ProcessDictationOutput | null }) {
   const { user } = useUser();
   const db = useFirestore();
   const [inspectorName, setInspectorName] = useState('');
@@ -43,8 +44,6 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState<string | null>(null);
 
-  const [aiLoading, setAiLoading] = useState(false);
-  const [isDictating, setIsDictating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedDocId, setSavedDocId] = useState('');
@@ -77,6 +76,55 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
     }
   }, [initialData]);
 
+  // Effect to process incoming AI data from global dictation
+  useEffect(() => {
+    if (aiData) {
+      setFormData(prev => {
+          const newChecklist = { ...prev.checklist, ...aiData.checklist_updates };
+          if (aiData.all_ok) {
+            Object.values(CHECKLIST_SECTIONS).flat().forEach(item => {
+              if (!newChecklist[item]) {
+                newChecklist[item] = 'OK';
+              }
+            });
+          }
+
+          return {
+            ...prev,
+            cliente: aiData.identidad.cliente || prev.cliente,
+            instalacion: aiData.identidad.instalacion || prev.instalacion,
+            direccion: aiData.identidad.direccion || prev.direccion,
+            motor: aiData.identidad.modelo || prev.motor,
+            modelo: aiData.identidad.marca || prev.modelo,
+            n_motor: aiData.identidad.sn || prev.n_motor,
+            n_grupo: aiData.identidad.n_grupo || prev.n_grupo,
+            potencia: aiData.identidad.potencia_kva || prev.potencia,
+            recibidoPor: aiData.identidad.recibe || prev.recibidoPor,
+            observaciones: aiData.observations_summary || prev.observaciones,
+            checklist: newChecklist,
+            datos_pruebas: {
+              horas: aiData.mediciones_generales.horas || prev.datos_pruebas.horas,
+              presion: aiData.mediciones_generales.presion || prev.datos_pruebas.presion,
+              temperatura: aiData.mediciones_generales.temp || prev.datos_pruebas.temperatura,
+              nivel_combustible: aiData.mediciones_generales.combustible || prev.datos_pruebas.nivel_combustible,
+              tension_alternador: aiData.mediciones_generales.tensionAlt || prev.datos_pruebas.tension_alternador,
+              frecuencia: aiData.mediciones_generales.frecuencia || prev.datos_pruebas.frecuencia,
+              carga_baterias: aiData.mediciones_generales.cargaBat || prev.datos_pruebas.carga_baterias,
+            },
+            pruebas_carga: {
+              tension_rs: aiData.pruebas_carga.rs || prev.pruebas_carga.tension_rs,
+              tension_st: aiData.pruebas_carga.st || prev.pruebas_carga.tension_st,
+              tension_rt: aiData.pruebas_carga.rt || prev.pruebas_carga.tension_rt,
+              intensidad_r: aiData.pruebas_carga.r || prev.pruebas_carga.intensidad_r,
+              intensidad_s: aiData.pruebas_carga.s || prev.pruebas_carga.intensidad_s,
+              intensidad_t: aiData.pruebas_carga.t || prev.pruebas_carga.intensidad_t,
+              potencia_kw: aiData.pruebas_carga.kw || prev.pruebas_carga.potencia_kw,
+            }
+          };
+      });
+    }
+  }, [aiData]);
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({...prev, [field]: value}));
   };
@@ -87,90 +135,6 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
 
   const handleChecklistChange = (item, status) => {
     setFormData(prev => ({ ...prev, checklist: { ...prev.checklist, [item]: status } }));
-  };
-
-  const handleDictation = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Tu navegador no soporta el dictado por voz. Prueba con Chrome.");
-      return;
-    }
-
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'es-ES';
-    recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
-
-    setIsDictating(true);
-
-    recognition.onresult = async (event: any) => {
-      const dictation = event.results[0][0].transcript;
-      setIsDictating(false);
-      setAiLoading(true);
-      try {
-        const res = await processDictation({ dictation });
-        
-        setFormData(prev => {
-          const newChecklist = { ...prev.checklist, ...res.checklist_updates };
-          if (res.all_ok) {
-            Object.values(CHECKLIST_SECTIONS).flat().forEach(item => {
-              if (!newChecklist[item]) {
-                newChecklist[item] = 'OK';
-              }
-            });
-          }
-
-          return {
-          ...prev,
-          cliente: res.identidad.cliente || prev.cliente,
-          instalacion: res.identidad.instalacion || prev.instalacion,
-          direccion: res.identidad.direccion || prev.direccion,
-          motor: res.identidad.modelo || prev.motor,
-          modelo: res.identidad.marca || prev.modelo,
-          n_motor: res.identidad.sn || prev.n_motor,
-          n_grupo: res.identidad.n_grupo || prev.n_grupo,
-          potencia: res.identidad.potencia_kva || prev.potencia,
-          recibidoPor: res.identidad.recibe || prev.recibidoPor,
-          observaciones: res.observations_summary || prev.observaciones,
-          checklist: newChecklist,
-          datos_pruebas: {
-            horas: res.mediciones_generales.horas || prev.datos_pruebas.horas,
-            presion: res.mediciones_generales.presion || prev.datos_pruebas.presion,
-            temperatura: res.mediciones_generales.temp || prev.datos_pruebas.temperatura,
-            nivel_combustible: res.mediciones_generales.combustible || prev.datos_pruebas.nivel_combustible,
-            tension_alternador: res.mediciones_generales.tensionAlt || prev.datos_pruebas.tension_alternador,
-            frecuencia: res.mediciones_generales.frecuencia || prev.datos_pruebas.frecuencia,
-            carga_baterias: res.mediciones_generales.cargaBat || prev.datos_pruebas.carga_baterias,
-          },
-          pruebas_carga: {
-            tension_rs: res.pruebas_carga.rs || prev.pruebas_carga.tension_rs,
-            tension_st: res.pruebas_carga.st || prev.pruebas_carga.tension_st,
-            tension_rt: res.pruebas_carga.rt || prev.pruebas_carga.tension_rt,
-            intensidad_r: res.pruebas_carga.r || prev.pruebas_carga.intensidad_r,
-            intensidad_s: res.pruebas_carga.s || prev.pruebas_carga.intensidad_s,
-            intensidad_t: res.pruebas_carga.t || prev.pruebas_carga.intensidad_t,
-            potencia_kw: res.pruebas_carga.kw || prev.pruebas_carga.potencia_kw,
-          }
-        }});
-      } catch (e) {
-        console.error("AI dictation processing failed:", e);
-        alert("La IA no pudo procesar el dictado. Inténtalo de nuevo.");
-      } finally {
-        setAiLoading(false);
-      }
-    };
-
-    recognition.onerror = (event: any) => {
-      console.error('Error de reconocimiento de voz:', event.error);
-      setIsDictating(false);
-      alert('Hubo un error con el dictado. Asegúrate de dar permiso al micrófono.');
-    };
-    
-    recognition.onend = () => {
-        if(isDictating) setIsDictating(false);
-    };
-
-    recognition.start();
   };
 
   const generatePDF = (isDraft = false) => {
@@ -283,16 +247,20 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
   };
   
   const handlePdfAction = () => {
-    const doc = generatePDF(isSaved ? false : true);
-    if (isSaved) {
-      doc.save(`Hoja_Revision_${savedDocId}.pdf`);
-    } else {
-      setPreviewPdfUrl(doc.output('datauristring'));
+    if (!saving) {
+        const doc = generatePDF(!isSaved);
+        if (isSaved) {
+            doc.save(`Hoja_Revision_${savedDocId}.pdf`);
+        } else {
+            setPreviewPdfUrl(doc.output('datauristring'));
+        }
     }
   };
 
   const handleSave = async () => {
     if (!db || !user) return alert("Error de autenticación.");
+    if (isSaved) return;
+
     setSaving(true);
     const docId = `REV-${Date.now().toString().slice(-6)}`;
     try {
@@ -332,17 +300,9 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
           <h1 className="text-lg font-bold tracking-wider uppercase">Energy Engine</h1>
         </header>
 
-        <main className="p-4 md:p-6 space-y-8">
+        <main className="p-4 md:p-6 space-y-8 pb-40">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-black text-slate-800 border-l-4 border-blue-500 pl-4 uppercase tracking-tighter">Hoja de Revisión</h2>
-              <button
-                  onClick={handleDictation}
-                  disabled={aiLoading || isDictating}
-                  className="flex items-center gap-2 text-sm font-bold bg-blue-500 text-white px-5 py-3 rounded-xl shadow-lg hover:bg-blue-600 transition-colors active:scale-95 disabled:bg-slate-400"
-              >
-                  {isDictating ? <Loader2 size={16} className="animate-spin"/> : <Mic size={16} />}
-                  {isDictating ? 'Escuchando...' : aiLoading ? 'Procesando...' : 'Dictar Informe'}
-              </button>
             </div>
 
             {/* --- DATOS GENERALES --- */}
@@ -368,7 +328,7 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         {(items as string[]).map(it => (
                         <div key={it} className={`p-4 rounded-xl flex justify-between items-center transition-all border ${formData.checklist[it] ? 'bg-blue-50/50 border-blue-200/50' : 'bg-slate-50/50 border-slate-100'}`}>
-                            <span className="text-base font-bold text-slate-700">{it}</span>
+                            <span className="text-lg font-bold text-slate-700">{it}</span>
                             <div className="flex gap-1">
                             {["OK", "DEFECT", "AVERIA", "CAMBIO"].map(st => (
                                 <button key={st} onClick={() => handleChecklistChange(it, st)} className={`w-14 h-8 rounded-lg text-[10px] font-black border-2 transition-all ${formData.checklist[it] === st ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-400 hover:border-blue-300'}`}>{st}</button>

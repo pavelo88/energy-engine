@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useUser } from '@/firebase';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mic, Square } from 'lucide-react';
 
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -14,6 +14,7 @@ import InspectionHub from './components/InspectionHub';
 
 import TABS from './constants';
 import { useScreenSize } from '@/hooks/use-screen-size';
+import { processDictation, ProcessDictationOutput } from '@/ai/flows/process-dictation-flow';
 
 import { 
   TasksTabLazy, 
@@ -37,6 +38,12 @@ const InspectionPageContent = () => {
   const [hasMounted, setHasMounted] = useState(false);
   const [selectedTask, setSelectedTask] = useState<any | null>(null);
 
+  // --- Global Dictation State ---
+  const [isDictating, setIsDictating] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiData, setAiData] = useState<ProcessDictationOutput | null>(null);
+  const recognitionRef = useRef<any>(null);
+
   useEffect(() => {
     setHasMounted(true);
     if (typeof window !== "undefined") {
@@ -45,9 +52,62 @@ const InspectionPageContent = () => {
       const handleOffline = () => setIsOnline(false);
       window.addEventListener('online', handleOnline);
       window.addEventListener('offline', handleOffline);
+
+      // --- Initialize Speech Recognition ---
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'es-ES';
+        recognition.interimResults = false;
+
+        recognition.onresult = async (event: any) => {
+            let fullTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    fullTranscript += event.results[i][0].transcript;
+                }
+            }
+            
+            if (fullTranscript) {
+                console.log('Dictado final capturado:', fullTranscript);
+                setAiLoading(true);
+                recognition.stop(); 
+                setIsDictating(false);
+                try {
+                    const res = await processDictation({ dictation: fullTranscript });
+                    setAiData(res);
+                } catch (e) {
+                    console.error("AI dictation processing failed:", e);
+                    alert("La IA no pudo procesar el dictado. Inténtalo de nuevo.");
+                } finally {
+                    setAiLoading(false);
+                }
+            }
+        };
+
+        recognition.onerror = (event: any) => {
+            console.error('Error de reconocimiento de voz:', event.error);
+            if (event.error !== 'no-speech' && event.error !== 'aborted') {
+                alert('Hubo un error con el dictado. Asegúrate de dar permiso al micrófono.');
+            }
+            setIsDictating(false);
+        };
+        
+        recognition.onend = () => {
+            setIsDictating(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+      // --- End of Speech Recognition Init ---
+
       return () => {
         window.removeEventListener('online', handleOnline);
         window.removeEventListener('offline', handleOffline);
+        if (recognitionRef.current) {
+            recognitionRef.current.abort();
+        }
       };
     }
   }, []);
@@ -72,6 +132,42 @@ const InspectionPageContent = () => {
   const handleBackToHub = () => {
     setActiveInspectionForm(null);
   }
+
+  const toggleDictation = () => {
+    if (!recognitionRef.current) {
+        alert("El dictado por voz no es compatible con este navegador. Prueba con Chrome.");
+        return;
+    }
+    if (isDictating) {
+        recognitionRef.current.stop();
+        setIsDictating(false);
+    } else {
+        setAiData(null); // Reset previous data on new dictation
+        recognitionRef.current.start();
+        setIsDictating(true);
+    }
+  };
+
+  const renderFloatingDictationButton = () => {
+      // Show only on data-heavy forms that benefit from global dictation
+      const supportedForms: FormType[] = ['albaran', 'hoja-revision'];
+      if (!activeInspectionForm || !supportedForms.includes(activeInspectionForm)) {
+          return null;
+      }
+
+      return (
+          <button
+              onClick={toggleDictation}
+              className={`fixed bottom-28 md:bottom-10 right-6 w-16 h-16 rounded-full text-white shadow-2xl flex items-center justify-center z-50 transition-all duration-300 transform active:scale-90
+              ${isDictating ? 'bg-red-600 animate-pulse' : 'bg-blue-600'}
+              ${aiLoading ? 'bg-gray-400 cursor-not-allowed' : ''}`}
+              disabled={aiLoading}
+              aria-label={isDictating ? 'Detener dictado' : 'Iniciar dictado'}
+          >
+              {aiLoading ? <Loader2 className="animate-spin" size={28}/> : isDictating ? <Square size={24}/> : <Mic size={28}/>}
+          </button>
+      );
+  };
 
   if (!user) {
      return <div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
@@ -110,7 +206,7 @@ const InspectionPageContent = () => {
 
         return (
             <Suspense fallback={<div className="flex h-full items-center justify-center p-20"><Loader2 className="animate-spin" /></div>}>
-                <FormComponent initialData={selectedTask} />
+                <FormComponent initialData={selectedTask} aiData={aiData} />
             </Suspense>
         );
     }
@@ -145,6 +241,7 @@ const InspectionPageContent = () => {
       <div className="flex-grow">
         {renderContent()}
       </div>
+      {renderFloatingDictationButton()}
       {activeTab === TABS.MENU && <Footer />}
     </main>
   );
