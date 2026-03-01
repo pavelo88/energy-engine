@@ -29,34 +29,50 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
 export const generatePDF = (report, inspectorName, reportId) => {
     const doc = new jsPDF();
     const finalID = reportId || 'BORRADOR';
-    const darkColor = '#0f172a'; // Slate-900
+    const darkColor = '#0f172a';
 
-    // Header
+    // =========================================================================
+    // 1. Header (Opción A - Estilo Albarán)
+    // =========================================================================
     doc.setFillColor(darkColor);
     doc.rect(0, 0, 210, 28, 'F');
     doc.setTextColor('#FFFFFF');
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("INFORME TÉCNICO", 15, 18);
+    doc.text("ENERGY ENGINE", 15, 18);
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`ID: ${finalID}`, 205, 12, { align: 'right' });
-    doc.text(`Fecha: ${new Date(report.fecha).toLocaleDateString('es-ES')}`, 205, 18, { align: 'right' });
-    
-    // Sub-header
-    let startY = 40;
-    const headerData = [
-        ['Motor:', report.motor, 'Modelo:', report.modelo],
-        ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
-        [{content: `Instalación: ${report.instalacion}`, colSpan: 4, styles: {fontStyle:'normal'}}],
-    ];
+    doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", 205, 12, { align: 'right' });
+    doc.text("info@energyengine.es | +34 925 15 43 54", 205, 18, { align: 'right' });
 
+    // =========================================================================
+    // 2. Sub-header & Title
+    // =========================================================================
+    let startY = 40;
+    doc.setTextColor(darkColor);
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text("INFORME TÉCNICO", 15, startY);
+
+    doc.setFontSize(10);
+    doc.text(`Nº: ${finalID}`, 205, startY, { align: 'right' });
+    startY += 5;
+
+    // =========================================================================
+    // 3. Client and Equipment Data Table
+    // =========================================================================
     autoTable(doc, {
         startY: startY,
-        body: headerData,
-        theme: 'plain',
-        styles: { fontSize: 9, cellPadding: 1 },
+        body: [
+            ['Fecha:', new Date(report.fecha).toLocaleDateString('es-ES'), 'Técnico:', inspectorName],
+            ['Motor:', report.motor, 'Modelo:', report.modelo],
+            ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
+            [{content: `Instalación: ${report.instalacion}`, colSpan: 4, styles: {fontStyle:'normal'}}],
+        ],
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 2 },
+        headStyles: {fillColor: darkColor},
         columnStyles: {
             0: { fontStyle: 'bold' },
             2: { fontStyle: 'bold' },
@@ -65,25 +81,45 @@ export const generatePDF = (report, inspectorName, reportId) => {
 
     startY = (doc as any).lastAutoTable.finalY + 10;
 
-    // Report Content
+    // =========================================================================
+    // 4. Report Content (The missing text!)
+    // =========================================================================
     if (report.reportContent) {
         doc.setTextColor(darkColor);
         doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        const splitText = doc.splitTextToSize(report.reportContent, 180);
+        
+        const splitText = doc.splitTextToSize(report.reportContent, 180); // 180mm width
+        
+        const textHeight = splitText.length * 5; // 5 is approx line height for font size 10
+        const spaceLeftOnPage = doc.internal.pageSize.height - startY - 40; // 40 for signature/footer
+        
+        if (textHeight > spaceLeftOnPage) {
+            doc.addPage();
+            startY = 20; // Margin top on new page
+        }
+        
         doc.text(splitText, 15, startY);
-        startY += (splitText.length * 5); // Approximate height
+        startY += textHeight + 10;
     }
 
-    // Footer & Signature
+    // =========================================================================
+    // 5. Footer & Signature
+    // =========================================================================
     const pageCount = (doc as any).internal.getNumberOfPages();
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         
-        // Signature on the last page only
+        // Signature only on the last page
         if (i === pageCount) {
              let signatureY = doc.internal.pageSize.height - 60;
-             if (startY > signatureY) doc.addPage();
+             // If content is too long, signature might need to be pushed down or to a new page
+             if (startY > signatureY) {
+                doc.addPage(); // Add a new page just for the signature
+                signatureY = 40; // Margin top on the new page
+             } else {
+                signatureY = startY > (signatureY - 20) ? startY + 10 : signatureY;
+             }
              
              if(report.inspectorSignatureUrl) {
                 doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, signatureY, 60, 25);
@@ -93,10 +129,10 @@ export const generatePDF = (report, inspectorName, reportId) => {
             doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 39);
         }
         
+        // Footer on all pages
         doc.setFontSize(8);
         doc.setTextColor(100);
         doc.text(`Página ${i} de ${pageCount}`, 195, doc.internal.pageSize.height - 10, { align: 'right' });
-        
         doc.setFillColor(darkColor);
         doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
     }
