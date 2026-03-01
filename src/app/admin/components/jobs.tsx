@@ -17,6 +17,7 @@ type Job = {
   inspectorNombres: string[];
   estado: 'Pendiente' | 'En Progreso' | 'Completado';
   fechaCreacion: any;
+  formType?: string; // Campo opcional para diferenciar trabajos de informes
 };
 
 export default function JobsPage() {
@@ -44,8 +45,9 @@ export default function JobsPage() {
       setClients(snapshot.docs.map(doc => ({ id: doc.id, nombre: doc.data().nombre })));
     });
     
-    // Cargar Trabajos (Jobs)
-    const unsubJobs = onSnapshot(collection(db, 'trabajos'), snapshot => {
+    // Cargar solo los documentos que son "trabajos" manuales (no tienen formType o es 'job')
+    const qJobs = query(collection(db, 'trabajos'), where('formType', 'in', [null, undefined, 'job']));
+    const unsubJobs = onSnapshot(qJobs, snapshot => {
       const jobList = snapshot.docs.map(doc => ({
         id: doc.id,
         ...(doc.data() as Omit<Job, 'id'>)
@@ -81,6 +83,7 @@ export default function JobsPage() {
       inspectorIds: inspectorIds,
       inspectorNombres: selectedInspectors.map(i => i.nombre),
       estado: formData.get('estado') as Job['estado'],
+      formType: 'job', // Marcamos este documento como un trabajo manual
     };
 
     try {
@@ -154,7 +157,7 @@ export default function JobsPage() {
                   <tr key={job.id} className="border-b hover:bg-gray-50">
                     <td className="p-3 font-medium">{job.descripcion}</td>
                     <td className="p-3">{job.clienteNombre}</td>
-                    <td className="p-3">{job.inspectorNombres.join(', ')}</td>
+                    <td className="p-3">{(job.inspectorNombres || []).join(', ')}</td>
                     <td className="p-3">{job.estado}</td>
                     <td className="p-3 flex items-center gap-4">
                         <button onClick={() => openModalForEdit(job)} className="text-slate-500 hover:text-amber-600"><Pencil size={18}/></button>

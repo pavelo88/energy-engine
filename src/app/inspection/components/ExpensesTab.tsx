@@ -27,7 +27,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from '@/components/ui/input';
 
 // --- TIPOS DE DATOS ---
-type Gasto = {
+type GastoItem = {
   rubro: string;
   monto: number;
   descripcion:string;
@@ -47,7 +47,7 @@ export default function ExpensesTab() {
   const [reportDate, setReportDate] = useState<Date>(new Date());
   const [clientName, setClientName] = useState('');
   
-  const [gastos, setGastos] = useState<Gasto[]>([]);
+  const [gastos, setGastos] = useState<GastoItem[]>([]);
   const [currentGasto, setCurrentGasto] = useState<any>(initialGastoState);
   
   const [loading, setLoading] = useState(false);
@@ -140,7 +140,7 @@ export default function ExpensesTab() {
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Inspector: ${data.email_inspector || 'No especificado'}`, 205, 12, { align: 'right' });
+    doc.text(`Inspector: ${data.inspectorNombre || 'No especificado'}`, 205, 12, { align: 'right' });
     doc.text(`Fecha: ${format(data.fecha, 'dd \'de\' MMMM \'de\' yyyy', { locale: es })}`, 205, 18, { align: 'right' });
 
     let currentY = 40;
@@ -159,7 +159,7 @@ export default function ExpensesTab() {
     doc.text('GASTOS TOTALES DEL REPORTE', 20, currentY + 7);
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${data.total_gastos.toFixed(2)} €`, 20, currentY + 15);
+    doc.text(`${data.monto.toFixed(2)} €`, 20, currentY + 15);
 
     currentY += 30;
 
@@ -191,8 +191,8 @@ export default function ExpensesTab() {
     doc.line(15, signatureY + 25, 85, signatureY + 25);
     doc.setFontSize(10);
     doc.text("Firma de Conformidad", 40, signatureY + 30);
-    if(data.firma_inspector_url) {
-      doc.addImage(data.firma_inspector_url, 'PNG', 20, signatureY, 60, 25);
+    if(data.firmaUrl) {
+      doc.addImage(data.firmaUrl, 'PNG', 20, signatureY, 60, 25);
     }
     
     // Footer
@@ -213,12 +213,12 @@ export default function ExpensesTab() {
     if (!clientName) return alert("Por favor, introduce el nombre del cliente.");
     
     const parteDataForPreview = {
-        email_inspector: user.email,
+        inspectorNombre: user.displayName || user.email,
         fecha: reportDate,
         clienteNombre: clientName,
         gastos: gastos,
-        total_gastos: totalGastos,
-        firma_inspector_url: signature,
+        monto: totalGastos,
+        firmaUrl: signature,
     };
     const doc = createParteDiarioPDF(parteDataForPreview);
     const pdfDataUri = doc.output('datauristring');
@@ -229,7 +229,7 @@ export default function ExpensesTab() {
     if(!storage) throw new Error("Storage not available");
     const doc = createParteDiarioPDF(data);
     const pdfDataUri = doc.output('datauristring');
-    const storageRef = ref(storage, `partes_diarios/${docId}.pdf`);
+    const storageRef = ref(storage, `gastos_informes/${docId}.pdf`);
     await uploadString(storageRef, pdfDataUri, 'data_url');
     return getDownloadURL(storageRef);
   };
@@ -242,11 +242,11 @@ export default function ExpensesTab() {
 
     setLoading(true);
     try {
-        const docId = `${format(reportDate, 'yyyy-MM-dd')}_${user.uid}_${clientName.replace(/\s+/g, '_')}`;
+        const docId = `GTO-${Date.now().toString().slice(-6)}`;
 
         const uploadedGastos = await Promise.all(gastos.map(async (g) => {
             if (g.comprobanteFile) {
-                const fileRef = ref(storage, `comprobantes/${docId}/${g.comprobanteFile.name}`);
+                const fileRef = ref(storage, `comprobantes_gastos/${docId}/${g.comprobanteFile.name}`);
                 await uploadBytes(fileRef, g.comprobanteFile);
                 const url = await getDownloadURL(fileRef);
                 return { ...g, comprobanteUrl: url, comprobanteFile: undefined };
@@ -254,28 +254,30 @@ export default function ExpensesTab() {
             return g;
         }));
         
-        const firmaRef = ref(storage, `firmas_partes/${docId}.png`);
+        const firmaRef = ref(storage, `firmas_gastos/${docId}.png`);
         await uploadString(firmaRef, signature, 'data_url');
         const firmaUrl = await getDownloadURL(firmaRef);
 
-        const parteData = {
-            id_inspector: user.uid,
-            email_inspector: user.email,
+        const gastoData = {
+            id: docId,
+            inspectorId: user.uid,
+            inspectorNombre: user.displayName || user.email,
             clienteNombre: clientName,
             fecha: reportDate,
-            total_gastos: totalGastos,
+            monto: totalGastos,
             gastos: uploadedGastos.map(({comprobanteFile, ...rest}) => rest),
-            firma_inspector_url: firmaUrl,
-            estado: 'Pendiente Aprobación'
+            firmaUrl: firmaUrl,
+            estado: 'Pendiente',
+            fechaCreacion: serverTimestamp(),
         };
 
-        const docRef = await addDoc(collection(db, "partes_diarios"), parteData);
+        const docRef = await addDoc(collection(db, "gastos"), gastoData);
         
-        const pdfUrl = await generateAndUploadPDF({...parteData, fecha: new Date(parteData.fecha)}, docRef.id);
+        const pdfUrl = await generateAndUploadPDF(gastoData, docRef.id);
 
-        await updateDoc(doc(db, "partes_diarios", docRef.id), { pdf_url: pdfUrl });
+        await updateDoc(doc(db, "gastos", docRef.id), { pdfUrl: pdfUrl });
 
-        alert("¡Reporte guardado y PDF generado con éxito!");
+        alert("¡Reporte de gastos guardado y PDF generado con éxito!");
         
         setReportDate(new Date());
         setClientName('');
@@ -283,7 +285,7 @@ export default function ExpensesTab() {
         clearCanvas();
 
     } catch (e: any) {
-        console.error("Error al guardar el parte: ", e);
+        console.error("Error al guardar el parte de gastos: ", e);
         alert("Error al guardar: " + e.message);
     } finally {
         setLoading(false);
@@ -322,7 +324,7 @@ export default function ExpensesTab() {
                 <Input 
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Seleccionar o escribir cliente..."
+                    placeholder="Escribir nombre del cliente..."
                     className="w-full h-auto p-4 pl-12 rounded-xl bg-slate-50 border-transparent focus:border-amber-500 focus:ring-amber-500 font-semibold"
                 />
             </div>
@@ -338,7 +340,7 @@ export default function ExpensesTab() {
             </Popover>
         </div>
          <div className='p-4 rounded-xl bg-slate-50 flex items-center gap-3 text-sm font-semibold text-slate-500'>
-                <User size={16} /> Inspector: {user?.email || 'Cargando...'}
+                <User size={16} /> Inspector: {user?.displayName || user?.email || 'Cargando...'}
             </div>
       </section>
 
