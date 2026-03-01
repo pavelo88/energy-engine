@@ -27,120 +27,106 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
 ));
 
 export const generatePDF = (report, inspectorName, reportId) => {
-    const doc = new jsPDF();
-    const finalID = reportId || 'BORRADOR';
-    const darkColor = '#0f172a';
-    let startY = 0;
+  const doc = new jsPDF();
+  const finalID = reportId || 'BORRADOR';
+  const darkColor = '#0f172a';
+  
+  const pageHeight = doc.internal.pageSize.height;
+  const topMargin = 45;
+  const bottomMargin = 20;
+  let currentY = topMargin;
 
-    // =========================================================================
-    // 1. Header (Estilo Profesional Completo)
-    // =========================================================================
+  const drawHeader = () => {
     doc.setFillColor(darkColor);
     doc.rect(0, 0, 210, 28, 'F');
     doc.setTextColor('#FFFFFF');
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text("ENERGY ENGINE", 15, 18);
-    
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", 205, 12, { align: 'right' });
     doc.text("info@energyengine.es | +34 925 15 43 54", 205, 18, { align: 'right' });
-
-    // =========================================================================
-    // 2. Sub-header & Title
-    // =========================================================================
-    startY = 40;
     doc.setTextColor(darkColor);
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("INFORME TÉCNICO", 15, startY);
-
+    doc.text("INFORME TÉCNICO", 15, topMargin - 5);
     doc.setFontSize(10);
-    doc.text(`Nº: ${finalID}`, 205, startY, { align: 'right' });
-    startY += 5;
+    doc.text(`Nº: ${finalID}`, 205, topMargin - 5, { align: 'right' });
+  };
 
-    // =========================================================================
-    // 3. Client and Equipment Data Table
-    // =========================================================================
-    autoTable(doc, {
-        startY: startY,
-        body: [
-            ['Fecha:', new Date(report.fecha).toLocaleDateString('es-ES'), 'Técnico:', inspectorName],
-            ['Motor:', report.motor, 'Modelo:', report.modelo],
-            ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
-            [{content: `Instalación: ${report.instalacion}`, colSpan: 4, styles: {fontStyle:'normal'}}],
-        ],
-        theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 2 },
-        headStyles: {fillColor: darkColor},
-        columnStyles: {
-            0: { fontStyle: 'bold' },
-            2: { fontStyle: 'bold' },
-        }
-    });
+  const drawFooter = (pageNumber, totalPages) => {
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`Página ${pageNumber} de ${totalPages}`, 195, doc.internal.pageSize.height - 10, { align: 'right' });
+    doc.setFillColor(darkColor);
+    doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
+  };
 
-    startY = (doc as any).lastAutoTable.finalY + 10;
+  drawHeader();
 
-    // =========================================================================
-    // 4. Report Content (¡EL TEXTO QUE FALTABA!)
-    // =========================================================================
-    if (report.reportContent) {
-        doc.setTextColor(darkColor);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        
-        // Split text to fit within page margins
-        const splitText = doc.splitTextToSize(report.reportContent, 180); 
-        
-        const textHeight = splitText.length * 5; // 5 is approx line height for font size 10
-        const spaceLeftOnPage = doc.internal.pageSize.height - startY - 40; // 40 for signature/footer
-        
-        if (textHeight > spaceLeftOnPage) {
-            doc.text(splitText, 15, startY); // Print what fits
-            // Note: This is a simplified pagination for text. For very long texts, a more robust loop is needed.
-            // But for most cases, this handles overflow to the next page correctly.
-        } else {
-             doc.text(splitText, 15, startY);
-        }
-        startY += textHeight + 10;
+  autoTable(doc, {
+    startY: currentY,
+    body: [
+        ['Fecha:', new Date(report.fecha).toLocaleDateString('es-ES'), 'Técnico:', inspectorName],
+        ['Motor:', report.motor, 'Modelo:', report.modelo],
+        ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
+        [{content: `Instalación: ${report.instalacion}`, colSpan: 4, styles: {fontStyle:'normal'}}],
+    ],
+    theme: 'grid',
+    styles: { fontSize: 9, cellPadding: 2 },
+    headStyles: {fillColor: darkColor},
+    columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
+  });
+
+  currentY = (doc as any).lastAutoTable.finalY + 15;
+
+  if (report.reportContent) {
+    doc.setTextColor(darkColor);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    
+    const splitText = doc.splitTextToSize(report.reportContent, 180);
+    const lineHeight = 5; // Approx line height for font size 10
+
+    for (const line of splitText) {
+      if (currentY + lineHeight > pageHeight - bottomMargin) {
+        drawFooter(doc.internal.pages.length, doc.internal.pages.length);
+        doc.addPage();
+        drawHeader();
+        currentY = topMargin;
+      }
+      doc.text(line, 15, currentY);
+      currentY += lineHeight;
     }
+  }
 
-    // =========================================================================
-    // 5. Footer & Signature
-    // =========================================================================
-    const pageCount = (doc as any).internal.getNumberOfPages();
-    for(let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        
-        // Signature only on the last page
-        if (i === pageCount) {
-             let signatureY = doc.internal.pageSize.height - 60;
-             // If content is too long, signature might need to be pushed down or to a new page
-             if (startY > signatureY) {
-                doc.addPage(); // Add a new page just for the signature
-                signatureY = 40; // Margin top on the new page
-             } else {
-                signatureY = startY > (signatureY - 20) ? startY + 10 : signatureY;
-             }
-             
-             if(report.inspectorSignatureUrl) {
-                doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, signatureY, 60, 25);
-            }
-            doc.setFontSize(10);
-            doc.text(`Firmado: ${inspectorName}`, 15, signatureY + 32);
-            doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 39);
-        }
-        
-        // Footer on all pages
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text(`Página ${i} de ${pageCount}`, 195, doc.internal.pageSize.height - 10, { align: 'right' });
-        doc.setFillColor(darkColor);
-        doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
-    }
+  // --- Signature Block ---
+  const signatureBlockHeight = 45;
+  if (currentY + signatureBlockHeight > pageHeight - bottomMargin) {
+    drawFooter(doc.internal.pages.length, doc.internal.pages.length);
+    doc.addPage();
+    drawHeader();
+    currentY = topMargin;
+  }
+  
+  currentY += 20; // Space before signature
 
-    return doc;
+  if (report.inspectorSignatureUrl) {
+      doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, currentY, 60, 25);
+  }
+  doc.setFontSize(10);
+  doc.text(`Firmado: ${inspectorName}`, 15, currentY + 32);
+  doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, currentY + 39);
+
+  // Add footer to all pages
+  const totalPages = doc.internal.pages.length;
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    drawFooter(i, totalPages);
+  }
+
+  return doc;
 };
 
 
