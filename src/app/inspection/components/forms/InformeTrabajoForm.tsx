@@ -27,103 +27,128 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
 ));
 
 export const generatePDF = (report, inspectorName, reportId) => {
-  const doc = new jsPDF();
-  const darkColor = '#0f172a';
+    const doc = new jsPDF();
+    const finalID = reportId || 'BORRADOR';
+    const darkColor = '#0f172a';
+    const pageHeight = doc.internal.pageSize.height;
+    const pageWidth = doc.internal.pageSize.width;
 
-  const pageHeight = doc.internal.pageSize.height;
-  const pageWidth = doc.internal.pageSize.width;
+    const leftMargin = 30;
+    const rightMargin = 30;
+    const bottomMargin = 30;
+    const contentWidth = pageWidth - leftMargin - rightMargin;
 
-  let currentY = 0;
+    let currentPage = 1;
+    let totalPages = 1;
 
-  const drawHeader = () => {
-    doc.setFillColor(darkColor);
-    doc.rect(0, 0, pageWidth, 28, 'F');
-    doc.setTextColor('#FFFFFF');
-    doc.setFontSize(18);
+    const drawHeader = () => {
+      doc.setFillColor(darkColor);
+      doc.rect(0, 0, pageWidth, 28, 'F');
+      doc.setTextColor('#FFFFFF');
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.text("ENERGY ENGINE", 15, 18);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", pageWidth - 15, 12, { align: 'right' });
+      doc.text("info@energyengine.es | +34 925 15 43 54", pageWidth - 15, 18, { align: 'right' });
+    };
+
+    const drawFooter = () => {
+      doc.setFontSize(8);
+      doc.setTextColor(100);
+      doc.text(`Página ${currentPage} de {totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+      doc.setFillColor(darkColor);
+      doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
+    };
+    
+    drawHeader();
+    let currentY = 40;
+
+    const title = `INFORME TÉCNICO Nº: ${finalID}`;
+    doc.setTextColor(darkColor);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text("ENERGY ENGINE", 15, 18);
-    doc.setFontSize(9);
+    if (currentPage === 1) {
+        doc.text(title, pageWidth / 2, currentY, { align: 'center' });
+        currentY += 10;
+    }
+    
+    autoTable(doc, {
+        startY: currentY,
+        body: [
+            ['Fecha:', new Date(report.fecha).toLocaleDateString('es-ES'), 'Técnico:', inspectorName],
+            ['Motor:', report.motor, 'Modelo:', report.modelo],
+            ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
+            ['Instalación:', report.instalacion, '', ''],
+        ],
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 2 },
+        columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } },
+        margin: { left: leftMargin, right: rightMargin },
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 10;
+    
+    doc.setTextColor(darkColor);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Descripción de la incidencia", leftMargin, currentY);
+    currentY += 8;
+
     doc.setFont('helvetica', 'normal');
-    doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", pageWidth - 15, 12, { align: 'right' });
-    doc.text("info@energyengine.es | +34 925 15 43 54", pageWidth - 15, 18, { align: 'right' });
-  };
+    doc.setFontSize(9);
+    doc.setTextColor(darkColor);
+    
+    const rawText = report.reportContent || '';
+    const textOptions = {
+        align: 'left' as const,
+        lineHeightFactor: 1.5,
+    };
+    const splitText = doc.splitTextToSize(rawText, contentWidth);
+    const lineHeight = doc.getTextDimensions('M').h * textOptions.lineHeightFactor;
 
-  const drawFooter = (pageNumber, totalPages) => {
-    doc.setFontSize(8);
-    doc.setTextColor(100);
-    doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
-    doc.setFillColor(darkColor);
-    doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
-  };
-
-  // --- PAGE 1 START ---
-  drawHeader();
-  currentY = 40;
-
-  doc.setTextColor(darkColor);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text("INFORME TÉCNICO", 15, currentY);
-
-  doc.setFontSize(10);
-  doc.text(`Nº: ${reportId}`, pageWidth - 15, currentY, { align: 'right' });
-  currentY += 5;
+    for (const line of splitText) {
+        if (currentY + lineHeight > pageHeight - bottomMargin) { 
+            drawFooter();
+            doc.addPage();
+            currentPage++;
+            drawHeader();
+            doc.setTextColor(darkColor);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(9);
+            currentY = 40;
+        }
+        doc.text(line, leftMargin, currentY);
+        currentY += lineHeight;
+    }
   
-  autoTable(doc, {
-    startY: currentY,
-    body: [
-        ['Fecha:', new Date(report.fecha).toLocaleDateString('es-ES'), 'Técnico:', inspectorName],
-        ['Motor:', report.motor, 'Modelo:', report.modelo],
-        ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
-        ['Instalación:', report.instalacion, '', ''],
-    ],
-    theme: 'grid',
-    styles: { fontSize: 9, cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } },
-  });
-
-  currentY = (doc as any).lastAutoTable.finalY + 10;
-
-  const rawText = report.reportContent || '';
-  const lines = doc.splitTextToSize(rawText, pageWidth - 30);
-  const lineHeight = 5.5;
-
-  for (const line of lines) {
-    if (currentY + lineHeight > pageHeight - 30) {
-      drawFooter(doc.internal.pages.length, 0);
+    const signatureBlockHeight = 45;
+    if (currentY + signatureBlockHeight > pageHeight - bottomMargin) {
+      drawFooter();
       doc.addPage();
+      currentPage++;
       drawHeader();
+      doc.setTextColor(darkColor);
       currentY = 40;
     }
     
-    doc.text(line, 15, currentY);
-    currentY += lineHeight;
-  }
-  
-  const signatureBlockHeight = 45;
-  if (currentY + signatureBlockHeight > pageHeight - 20) {
-    drawFooter(doc.internal.pages.length, 0);
-    doc.addPage();
-    drawHeader();
-    currentY = 40;
-  }
-  
-  currentY += 20;
+    currentY += 20;
 
-  if (report.inspectorSignatureUrl) {
-      doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, currentY, 60, 25);
-  }
-  doc.setFontSize(10);
-  doc.text(`Firmado: ${inspectorName}`, 15, currentY + 32);
-  doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, currentY + 39);
+    if (report.inspectorSignatureUrl) {
+        doc.addImage(report.inspectorSignatureUrl, 'PNG', leftMargin, currentY, 60, 25);
+    }
+    doc.setFontSize(10);
+    doc.text(`Firmado: ${inspectorName}`, leftMargin, currentY + 32);
+    doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, leftMargin, currentY + 39);
 
-  const totalPages = doc.internal.pages.length;
-  for (let i = 1; i <= totalPages; i++) {
-    doc.setPage(i);
-    drawFooter(i, totalPages);
-  }
+    totalPages = currentPage;
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.text(`Página ${i} de ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+    }
 
-  return doc;
+    return doc;
 };
 
 
@@ -266,7 +291,7 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
       </Dialog>
 
       <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-        <h2 className="text-2xl font-black text-slate-800 border-l-4 border-green-500 pl-4 uppercase tracking-tighter">CONTENIDO DEL INFORME</h2>
+        <h2 className="text-2xl font-black text-slate-800 border-l-4 border-green-500 pl-4 uppercase tracking-tighter">Descripción de la incidencia</h2>
       </header>
       
       <section className="bg-white p-8 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
