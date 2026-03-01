@@ -142,11 +142,13 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
 
     startY = (doc as any).lastAutoTable.finalY + 10;
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    const splitText = doc.splitTextToSize(formData.reportContent || 'Sin datos.', 180);
-    doc.text(splitText, 15, startY);
-    startY += (splitText.length * 5);
+    // Report Content
+    if (formData.reportContent) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        const splitText = doc.splitTextToSize(formData.reportContent, 180);
+        doc.text(splitText, 15, startY);
+    }
 
 
     // Footer & Signature
@@ -156,18 +158,17 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
         
         // Signature on the last page only
         if (i === pageCount) {
-            const signatureY = doc.internal.pageSize.height - 40;
+             const signatureY = doc.internal.pageSize.height - 60;
             if(inspectorSignature) {
-                doc.addImage(inspectorSignature, 'PNG', 15, signatureY - 15, 60, 25);
+                doc.addImage(inspectorSignature, 'PNG', 15, signatureY, 60, 25);
             }
             doc.setFontSize(10);
-            doc.text(`Firmado: ${inspectorName}`, 15, signatureY + 20);
-            doc.text(`A ${new Date(formData.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 27);
+            doc.text(`Firmado: ${inspectorName}`, 15, signatureY + 32);
+            doc.text(`A ${new Date(formData.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 39);
         }
 
-        // Page number
-        doc.setFontSize(8);
-        doc.text(`Página ${i} de ${pageCount}`, 205, doc.internal.pageSize.height - 10, { align: 'right' });
+        doc.setFillColor(darkColor);
+        doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
     }
 
     return doc;
@@ -247,7 +248,7 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
         </div>
         <textarea 
             className="w-full h-64 bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 outline-none focus:border-green-500 focus:bg-white font-medium text-slate-600 shadow-inner resize-y leading-relaxed" 
-            placeholder="Dicte o escriba aquí el informe completo. Use la IA para estructurarlo en Antecedentes, Intervención y Resumen."
+            placeholder="Dicte o escriba aquí el informe completo. La IA lo estructurará en Antecedentes, Intervención y Resumen."
             value={formData.reportContent} 
             onChange={e => handleInputChange('reportContent', e.target.value)}
         />
