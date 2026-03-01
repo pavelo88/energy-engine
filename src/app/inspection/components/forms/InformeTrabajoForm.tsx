@@ -90,11 +90,12 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
         modelo: aiData.identidad.modelo || prev.modelo,
         n_motor: aiData.identidad.sn || prev.n_motor,
         grupo: aiData.identidad.n_grupo || prev.grupo,
-        instalacion: aiData.identidad.instalacion || prev.instalacion,
+        instalacion: aiData.identidad.instalacion || aiData.identidad.cliente || prev.instalacion,
         reportContent: aiData.observations_summary || prev.reportContent,
       }));
     }
   }, [aiData]);
+
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -157,8 +158,8 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
         doc.setFont('helvetica', 'normal');
         const splitText = doc.splitTextToSize(formData.reportContent, 180);
         doc.text(splitText, 15, startY);
+        startY += (splitText.length * 5); // Approximate height
     }
-
 
     // Footer & Signature
     const pageCount = (doc as any).internal.getNumberOfPages();
@@ -167,15 +168,21 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
         
         // Signature on the last page only
         if (i === pageCount) {
-             const signatureY = doc.internal.pageSize.height - 60;
-            if(inspectorSignature) {
+             let signatureY = doc.internal.pageSize.height - 60;
+             if (startY > signatureY) doc.addPage();
+             
+             if(inspectorSignature) {
                 doc.addImage(inspectorSignature, 'PNG', 15, signatureY, 60, 25);
             }
             doc.setFontSize(10);
             doc.text(`Firmado: ${inspectorName}`, 15, signatureY + 32);
             doc.text(`A ${new Date(formData.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 39);
         }
-
+        
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text(`Página ${i} de ${pageCount}`, 195, doc.internal.pageSize.height - 10, { align: 'right' });
+        
         doc.setFillColor(darkColor);
         doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
     }
