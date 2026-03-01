@@ -2,12 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import { Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Wind, Gauge, Thermometer, Droplets, Battery, Zap } from 'lucide-react';
+import { Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Wind, Gauge, Thermometer, Droplets, Battery, Zap, Mic } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SignaturePad from '../SignaturePad';
 import { CHECKLIST_SECTIONS, INITIAL_FORM_DATA } from '../../lib/form-constants';
+import { processDictation } from '@/ai/flows/process-dictation-flow';
 
 const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "text", placeholder = '' }) => (
   <div className="space-y-1 w-full text-left">
@@ -42,6 +43,8 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState<string | null>(null);
 
+  const [aiLoading, setAiLoading] = useState(false);
+  const [isDictating, setIsDictating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedDocId, setSavedDocId] = useState('');
@@ -61,12 +64,15 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
       // Deep merge initialData with formData
       setFormData(prev => ({
           ...prev,
-          ...initialData,
-          cliente: initialData.cliente || prev.cliente,
-          equipo: initialData.equipo || prev.equipo,
-          checklist: initialData.checklist || {},
-          datos_pruebas: initialData.datos_pruebas || prev.datos_pruebas,
-          pruebas_carga: initialData.pruebas_carga || prev.pruebas_carga,
+          cliente: initialData.clienteNombre || prev.cliente,
+          instalacion: initialData.cliente?.instalacion || prev.instalacion,
+          direccion: initialData.cliente?.direccion || prev.direccion,
+          motor: initialData.equipo?.modelo || prev.motor,
+          modelo: initialData.equipo?.marca || prev.modelo,
+          n_motor: initialData.equipo?.sn || prev.n_motor,
+          n_grupo: initialData.equipo?.n_grupo || prev.n_grupo,
+          potencia: initialData.equipo?.potencia_kva || prev.potencia,
+          observaciones: initialData.descripcion || prev.observaciones,
       }));
     }
   }, [initialData]);
@@ -83,31 +89,116 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
     setFormData(prev => ({ ...prev, checklist: { ...prev.checklist, [item]: status } }));
   };
 
+  const handleDictation = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta el dictado por voz. Prueba con Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setIsDictating(true);
+
+    recognition.onresult = async (event: any) => {
+      const dictation = event.results[0][0].transcript;
+      setIsDictating(false);
+      setAiLoading(true);
+      try {
+        const res = await processDictation({ dictation });
+        
+        setFormData(prev => {
+          const newChecklist = { ...prev.checklist, ...res.checklist_updates };
+          if (res.all_ok) {
+            Object.values(CHECKLIST_SECTIONS).flat().forEach(item => {
+              if (!newChecklist[item]) {
+                newChecklist[item] = 'OK';
+              }
+            });
+          }
+
+          return {
+          ...prev,
+          cliente: res.identidad.cliente || prev.cliente,
+          instalacion: res.identidad.instalacion || prev.instalacion,
+          direccion: res.identidad.direccion || prev.direccion,
+          motor: res.identidad.modelo || prev.motor,
+          modelo: res.identidad.marca || prev.modelo,
+          n_motor: res.identidad.sn || prev.n_motor,
+          n_grupo: res.identidad.n_grupo || prev.n_grupo,
+          potencia: res.identidad.potencia_kva || prev.potencia,
+          recibidoPor: res.identidad.recibe || prev.recibidoPor,
+          observaciones: res.observations_summary || prev.observaciones,
+          checklist: newChecklist,
+          datos_pruebas: {
+            horas: res.mediciones_generales.horas || prev.datos_pruebas.horas,
+            presion: res.mediciones_generales.presion || prev.datos_pruebas.presion,
+            temperatura: res.mediciones_generales.temp || prev.datos_pruebas.temperatura,
+            nivel_combustible: res.mediciones_generales.combustible || prev.datos_pruebas.nivel_combustible,
+            tension_alternador: res.mediciones_generales.tensionAlt || prev.datos_pruebas.tension_alternador,
+            frecuencia: res.mediciones_generales.frecuencia || prev.datos_pruebas.frecuencia,
+            carga_baterias: res.mediciones_generales.cargaBat || prev.datos_pruebas.carga_baterias,
+          },
+          pruebas_carga: {
+            tension_rs: res.pruebas_carga.rs || prev.pruebas_carga.tension_rs,
+            tension_st: res.pruebas_carga.st || prev.pruebas_carga.tension_st,
+            tension_rt: res.pruebas_carga.rt || prev.pruebas_carga.tension_rt,
+            intensidad_r: res.pruebas_carga.r || prev.pruebas_carga.intensidad_r,
+            intensidad_s: res.pruebas_carga.s || prev.pruebas_carga.intensidad_s,
+            intensidad_t: res.pruebas_carga.t || prev.pruebas_carga.intensidad_t,
+            potencia_kw: res.pruebas_carga.kw || prev.pruebas_carga.potencia_kw,
+          }
+        }});
+      } catch (e) {
+        console.error("AI dictation processing failed:", e);
+        alert("La IA no pudo procesar el dictado. Inténtalo de nuevo.");
+      } finally {
+        setAiLoading(false);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Error de reconocimiento de voz:', event.error);
+      setIsDictating(false);
+      alert('Hubo un error con el dictado. Asegúrate de dar permiso al micrófono.');
+    };
+    
+    recognition.onend = () => {
+        if(isDictating) setIsDictating(false);
+    };
+
+    recognition.start();
+  };
+
   const generatePDF = (isDraft = false) => {
     const doc = new jsPDF();
     const finalID = isDraft ? 'BORRADOR' : savedDocId;
+    const darkColor = '#0f172a';
     
     // Header
-    doc.addImage('/logo.png', 'PNG', 15, 8, 40, 15);
-    doc.setFontSize(10);
+    doc.setFillColor(darkColor);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setTextColor('#FFFFFF');
+    doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
-    doc.text("ENERGY ENGINE", 205, 12, { align: 'right' });
+    doc.text("ENERGY ENGINE", 15, 18);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text("GRUPOS ELECTRÓGENOS", 205, 16, { align: 'right' });
-    doc.text("www.energyengine.es", 205, 20, { align: 'right' });
-    doc.text("administracion@energyengine.es", 205, 24, { align: 'right' });
-    doc.setLineWidth(0.5);
-    doc.line(15, 30, 205, 30);
-    
+    doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", 205, 12, { align: 'right' });
+    doc.text("info@energyengine.es | +34 925 15 43 54", 205, 18, { align: 'right' });
+
     // Main Title
-    doc.setFontSize(10);
+    doc.setTextColor(darkColor);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Nº INSPECCION: ${finalID}`, 15, 36);
+    doc.text(`HOJA DE REVISIÓN - Nº: ${finalID}`, 15, 38);
 
     // Client/Motor Data Table
     autoTable(doc, {
-        startY: 40,
+        startY: 42,
         body: [
             [{content: 'CLIENTE', styles: {fontStyle: 'bold'}}, formData.cliente, {content: 'FECHA REVISION:', styles: {fontStyle: 'bold'}}, formData.fecha_revision],
             [{content: 'MOTOR', styles: {fontStyle: 'bold'}}, formData.motor, {content: 'POTENCIA', styles: {fontStyle: 'bold'}}, formData.potencia],
@@ -117,35 +208,39 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
             [{content: 'INSTALACION', styles: {fontStyle: 'bold'}}, formData.instalacion, '', ''],
             [{content: 'DIRECCION', styles: {fontStyle: 'bold'}}, formData.direccion, '', ''],
         ],
-        theme: 'grid', styles: {fontSize: 8, cellPadding: 1}
+        theme: 'grid', styles: {fontSize: 8, cellPadding: 1.5},
+        headStyles: { fillColor: darkColor }
     });
 
-    let lastY = (doc as any).lastAutoTable.finalY + 2;
+    let lastY = (doc as any).lastAutoTable.finalY + 4;
 
     // Checklist Table
     autoTable(doc, {
         startY: lastY,
-        head: [['', 'OK', 'DEFECTUOSO', 'AVERIADO', 'CAMBIO']],
+        head: [['', 'OK', 'DEFECT', 'AVERIA', 'CAMBIO']],
         body: Object.entries(CHECKLIST_SECTIONS).flatMap(([section, items]) => {
             const sectionRows: any[] = [[{ content: section, colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f1f5f9', textColor: '#000' }}]];
             (items as string[]).forEach(item => {
                 sectionRows.push([
                     item,
                     formData.checklist[item] === 'OK' ? 'X' : '',
-                    formData.checklist[item] === 'DEFECTUOSO' ? 'X' : '',
-                    formData.checklist[item] === 'AVERIADO' ? 'X' : '',
+                    formData.checklist[item] === 'DEFECT' ? 'X' : '',
+                    formData.checklist[item] === 'AVERIA' ? 'X' : '',
                     formData.checklist[item] === 'CAMBIO' ? 'X' : '',
                 ]);
             });
             return sectionRows;
         }),
-        theme: 'grid', styles: { fontSize: 7, cellPadding: 1, halign: 'center' },
-        headStyles: { fillColor: '#334155', textColor: '#fff', halign: 'center' },
+        theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, halign: 'center' },
+        headStyles: { fillColor: darkColor, textColor: '#fff', halign: 'center' },
         columnStyles: { 0: { halign: 'left' } }
     });
 
     lastY = (doc as any).lastAutoTable.finalY + 5;
     
+    if (lastY > 260) doc.addPage();
+    lastY = lastY > 260 ? 20 : lastY;
+
     // Test Data & Observations
     autoTable(doc, {
         startY: lastY,
@@ -163,20 +258,26 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
             [{ content: `Intensidad: R: ${formData.pruebas_carga.intensidad_r} S: ${formData.pruebas_carga.intensidad_s} T: ${formData.pruebas_carga.intensidad_t}`, colSpan: 2 }],
             [{ content: `Potencia: ${formData.pruebas_carga.potencia_kw} kW`, colSpan: 2 }],
             [{ content: 'OBSERVACIONES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: '#f1f5f9' }}],
-            [{ content: formData.observaciones, colSpan: 2 }],
+            [{ content: formData.observaciones, colSpan: 2, styles: { minCellHeight: 20 } }],
         ],
-        theme: 'grid', styles: { fontSize: 8, cellPadding: 1 }
+        theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }
     });
 
     lastY = (doc as any).lastAutoTable.finalY;
 
     // Signature
-    const signatureY = lastY + 10 > 250 ? 250 : lastY + 10;
+    const signatureY = lastY + 5 > 250 ? 250 : lastY + 5;
     doc.setFontSize(9);
-    if (inspectorSignature) doc.addImage(inspectorSignature, 'PNG', 140, signatureY, 50, 20);
-    doc.line(140, signatureY + 20, 200, signatureY + 20);
-    doc.text("Firma técnico:", 140, signatureY + 24);
-    doc.text(inspectorName, 140, signatureY + 28);
+    
+    if (clientSignature) doc.addImage(clientSignature, 'PNG', 115, signatureY, 60, 25);
+    doc.line(115, signatureY + 25, 185, signatureY + 25);
+    doc.text("Conforme cliente:", 115, signatureY + 30);
+    doc.text(formData.recibidoPor, 115, signatureY + 35);
+
+    if (inspectorSignature) doc.addImage(inspectorSignature, 'PNG', 15, signatureY, 60, 25);
+    doc.line(15, signatureY + 25, 85, signatureY + 25);
+    doc.text("Firma técnico:", 15, signatureY + 30);
+    doc.text(inspectorName, 15, signatureY + 35);
     
     return doc;
   };
@@ -232,7 +333,17 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
         </header>
 
         <main className="p-4 md:p-6 space-y-8">
-            <h2 className="text-2xl font-black text-slate-800 border-l-4 border-blue-500 pl-4 uppercase tracking-tighter">Hoja de Revisión</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-black text-slate-800 border-l-4 border-blue-500 pl-4 uppercase tracking-tighter">Hoja de Revisión</h2>
+              <button
+                  onClick={handleDictation}
+                  disabled={aiLoading || isDictating}
+                  className="flex items-center gap-2 text-sm font-bold bg-blue-500 text-white px-5 py-3 rounded-xl shadow-lg hover:bg-blue-600 transition-colors active:scale-95 disabled:bg-slate-400"
+              >
+                  {isDictating ? <Loader2 size={16} className="animate-spin"/> : <Mic size={16} />}
+                  {isDictating ? 'Escuchando...' : aiLoading ? 'Procesando...' : 'Dictar Informe'}
+              </button>
+            </div>
 
             {/* --- DATOS GENERALES --- */}
             <section className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
@@ -257,10 +368,10 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         {(items as string[]).map(it => (
                         <div key={it} className={`p-4 rounded-xl flex justify-between items-center transition-all border ${formData.checklist[it] ? 'bg-blue-50/50 border-blue-200/50' : 'bg-slate-50/50 border-slate-100'}`}>
-                            <span className="text-sm font-bold text-slate-700">{it}</span>
+                            <span className="text-base font-bold text-slate-700">{it}</span>
                             <div className="flex gap-1">
-                            {["OK", "DEFECTUOSO", "AVERIADO", "CAMBIO"].map(st => (
-                                <button key={st} onClick={() => handleChecklistChange(it, st)} className={`w-14 h-8 rounded-lg text-xs font-black border-2 transition-all ${formData.checklist[it] === st ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-400 hover:border-blue-300'}`}>{st}</button>
+                            {["OK", "DEFECT", "AVERIA", "CAMBIO"].map(st => (
+                                <button key={st} onClick={() => handleChecklistChange(it, st)} className={`w-14 h-8 rounded-lg text-[10px] font-black border-2 transition-all ${formData.checklist[it] === st ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white border-slate-200 text-slate-400 hover:border-blue-300'}`}>{st}</button>
                             ))}
                             </div>
                         </div>
