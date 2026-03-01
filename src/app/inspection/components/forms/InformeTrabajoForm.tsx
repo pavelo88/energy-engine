@@ -152,13 +152,21 @@ export default function InformeTrabajoForm({ initialData }: { initialData?: any 
         <textarea className="w-full h-48 bg-slate-50 border-2 border-slate-100 rounded-[2rem] p-8" placeholder="Describe los trabajos..." value={formData.observaciones} onChange={e => setFormData(p => ({...p, observaciones: e.target.value}))}/>
      </section>
       
-      <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
+    <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
         <h2 className="text-xl font-black text-slate-900">Firmas</h2>
         <div className="grid md:grid-cols-2 gap-8">
-          <SignaturePad title="Firma del Inspector" onSignatureEnd={setInspectorSignature} />
-          <SignaturePad title="Firma del Cliente" onSignatureEnd={setClientSignature} />
+            <div>
+                <SignaturePad title="Firma del Inspector" onSignatureEnd={setInspectorSignature} />
+                <p className="text-center font-bold mt-2 text-slate-700">{inspectorName}</p>
+            </div>
+            <div>
+                <SignaturePad title="Conforme Cliente" onSignatureEnd={setClientSignature} />
+                <div className="mt-2">
+                    <StableInput label="" icon={User} value={formData.recibidoPor} onChange={v => setFormData(p => ({...p, recibidoPor: v}))} placeholder="Nombre del receptor"/>
+                </div>
+            </div>
         </div>
-      </section>
+    </section>
       
       <div className="flex flex-col md:flex-row gap-4">
         <button onClick={handlePdfAction} className="w-full p-8 bg-white text-slate-900 border-2 border-slate-200 rounded-[2.5rem] font-bold text-lg flex items-center justify-center gap-4">

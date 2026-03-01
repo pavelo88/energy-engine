@@ -26,7 +26,7 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
 export default function HojaRevisionForm({ initialData }: { initialData?: any }) {
   const { user } = useUser();
   const db = useFirestore();
-  const inspectorName = user?.displayName || user?.email?.split('@')[0] || 'Técnico';
+  const [inspectorName, setInspectorName] = useState('');
   
   const [formData, setFormData] = useState({
     cliente: { nombre: '', instalacion: '' },
@@ -39,11 +39,18 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState<string | null>(null);
 
-  const [aiLoading, setAiLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedDocId, setSavedDocId] = useState('');
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (user && user.email && db) {
+        getDoc(doc(db, 'usuarios', user.email)).then(snap => {
+            if (snap.exists()) setInspectorName(snap.data().nombre);
+        });
+    }
+  }, [user, db]);
 
   useEffect(() => {
     if (initialData) {
@@ -84,7 +91,7 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
     setSaving(true);
     const docId = `REV-${Date.now().toString().slice(-6)}`;
     try {
-      const docData = { ...formData, inspectorSignature, clientSignature, tecnicoId: user.uid, fecha: Timestamp.now(), formType: 'hoja-revision' };
+      const docData = { ...formData, inspectorSignature, clientSignature, tecnicoId: user.uid, tecnicoNombre: inspectorName, fecha: Timestamp.now(), formType: 'hoja-revision' };
       await setDoc(doc(db, 'trabajos', docId), docData);
       setSavedDocId(docId);
       setIsSaved(true);
@@ -118,13 +125,21 @@ export default function HojaRevisionForm({ initialData }: { initialData?: any })
         </section>
       ))}
       
-      <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
+    <section className="bg-white p-10 rounded-[3rem] shadow-sm space-y-6 border border-slate-100">
         <h2 className="text-xl font-black text-slate-900">Firmas</h2>
         <div className="grid md:grid-cols-2 gap-8">
-            <SignaturePad title="Firma del Inspector" onSignatureEnd={setInspectorSignature} />
-            <SignaturePad title="Firma del Cliente" onSignatureEnd={setClientSignature} />
+            <div>
+                <SignaturePad title="Firma del Inspector" onSignatureEnd={setInspectorSignature} />
+                <p className="text-center font-bold mt-2 text-slate-700">{inspectorName}</p>
+            </div>
+            <div>
+                <SignaturePad title="Conforme Cliente" onSignatureEnd={setClientSignature} />
+                <div className="mt-2">
+                    <StableInput label="" icon={User} value={formData.recibidoPor} onChange={v => setFormData(p => ({...p, recibidoPor: v}))} placeholder="Nombre del receptor"/>
+                </div>
+            </div>
         </div>
-      </section>
+    </section>
 
       <div className="flex flex-col md:flex-row gap-4">
         <button onClick={handlePdfAction} className="w-full p-8 bg-white text-slate-900 border-2 border-slate-200 rounded-[2.5rem] font-bold text-lg flex items-center justify-center gap-4">

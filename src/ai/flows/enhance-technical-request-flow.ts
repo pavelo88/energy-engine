@@ -20,7 +20,7 @@ export type EnhanceTechnicalRequestInput = z.infer<
 >;
 
 const EnhanceTechnicalRequestOutputSchema = z.object({
-  improved: z.string().describe('The AI-enhanced, formal, and professional technical request.'),
+  improved: z.string().describe('El informe técnico mejorado por la IA, formal y profesional, en español.'),
   extra: z.object({
     cliente: z.string().optional().describe("El nombre del cliente si se menciona."),
     modelo: z.string().optional().describe("El modelo del equipo si se menciona."),
@@ -44,8 +44,8 @@ const enhanceTechnicalRequestPrompt = ai.definePrompt({
   name: 'enhanceTechnicalRequestPrompt',
   input: {schema: EnhanceTechnicalRequestInputSchema},
   output: {schema: EnhanceTechnicalRequestOutputSchema},
-  system: 'You are an expert engineer. Your task is to rephrase and enhance technical assistance requests to be clear, formal, and professional. You should also extract any missing key information you find in the text.',
-  prompt: `Original technical request: """{{{technicalRequest}}}"""`,
+  system: `Eres un ingeniero experto y tu idioma principal es el español. Tu tarea es reformular y mejorar las solicitudes de asistencia técnica para que sean claras, formales y profesionales, siempre en español. También debes extraer cualquier información clave que encuentres en el texto.`,
+  prompt: `Solicitud técnica original: """{{{technicalRequest}}}"""`,
 });
 
 const enhanceTechnicalRequestFlow = ai.defineFlow(

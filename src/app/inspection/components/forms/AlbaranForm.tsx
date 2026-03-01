@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import { Wand2, Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Car, Euro, Zap, Thermometer, Battery, Droplets, Wind, Gauge } from 'lucide-react';
-import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
+import { Wand2, Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Car, Euro, Zap, Thermometer, Battery, Droplets, Wind, Gauge, Mic } from 'lucide-react';
+import { enhanceTechnicalRequest, processDictation } from '@/ai/flows/enhance-technical-request-flow';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -92,6 +92,7 @@ export default function AlbaranForm({ initialData }: { initialData?: any }) {
   const [isSaved, setIsSaved] = useState(false);
   const [savedDocId, setSavedDocId] = useState('');
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [isDictating, setIsDictating] = useState(false);
 
   useEffect(() => {
     const fetchUserName = async () => {
@@ -146,11 +147,6 @@ export default function AlbaranForm({ initialData }: { initialData?: any }) {
       setFormData(p => ({
         ...p, 
         trabajos_realizados: res.improved,
-        cliente: res.extra?.cliente || p.cliente,
-        motor: res.extra?.modelo || p.motor,
-        n_motor: res.extra?.sn || p.n_motor,
-        grupo: res.extra?.n_grupo || p.grupo,
-        recibidoPor: res.extra?.recibe || p.recibidoPor
       }));
     } catch(e) {
       console.error("AI enhancement failed:", e);
@@ -158,6 +154,78 @@ export default function AlbaranForm({ initialData }: { initialData?: any }) {
     } finally {
       setAiLoading(false);
     }
+  };
+
+  const handleDictation = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta el dictado por voz. Prueba con Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setIsDictating(true);
+
+    recognition.onresult = async (event) => {
+      const dictation = event.results[0][0].transcript;
+      console.log('Dictado:', dictation);
+      setIsDictating(false);
+      setAiLoading(true);
+      try {
+        // @ts-ignore
+        const res = await processDictation({ dictation });
+        setFormData(prev => ({
+          ...prev,
+          cliente: res.identidad.cliente || prev.cliente,
+          instalacion: res.identidad.instalacion || prev.instalacion,
+          motor: res.identidad.modelo || prev.motor,
+          n_motor: res.identidad.sn || prev.n_motor,
+          grupo: res.identidad.n_grupo || prev.grupo,
+          recibidoPor: res.identidad.recibe || prev.recibidoPor,
+          trabajos_realizados: res.observations_summary || prev.trabajos_realizados,
+          parametrosTecnicos: {
+            horas: res.mediciones_generales.horas || prev.parametrosTecnicos.horas,
+            presionAceite: res.mediciones_generales.presion || prev.parametrosTecnicos.presionAceite,
+            tension: res.mediciones_generales.tensionAlt || prev.parametrosTecnicos.tension,
+            temperatura: res.mediciones_generales.temp || prev.parametrosTecnicos.temperatura,
+            nivelCombustible: res.mediciones_generales.combustible || prev.parametrosTecnicos.nivelCombustible,
+            frecuencia: res.mediciones_generales.frecuencia || prev.parametrosTecnicos.frecuencia,
+            tensionBaterias: res.mediciones_generales.cargaBat || prev.parametrosTecnicos.tensionBaterias,
+          },
+          potenciaConCarga: {
+            potencia: prev.potenciaConCarga.potencia,
+            tensionRS: res.pruebas_carga.rs || prev.potenciaConCarga.tensionRS,
+            tensionST: res.pruebas_carga.st || prev.potenciaConCarga.tensionST,
+            tensionRT: res.pruebas_carga.rt || prev.potenciaConCarga.tensionRT,
+            intensidadR: res.pruebas_carga.r || prev.potenciaConCarga.intensidadR,
+            intensidadS: res.pruebas_carga.s || prev.potenciaConCarga.intensidadS,
+            intensidadT: res.pruebas_carga.t || prev.potenciaConCarga.intensidadT,
+            potenciaKW: res.pruebas_carga.kw || prev.potenciaConCarga.potenciaKW,
+          }
+        }));
+      } catch (e) {
+        console.error("AI dictation processing failed:", e);
+        alert("La IA no pudo procesar el dictado. Inténtalo de nuevo.");
+      } finally {
+        setAiLoading(false);
+      }
+    };
+
+    recognition.onerror = (event) => {
+      console.error('Error de reconocimiento de voz:', event.error);
+      setIsDictating(false);
+      alert('Hubo un error con el dictado. Asegúrate de dar permiso al micrófono.');
+    };
+    
+    recognition.onend = () => {
+        if(isDictating) setIsDictating(false);
+    };
+
+    recognition.start();
   };
 
   const generatePDF = (isDraft = false) => {
@@ -324,7 +392,18 @@ export default function AlbaranForm({ initialData }: { initialData?: any }) {
         </DialogContent>
       </Dialog>
       
-      <h2 className="text-2xl font-black text-black border-l-4 border-amber-500 pl-4 uppercase tracking-tighter">Albarán de Trabajo</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-black text-black border-l-4 border-amber-500 pl-4 uppercase tracking-tighter">Albarán de Trabajo</h2>
+        <button
+            onClick={handleDictation}
+            disabled={aiLoading || isDictating}
+            className="flex items-center gap-2 text-sm font-bold bg-amber-500 text-white px-5 py-3 rounded-xl shadow-lg hover:bg-amber-600 transition-colors active:scale-95 disabled:bg-slate-400"
+        >
+            {isDictating ? <Loader2 size={16} className="animate-spin"/> : <Mic size={16} />}
+            {isDictating ? 'Escuchando...' : aiLoading ? 'Procesando...' : 'Dictar Informe'}
+        </button>
+      </div>
+
       
       <section className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-start">
