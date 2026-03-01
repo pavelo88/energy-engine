@@ -15,7 +15,7 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <div className="relative group">
       {Icon && <Icon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-green-500 transition-colors" size={18}/>}
-      <input 
+      <input
         type={type}
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
@@ -29,7 +29,7 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
 export const generatePDF = (report, inspectorName, reportId) => {
   const doc = new jsPDF();
   const darkColor = '#0f172a';
-  
+
   const pageHeight = doc.internal.pageSize.height;
   const pageWidth = doc.internal.pageSize.width;
 
@@ -47,7 +47,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", pageWidth - 15, 12, { align: 'right' });
     doc.text("info@energyengine.es | +34 925 15 43 54", pageWidth - 15, 18, { align: 'right' });
   };
-  
+
   const drawFooter = (pageNumber, totalPages) => {
     doc.setFontSize(8);
     doc.setTextColor(100);
@@ -60,60 +60,55 @@ export const generatePDF = (report, inspectorName, reportId) => {
   drawHeader();
   currentY = 40;
 
-  const margin = 30; // 3cm
-
-  doc.setTextColor(darkColor);
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  const titleText = `INFORME TÉCNICO Nº: ${reportId.replace('BORRADOR', '2026-0001')}`;
   
-  const titleText = `INFORME TÉCNICO Nº: ${reportId}`;
-  const textWidth = doc.getStringUnitWidth(titleText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
-  const textOffset = (pageWidth - textWidth) / 2;
-  doc.text(titleText, textOffset, currentY);
-
-  currentY += 5;
-
+  if (doc.internal.pages.length === 1) {
+    doc.setTextColor(darkColor);
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    const textWidth = doc.getStringUnitWidth(titleText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+    const textOffset = (pageWidth - textWidth) / 2;
+    doc.text(titleText, textOffset, currentY);
+    currentY += 5;
+  }
+  
   autoTable(doc, {
     startY: currentY,
     body: [
         ['Fecha:', new Date(report.fecha).toLocaleDateString('es-ES'), 'Técnico:', inspectorName],
         ['Motor:', report.motor, 'Modelo:', report.modelo],
         ['Nº de motor:', report.n_motor, 'Grupo:', report.grupo],
-        [{content: 'Instalación:', styles: { fontStyle: 'bold' }}, {content: report.instalacion, colSpan: 3}],
+        ['Instalación:', report.instalacion, '', ''],
     ],
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2 },
     columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } },
-    margin: { left: margin, right: margin }
   });
 
   currentY = (doc as any).lastAutoTable.finalY + 10;
-  
+
   doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text("Descripción de la incidencia:", margin, currentY);
+  doc.text("Descripción de la incidencia:", 15, currentY);
   currentY += 10;
-  
-  doc.setFontSize(9);
-  const printableWidth = pageWidth - (margin * 2);
-  
+
   const rawText = report.reportContent || '';
-  // Reemplaza saltos de línea simples (no seguidos de otro) con un espacio, pero mantiene los saltos de párrafo (doble enter).
+  
   const processedText = rawText.replace(/(?<!\n)\n(?!\n)/g, ' ').replace(/\n\n/g, '\n');
   
-  const lines = doc.splitTextToSize(processedText, printableWidth);
+  const lines = doc.splitTextToSize(processedText, pageWidth - 30);
   const lineHeight = 5.5;
   const titles = ["ANTECEDENTES:", "INTERVENCIÓN:", "RESUMEN Y SITUACIÓN ACTUAL:"];
 
   for (const line of lines) {
     if (currentY + lineHeight > pageHeight - 30) {
-      drawFooter(doc.internal.pages.length, 0); // Temporary page count
+      drawFooter(doc.internal.pages.length, 0);
       doc.addPage();
       drawHeader();
       currentY = 40;
-      doc.setTextColor(darkColor); // Restore text color on new page
+      doc.setTextColor(darkColor); 
     }
-    
+
     const trimmedLine = line.trim();
     const isTitle = titles.some(title => trimmedLine.startsWith(title));
 
@@ -123,11 +118,11 @@ export const generatePDF = (report, inspectorName, reportId) => {
         doc.setFont('helvetica', 'normal');
     }
     
-    doc.text(line, margin, currentY);
+    doc.text(line, 15, currentY);
     currentY += lineHeight;
   }
   
-  doc.setFont('helvetica', 'normal'); // Reset font for safety
+  doc.setFont('helvetica', 'normal');
 
   const signatureBlockHeight = 45;
   if (currentY + signatureBlockHeight > pageHeight - 20) {
@@ -141,11 +136,11 @@ export const generatePDF = (report, inspectorName, reportId) => {
   currentY += 20;
 
   if (report.inspectorSignatureUrl) {
-      doc.addImage(report.inspectorSignatureUrl, 'PNG', margin, currentY, 60, 25);
+      doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, currentY, 60, 25);
   }
   doc.setFontSize(10);
-  doc.text(`Firmado: ${inspectorName}`, margin, currentY + 32);
-  doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, margin, currentY + 39);
+  doc.text(`Firmado: ${inspectorName}`, 15, currentY + 32);
+  doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, currentY + 39);
 
   const totalPages = doc.internal.pages.length;
   for (let i = 1; i <= totalPages; i++) {
