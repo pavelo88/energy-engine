@@ -3,7 +3,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { Wand2, Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Mic } from 'lucide-react';
-import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
 import { splitTechnicalReport } from '@/ai/flows/split-technical-report-flow';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -26,27 +25,6 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
   </div>
 ));
 
-const LabeledTextarea = React.memo(({ label, value, onChange, onEnhance, aiLoading }) => (
-    <div className="space-y-2">
-        <div className="flex justify-between items-center">
-            <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter">
-                <Type size={18} className="text-green-500" /> {label}
-            </h3>
-            <button onClick={onEnhance} disabled={aiLoading} className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors active:scale-95">
-                {aiLoading ? <Loader2 size={14} className="animate-spin"/> : <Wand2 size={14} />}
-                Pulir con IA
-            </button>
-        </div>
-        <textarea 
-            className="w-full h-40 bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 outline-none focus:border-green-500 focus:bg-white font-medium text-slate-600 shadow-inner resize-y leading-relaxed" 
-            placeholder={`Detalles sobre ${label.toLowerCase()}...`}
-            value={value} 
-            onChange={e => onChange(e.target.value)}
-        />
-    </div>
-));
-
-
 export default function InformeTecnicoForm({ initialData }: { initialData?: any }) {
   const { user } = useUser();
   const db = useFirestore();
@@ -59,9 +37,7 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
     grupo: '',
     instalacion: '',
     fecha: new Date().toISOString().split('T')[0],
-    antecedentes: '',
-    intervencion: '',
-    resumen: '',
+    reportContent: '',
   });
   
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
@@ -83,6 +59,13 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
 
   useEffect(() => {
     if (initialData) {
+      const combinedContent = [
+        initialData.antecedentes,
+        initialData.intervencion,
+        initialData.resumen,
+        initialData.observaciones
+      ].filter(Boolean).join('\n\n');
+
       setFormData(prev => ({
         ...prev,
         motor: initialData.motor || initialData.equipo?.marca || prev.motor,
@@ -90,9 +73,7 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
         n_motor: initialData.n_motor || initialData.equipo?.sn || prev.n_motor,
         grupo: initialData.grupo || prev.grupo,
         instalacion: initialData.instalacion || initialData.cliente?.nombre || prev.instalacion,
-        antecedentes: initialData.antecedentes || prev.antecedentes,
-        intervencion: initialData.intervencion || prev.intervencion,
-        resumen: initialData.resumen || initialData.observaciones || prev.resumen,
+        reportContent: combinedContent,
       }));
     }
   }, [initialData]);
@@ -101,12 +82,13 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const enhanceSection = async (section: 'antecedentes' | 'intervencion' | 'resumen') => {
-    if (!formData[section]) return;
+  const handleEnhanceReport = async () => {
+    if (!formData.reportContent) return;
     setAiLoading(true);
     try {
-      const res = await enhanceTechnicalRequest({ technicalRequest: formData[section] });
-      setFormData(p => ({ ...p, [section]: res.improved }));
+      const res = await splitTechnicalReport({ dictation: formData.reportContent });
+      const formattedText = `ANTECEDENTES:\n${res.antecedentes}\n\nINTERVENCIÓN:\n${res.intervencion}\n\nRESUMEN Y SITUACIÓN ACTUAL:\n${res.resumen}`;
+      setFormData(p => ({ ...p, reportContent: formattedText }));
     } catch (e) { console.error("AI enhancement failed:", e); }
     finally { setAiLoading(false); }
   };
@@ -127,22 +109,8 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
 
     recognition.onresult = async (event: any) => {
       const dictation = event.results[0][0].transcript;
+      setFormData(prev => ({ ...prev, reportContent: prev.reportContent ? `${prev.reportContent}\n${dictation}` : dictation }));
       setIsDictating(false);
-      setAiLoading(true);
-      try {
-        const res = await splitTechnicalReport({ dictation });
-        setFormData(prev => ({
-          ...prev,
-          antecedentes: res.antecedentes || prev.antecedentes,
-          intervencion: res.intervencion || prev.intervencion,
-          resumen: res.resumen || prev.resumen,
-        }));
-      } catch (e) {
-        console.error("AI dictation processing failed:", e);
-        alert("La IA no pudo procesar el dictado. Inténtalo de nuevo.");
-      } finally {
-        setAiLoading(false);
-      }
     };
 
     recognition.onerror = (event: any) => {
@@ -167,60 +135,55 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
     doc.setFont('helvetica', 'bold');
     doc.text("INFORME TÉCNICO", 105, 20, { align: 'center' });
     
-    let startY = 35;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Fecha: ${new Date(formData.fecha).toLocaleDateString('es-ES')}`, 205, 25, { align: 'right' });
+    doc.text(`ID: ${finalID}`, 205, 30, { align: 'right' });
+
+
+    let startY = 40;
     const headerData = [
-        ['Motor:', formData.motor],
-        ['Modelo:', formData.modelo],
-        ['Nº de motor:', formData.n_motor],
-        ['Grupo:', formData.grupo],
-        ['Instalación:', formData.instalacion],
+        ['Motor:', formData.motor, 'Modelo:', formData.modelo],
+        ['Nº de motor:', formData.n_motor, 'Grupo:', formData.grupo],
+        [{content: `Instalación: ${formData.instalacion}`, colSpan: 4}],
     ];
 
-    headerData.forEach(row => {
-        doc.setFont('helvetica', 'bold');
-        doc.text(row[0], 15, startY);
-        doc.setFont('helvetica', 'normal');
-        doc.text(row[1], 50, startY);
-        startY += 7;
+    autoTable(doc, {
+        startY: startY,
+        body: headerData,
+        theme: 'plain',
+        styles: { fontSize: 9, cellPadding: 1 }
     });
 
-    const addSection = (title, content) => {
-        startY += 10;
-        if (startY > 260) {
-            doc.addPage();
-            startY = 20;
-        }
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text(title, 15, startY);
-        startY += 6;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        const splitText = doc.splitTextToSize(content || 'Sin datos.', 180);
-        doc.text(splitText, 15, startY);
-        startY += (splitText.length * 5);
-    };
+    startY = (doc as any).lastAutoTable.finalY + 5;
 
-    addSection('ANTECEDENTES:', formData.antecedentes);
-    addSection('INTERVENCIÓN:', formData.intervencion);
-    addSection('RESUMEN Y SITUACIÓN ACTUAL:', formData.resumen);
-
-    // Signature
-    const signatureY = doc.internal.pageSize.height - 40;
-    if(inspectorSignature) {
-        doc.addImage(inspectorSignature, 'PNG', 15, signatureY - 15, 60, 25);
-    }
     doc.setFontSize(10);
-    doc.text(`Firmado: ${inspectorName}`, 15, signatureY + 20);
-    doc.text(`A ${new Date(formData.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 27);
+    doc.setFont('helvetica', 'normal');
+    const splitText = doc.splitTextToSize(formData.reportContent || 'Sin datos.', 180);
+    doc.text(splitText, 15, startY);
+    startY += (splitText.length * 5);
 
 
-    // Footer
+    // Footer & Signature
     const pageCount = doc.internal.pages.length;
-     for(let i = 1; i <= pageCount; i++) {
+    for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        const pageStartY = startY > 250 ? 20 : startY;
+
+        // Signature on the last page only
+        if (i === pageCount) {
+            const signatureY = doc.internal.pageSize.height - 40;
+            if(inspectorSignature) {
+                doc.addImage(inspectorSignature, 'PNG', 15, signatureY - 15, 60, 25);
+            }
+            doc.setFontSize(10);
+            doc.text(`Firmado: ${inspectorName}`, 15, signatureY + 20);
+            doc.text(`A ${new Date(formData.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, signatureY + 27);
+        }
+
+        // Page number
         doc.setFontSize(8);
-        doc.text(`Página ${i} de ${pageCount}`, 190, doc.internal.pageSize.height - 10);
+        doc.text(`Página ${i} de ${pageCount}`, 205, doc.internal.pageSize.height - 10, { align: 'right' });
     }
 
     return doc;
@@ -279,7 +242,7 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
             className="flex items-center gap-2 text-sm font-bold bg-green-500 text-white px-5 py-3 rounded-xl shadow-lg hover:bg-green-600 transition-colors active:scale-95 disabled:bg-slate-400"
         >
             {isDictating ? <Loader2 size={16} className="animate-spin"/> : <Mic size={16} />}
-            {isDictating ? 'Escuchando...' : aiLoading ? 'Procesando...' : 'Dictar Informe'}
+            {isDictating ? 'Escuchando...' : 'Dictar'}
         </button>
       </header>
       
@@ -297,10 +260,21 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
       </section>
 
       <section className="bg-white p-8 rounded-[2rem] shadow-sm space-y-8 border border-slate-100">
-         <h3 className="font-black text-slate-900 text-xs uppercase tracking-[0.2em] opacity-30">Detalles de la Incidencia</h3>
-        <LabeledTextarea label="Antecedentes" value={formData.antecedentes} onChange={(v) => handleInputChange('antecedentes', v)} onEnhance={() => enhanceSection('antecedentes')} aiLoading={aiLoading}/>
-        <LabeledTextarea label="Intervención" value={formData.intervencion} onChange={(v) => handleInputChange('intervencion', v)} onEnhance={() => enhanceSection('intervencion')} aiLoading={aiLoading}/>
-        <LabeledTextarea label="Resumen y Situación Actual" value={formData.resumen} onChange={(v) => handleInputChange('resumen', v)} onEnhance={() => enhanceSection('resumen')} aiLoading={aiLoading}/>
+         <div className="flex justify-between items-center">
+            <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter">
+                <Type size={18} className="text-green-500" /> Contenido del Informe
+            </h3>
+            <button onClick={handleEnhanceReport} disabled={aiLoading} className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors active:scale-95">
+                {aiLoading ? <Loader2 size={14} className="animate-spin"/> : <Wand2 size={14} />}
+                Pulir y Estructurar con IA
+            </button>
+        </div>
+        <textarea 
+            className="w-full h-64 bg-slate-50 border-2 border-slate-100 rounded-2xl p-6 outline-none focus:border-green-500 focus:bg-white font-medium text-slate-600 shadow-inner resize-y leading-relaxed" 
+            placeholder="Dicte o escriba aquí el informe completo. Use la IA para estructurarlo en Antecedentes, Intervención y Resumen."
+            value={formData.reportContent} 
+            onChange={e => handleInputChange('reportContent', e.target.value)}
+        />
       </section>
       
       <section className="bg-white p-8 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
