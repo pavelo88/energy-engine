@@ -1,3 +1,4 @@
+
 'use client';
 import React, { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
@@ -58,13 +59,16 @@ export const generatePDF = (report, inspectorName, reportId) => {
   drawHeader();
   currentY = 40;
   
-  // The main title, ONLY on the first page, centered
   doc.setTextColor(darkColor);
   doc.setFontSize(14);
   doc.setFont('helvetica', 'bold');
-  if (!reportId.startsWith('BORRADOR')) { // Do not show title on first page if it is a draft
-    doc.text(`INFORME TÉCNICO Nº: ${finalID}`, 105, currentY, { align: 'center' });
-  }
+
+  // Centered title for the first page only
+  const titleText = `INFORME TÉCNICO Nº: ${finalID}`;
+  const textWidth = doc.getStringUnitWidth(titleText) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+  const textOffset = (doc.internal.pageSize.getWidth() - textWidth) / 2;
+  doc.text(titleText, textOffset, currentY);
+
   currentY += 5;
 
   autoTable(doc, {
@@ -98,18 +102,18 @@ export const generatePDF = (report, inspectorName, reportId) => {
         drawFooter(doc.internal.pages.length, doc.internal.pages.length);
         doc.addPage();
         drawHeader();
-        doc.setTextColor(darkColor); // FIX: Reset text color for the new page's body
+        doc.setTextColor(darkColor);
         currentY = 40;
       }
       
       const isTitle = sectionTitles.some(title => line.trim().toUpperCase().startsWith(title));
 
       if (line.trim() === '') {
-          currentY -= lineHeight; // Prevent creating extra space for blank lines
+          currentY -= lineHeight;
       } else {
           doc.setFont('helvetica', isTitle ? 'bold' : 'normal');
           doc.setFontSize(9);
-          if (isTitle && currentY > 50) currentY += lineHeight; // Add a bit of space before titles
+          if (isTitle && currentY > 50) currentY += lineHeight;
           doc.text(line, 15, currentY);
       }
       currentY += lineHeight;
@@ -121,6 +125,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
     drawFooter(doc.internal.pages.length, doc.internal.pages.length);
     doc.addPage();
     drawHeader();
+    doc.setTextColor(darkColor);
     currentY = 40;
   }
   
@@ -133,7 +138,6 @@ export const generatePDF = (report, inspectorName, reportId) => {
   doc.text(`Firmado: ${inspectorName}`, 15, currentY + 32);
   doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, currentY + 39);
 
-  // This ensures the footer is drawn on the very last page
   const totalPages = doc.internal.pages.length;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
