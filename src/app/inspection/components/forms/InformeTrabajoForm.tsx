@@ -39,7 +39,6 @@ export const generatePDF = (report, inspectorName, reportId) => {
     const contentWidth = pageWidth - leftMargin - rightMargin;
 
     let currentPage = 1;
-    let totalPages = 1;
 
     const drawHeader = () => {
       doc.setFillColor(darkColor);
@@ -57,7 +56,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
     const drawFooter = () => {
       doc.setFontSize(8);
       doc.setTextColor(100);
-      doc.text(`Página ${currentPage} de {totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+      doc.text(`Página ${currentPage}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
       doc.setFillColor(darkColor);
       doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
     };
@@ -72,11 +71,8 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.setTextColor(darkColor);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-
-    if (currentPage === 1) {
-        doc.text(title, titleX, currentY);
-        currentY += 10;
-    }
+    doc.text(title, titleX, currentY);
+    currentY += 10;
     
     autoTable(doc, {
         startY: currentY,
@@ -100,22 +96,28 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.text("Descripción de la incidencia", leftMargin, currentY);
     currentY += 8;
 
-    const rawText = report.reportContent || '';
-    
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
     doc.setTextColor(darkColor);
     
+    const rawText = report.reportContent || '';
     const textOptions = {
         align: 'justify' as const,
         lineHeightFactor: 1.5,
     };
     
-    const paragraphs = rawText.split('\n\n').map(p => p.replace(/\n/g, ' '));
+    const paragraphs = rawText.split('\n\n'); 
     const lineHeight = doc.getTextDimensions('M').h * textOptions.lineHeightFactor;
 
     for (const paragraph of paragraphs) {
-      const lines = doc.splitTextToSize(paragraph, contentWidth);
+      const cleanedParagraph = paragraph.replace(/\n/g, ' '); 
+      
+      if (cleanedParagraph.trim() === '') {
+          currentY += lineHeight;
+          continue;
+      }
+
+      const lines = doc.splitTextToSize(cleanedParagraph, contentWidth);
       
       for (const line of lines) {
         if (currentY + lineHeight > pageHeight - bottomMargin) {
@@ -135,7 +137,6 @@ export const generatePDF = (report, inspectorName, reportId) => {
         doc.text(line, leftMargin, currentY, textOptions);
         currentY += lineHeight;
       }
-      currentY += lineHeight / 2; // Add a small gap between paragraphs
     }
 
     const signatureBlockHeight = 45;
@@ -156,10 +157,9 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.text(`Firmado: ${inspectorName}`, leftMargin, currentY + 32);
     doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, leftMargin, currentY + 39);
 
-    totalPages = currentPage;
-    for (let i = 1; i <= totalPages; i++) {
+    for (let i = 1; i <= currentPage; i++) {
         doc.setPage(i);
-        doc.text(`Página ${i} de ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+        doc.text(`Página ${i} de ${currentPage}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
     }
 
     return doc;
