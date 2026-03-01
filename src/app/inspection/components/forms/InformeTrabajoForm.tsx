@@ -32,10 +32,11 @@ export const generatePDF = (report, inspectorName, reportId) => {
   const darkColor = '#0f172a';
   
   const pageHeight = doc.internal.pageSize.height;
-  const topMargin = 45;
+  const topMargin = 40;
   const bottomMargin = 20;
-  let currentY = topMargin;
+  let currentY = 20; // Start Y position
 
+  // This function draws the top header bar, suitable for every page.
   const drawHeader = () => {
     doc.setFillColor(darkColor);
     doc.rect(0, 0, 210, 28, 'F');
@@ -47,23 +48,28 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.setFont('helvetica', 'normal');
     doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", 205, 12, { align: 'right' });
     doc.text("info@energyengine.es | +34 925 15 43 54", 205, 18, { align: 'right' });
-    doc.setTextColor(darkColor);
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text("INFORME TÉCNICO", 15, topMargin - 5);
-    doc.setFontSize(10);
-    doc.text(`Nº: ${finalID}`, 205, topMargin - 5, { align: 'right' });
   };
-
+  
+  // This function draws the bottom footer, suitable for every page.
   const drawFooter = (pageNumber, totalPages) => {
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(`Página ${pageNumber} de ${totalPages}`, 195, doc.internal.pageSize.height - 10, { align: 'right' });
+    doc.text(`Página ${pageNumber} de ${totalPages}`, 205, doc.internal.pageSize.height - 10, { align: 'right' });
     doc.setFillColor(darkColor);
     doc.rect(0, doc.internal.pageSize.height - 5, 210, 5, 'F');
   };
 
+  // --- START PDF GENERATION ---
+  
+  // Page 1
   drawHeader();
+  
+  // The main title, ONLY on the first page
+  doc.setTextColor(darkColor);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`INFORME TÉCNICO Nº: ${finalID}`, 105, topMargin, { align: 'center' }); // Centered
+  currentY = topMargin + 5;
 
   autoTable(doc, {
     startY: currentY,
@@ -75,42 +81,45 @@ export const generatePDF = (report, inspectorName, reportId) => {
     ],
     theme: 'grid',
     styles: { fontSize: 9, cellPadding: 2 },
-    headStyles: {fillColor: darkColor},
     columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
   });
 
-  currentY = (doc as any).lastAutoTable.finalY + 15;
-
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  
+  // The Main Content (with pagination logic)
   if (report.reportContent) {
     doc.setTextColor(darkColor);
     doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text("Descripción de la incidencia:", 15, currentY);
+    currentY += 8;
+
     doc.setFont('helvetica', 'normal');
-    
     const splitText = doc.splitTextToSize(report.reportContent, 180);
-    const lineHeight = 5; // Approx line height for font size 10
+    const lineHeight = 5;
 
     for (const line of splitText) {
-      if (currentY + lineHeight > pageHeight - bottomMargin) {
+      if (currentY + lineHeight > pageHeight - bottomMargin - 10) { // check for space before printing line
         drawFooter(doc.internal.pages.length, doc.internal.pages.length);
         doc.addPage();
-        drawHeader();
-        currentY = topMargin;
+        drawHeader(); // Redraw header on new page
+        currentY = 40; // Reset Y position
       }
       doc.text(line, 15, currentY);
       currentY += lineHeight;
     }
   }
 
-  // --- Signature Block ---
+  // Signature Block (always at the end)
   const signatureBlockHeight = 45;
   if (currentY + signatureBlockHeight > pageHeight - bottomMargin) {
     drawFooter(doc.internal.pages.length, doc.internal.pages.length);
     doc.addPage();
     drawHeader();
-    currentY = topMargin;
+    currentY = 40;
   }
   
-  currentY += 20; // Space before signature
+  currentY += 20;
 
   if (report.inspectorSignatureUrl) {
       doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, currentY, 60, 25);
@@ -119,7 +128,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
   doc.text(`Firmado: ${inspectorName}`, 15, currentY + 32);
   doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, 15, currentY + 39);
 
-  // Add footer to all pages
+  // Finalize all pages with footers
   const totalPages = doc.internal.pages.length;
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
@@ -232,7 +241,10 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
   const handleSave = async () => {
     if (!db || !user || !inspectorSignature) return alert("La firma del inspector es obligatoria.");
     setSaving(true);
-    const docId = `INF-TEC-${Date.now().toString().slice(-6)}`;
+    const year = new Date().getFullYear();
+    const sequential = Date.now().toString().slice(-4).padStart(4, '0');
+    const docId = `${year}-${sequential}`;
+
     try {
       const docData = { 
         ...formData, 
@@ -285,7 +297,7 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
       <section className="bg-white p-8 rounded-[2rem] shadow-sm space-y-8 border border-slate-100">
          <div className="flex justify-between items-center">
             <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter">
-                <Type size={18} className="text-green-500" /> Contenido del Informe
+                <Type size={18} className="text-green-500" /> Descripción de la incidencia
             </h3>
             <button onClick={handleEnhanceReport} disabled={aiLoading} className="flex items-center gap-2 text-xs font-bold bg-indigo-50 text-indigo-600 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-colors active:scale-95">
                 {aiLoading ? <Loader2 size={14} className="animate-spin"/> : <Wand2 size={14} />}
