@@ -2,8 +2,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import { Wand2, Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type } from 'lucide-react';
+import { Wand2, Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Mic } from 'lucide-react';
 import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
+import { splitTechnicalReport } from '@/ai/flows/split-technical-report-flow';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -66,6 +67,7 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
 
   const [aiLoading, setAiLoading] = useState(false);
+  const [isDictating, setIsDictating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [savedDocId, setSavedDocId] = useState('');
@@ -109,10 +111,56 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
     finally { setAiLoading(false); }
   };
 
+  const handleDictation = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta el dictado por voz. Prueba con Chrome.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
+
+    setIsDictating(true);
+
+    recognition.onresult = async (event: any) => {
+      const dictation = event.results[0][0].transcript;
+      setIsDictating(false);
+      setAiLoading(true);
+      try {
+        const res = await splitTechnicalReport({ dictation });
+        setFormData(prev => ({
+          ...prev,
+          antecedentes: res.antecedentes || prev.antecedentes,
+          intervencion: res.intervencion || prev.intervencion,
+          resumen: res.resumen || prev.resumen,
+        }));
+      } catch (e) {
+        console.error("AI dictation processing failed:", e);
+        alert("La IA no pudo procesar el dictado. Inténtalo de nuevo.");
+      } finally {
+        setAiLoading(false);
+      }
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error('Error de reconocimiento de voz:', event.error);
+      setIsDictating(false);
+      alert('Hubo un error con el dictado. Asegúrate de dar permiso al micrófono.');
+    };
+    
+    recognition.onend = () => {
+        if(isDictating) setIsDictating(false);
+    };
+
+    recognition.start();
+  };
+
   const generatePDF = (isDraft = false) => {
     const doc = new jsPDF();
     const finalID = isDraft ? 'BORRADOR' : savedDocId;
-    const darkColor = '#0f172a';
     
     // Header
     doc.setFontSize(18);
@@ -153,7 +201,6 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
         startY += (splitText.length * 5);
     };
 
-    addSection('Descripción de la incidencia', ''); // Title holder
     addSection('ANTECEDENTES:', formData.antecedentes);
     addSection('INTERVENCIÓN:', formData.intervencion);
     addSection('RESUMEN Y SITUACIÓN ACTUAL:', formData.resumen);
@@ -224,8 +271,16 @@ export default function InformeTecnicoForm({ initialData }: { initialData?: any 
         </DialogContent>
       </Dialog>
 
-      <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+      <header className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
         <h2 className="text-2xl font-black text-slate-800 border-l-4 border-green-500 pl-4 uppercase tracking-tighter">Informe Técnico</h2>
+        <button
+            onClick={handleDictation}
+            disabled={aiLoading || isDictating}
+            className="flex items-center gap-2 text-sm font-bold bg-green-500 text-white px-5 py-3 rounded-xl shadow-lg hover:bg-green-600 transition-colors active:scale-95 disabled:bg-slate-400"
+        >
+            {isDictating ? <Loader2 size={16} className="animate-spin"/> : <Mic size={16} />}
+            {isDictating ? 'Escuchando...' : aiLoading ? 'Procesando...' : 'Dictar Informe'}
+        </button>
       </header>
       
       <section className="bg-white p-8 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
