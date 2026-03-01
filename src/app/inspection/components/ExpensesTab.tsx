@@ -3,11 +3,11 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Receipt, Save, Loader2, User, Euro, Trash2, Plus, 
-  FileText, CheckCircle, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, FileSearch, Building
+  FileText, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, FileSearch, Building
 } from 'lucide-react';
-import { useAuth, useFirestore, useStorage, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp, updateDoc, doc, onSnapshot } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
+import { useFirestore, useUser } from '@/firebase';
+import { getStorage, ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
+import { addDoc, collection, serverTimestamp, updateDoc, doc } from 'firebase/firestore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';
@@ -24,7 +24,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-
+import { Input } from '@/components/ui/input';
 
 // --- TIPOS DE DATOS ---
 type Gasto = {
@@ -42,11 +42,10 @@ const initialGastoState = { rubro: 'Alimentación', monto: '', descripcion: '', 
 export default function ExpensesTab() {
   const { user } = useUser();
   const db = useFirestore();
-  const storage = useStorage();
-  
+  const storage = db ? getStorage(db.app) : null;
+
   const [reportDate, setReportDate] = useState<Date>(new Date());
-  const [clients, setClients] = useState<{ id: string; nombre: string; }[]>([]);
-  const [selectedClientId, setSelectedClientId] = useState<string>('');
+  const [clientName, setClientName] = useState('');
   
   const [gastos, setGastos] = useState<Gasto[]>([]);
   const [currentGasto, setCurrentGasto] = useState<any>(initialGastoState);
@@ -58,16 +57,6 @@ export default function ExpensesTab() {
 
   const signatureCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // --- Carga de Clientes ---
-  useEffect(() => {
-    if (!db) return;
-    const unsub = onSnapshot(collection(db, 'clientes'), (snapshot) => {
-        setClients(snapshot.docs.map(doc => ({ id: doc.id, nombre: doc.data().nombre })));
-    });
-    return () => unsub();
-  }, [db]);
-
 
   // --- LÓGICA DE FIRMA ---
   useEffect(() => {
@@ -139,8 +128,7 @@ export default function ExpensesTab() {
   // --- LÓGICA DE PDF ---
   const createParteDiarioPDF = (data: any) => {
     const doc = new jsPDF();
-    const primaryColor = '#F59E0B'; // Amber-500
-    const darkColor = '#0F172A'; // Slate-900
+    const darkColor = '#0f172a';
 
     // Header
     doc.setFillColor(darkColor);
@@ -152,14 +140,18 @@ export default function ExpensesTab() {
     
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Cliente: ${data.clienteNombre || 'No especificado'}`, 15, 25);
-    doc.text(`Inspector: ${data.email_inspector || 'No especificado'}`, 130, 12);
-    doc.text(`Fecha: ${format(data.fecha, 'dd \'de\' MMMM \'de\' yyyy', { locale: es })}`, 130, 19);
+    doc.text(`Inspector: ${data.email_inspector || 'No especificado'}`, 205, 12, { align: 'right' });
+    doc.text(`Fecha: ${format(data.fecha, 'dd \'de\' MMMM \'de\' yyyy', { locale: es })}`, 205, 18, { align: 'right' });
 
     let currentY = 40;
+    doc.setTextColor(darkColor);
+    doc.setFontSize(12);
+    doc.text(`Cliente: ${data.clienteNombre || 'No especificado'}`, 15, currentY);
 
-    // Summary Cards
-    doc.setFillColor('#F1F5F9'); // Slate-100
+    currentY += 10;
+    
+    // Summary Card
+    doc.setFillColor('#F1F5F9');
     doc.roundedRect(15, currentY, 180, 20, 3, 3, 'F');
     
     doc.setTextColor(darkColor);
@@ -175,16 +167,16 @@ export default function ExpensesTab() {
     if (data.gastos.length > 0) {
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text("Gastos y Viáticos", 15, currentY);
+      doc.text("Desglose de Gastos y Viáticos", 15, currentY);
       currentY += 7;
       autoTable(doc, {
         startY: currentY,
         head: [['Rubro', 'Descripción', 'Forma Pago', 'Comprobante', 'Monto (€)']],
         body: data.gastos.map((g: any) => [g.rubro, g.descripcion, g.forma_pago, g.comprobanteUrl || g.comprobanteFile ? 'Sí' : 'No', g.monto.toFixed(2)]),
         theme: 'grid',
-        headStyles: { fillColor: darkColor },
+        headStyles: { fillColor: darkColor, textColor: '#FFFFFF' },
         didParseCell: function (data: any) {
-          if (data.column.dataKey === 4) { // Monto column
+          if (data.column.dataKey === 4) {
             data.cell.styles.halign = 'right';
           }
         }
@@ -198,7 +190,7 @@ export default function ExpensesTab() {
     doc.setDrawColor(darkColor);
     doc.line(15, signatureY + 25, 85, signatureY + 25);
     doc.setFontSize(10);
-    doc.text("Firma del Inspector", 40, signatureY + 30);
+    doc.text("Firma de Conformidad", 40, signatureY + 30);
     if(data.firma_inspector_url) {
       doc.addImage(data.firma_inspector_url, 'PNG', 20, signatureY, 60, 25);
     }
@@ -208,7 +200,7 @@ export default function ExpensesTab() {
     for(let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
-        doc.setTextColor('#94A3B8'); // Slate-400
+        doc.setTextColor('#94A3B8');
         doc.text(`Energy Engine © ${new Date().getFullYear()}`, 15, 290);
         doc.text(`Página ${i} de ${pageCount}`, 180, 290);
     }
@@ -218,14 +210,12 @@ export default function ExpensesTab() {
 
   const handlePreviewPDF = () => {
     if (!user) return alert("Error de autenticación. Por favor, recarga la página.");
-    if (!selectedClientId) return alert("Por favor, selecciona un cliente.");
+    if (!clientName) return alert("Por favor, introduce el nombre del cliente.");
     
-    const selectedClient = clients.find(c => c.id === selectedClientId);
-
     const parteDataForPreview = {
         email_inspector: user.email,
         fecha: reportDate,
-        clienteNombre: selectedClient?.nombre || '',
+        clienteNombre: clientName,
         gastos: gastos,
         total_gastos: totalGastos,
         firma_inspector_url: signature,
@@ -236,6 +226,7 @@ export default function ExpensesTab() {
   }
 
   const generateAndUploadPDF = async (data: any, docId: string) => {
+    if(!storage) throw new Error("Storage not available");
     const doc = createParteDiarioPDF(data);
     const pdfDataUri = doc.output('datauristring');
     const storageRef = ref(storage, `partes_diarios/${docId}.pdf`);
@@ -245,15 +236,14 @@ export default function ExpensesTab() {
 
   const handleSaveParte = async () => {
     if (!user || !db || !storage) return alert("Error de autenticación o servicios no disponibles. Por favor, recarga la página.");
-    if (!selectedClientId) return alert("Por favor, selecciona un cliente.");
+    if (!clientName) return alert("Por favor, introduce el nombre del cliente.");
     if (gastos.length === 0 && !signature) return alert("Debes añadir al menos un gasto o firmar para crear un reporte.");
     if (!signature) return alert("La firma del inspector es obligatoria.");
 
     setLoading(true);
     try {
-        const docId = `${format(reportDate, 'yyyy-MM-dd')}_${user.uid}_${selectedClientId}`;
+        const docId = `${format(reportDate, 'yyyy-MM-dd')}_${user.uid}_${clientName.replace(/\s+/g, '_')}`;
 
-        // 1. Subir todas las imágenes de gastos y la firma
         const uploadedGastos = await Promise.all(gastos.map(async (g) => {
             if (g.comprobanteFile) {
                 const fileRef = ref(storage, `comprobantes/${docId}/${g.comprobanteFile.name}`);
@@ -268,34 +258,27 @@ export default function ExpensesTab() {
         await uploadString(firmaRef, signature, 'data_url');
         const firmaUrl = await getDownloadURL(firmaRef);
 
-        // 2. Preparar el objeto de datos para Firestore
-        const selectedClient = clients.find(c => c.id === selectedClientId);
         const parteData = {
             id_inspector: user.uid,
             email_inspector: user.email,
-            clienteId: selectedClientId,
-            clienteNombre: selectedClient?.nombre || '',
+            clienteNombre: clientName,
             fecha: reportDate,
             total_gastos: totalGastos,
-            gastos: uploadedGastos.map(({comprobanteFile, ...rest}) => rest), // No guardar el File object
+            gastos: uploadedGastos.map(({comprobanteFile, ...rest}) => rest),
             firma_inspector_url: firmaUrl,
             estado: 'Pendiente Aprobación'
         };
 
-        // 3. Guardar en Firestore
         const docRef = await addDoc(collection(db, "partes_diarios"), parteData);
         
-        // 4. Generar y subir el PDF
         const pdfUrl = await generateAndUploadPDF({...parteData, fecha: new Date(parteData.fecha)}, docRef.id);
 
-        // 5. Actualizar el documento con la URL del PDF
         await updateDoc(doc(db, "partes_diarios", docRef.id), { pdf_url: pdfUrl });
 
         alert("¡Reporte guardado y PDF generado con éxito!");
         
-        // 6. Reset full form
         setReportDate(new Date());
-        setSelectedClientId('');
+        setClientName('');
         setGastos([]);
         clearCanvas();
 
@@ -309,7 +292,7 @@ export default function ExpensesTab() {
 
 
   return (
-    <div className="space-y-6 pb-10 animate-in fade-in slide-in-from-right-4 duration-500">
+    <div className="space-y-6 pb-24 md:pb-10 animate-in fade-in slide-in-from-right-4 duration-500">
       
        <Dialog open={!!previewPdfUrl} onOpenChange={(isOpen) => !isOpen && setPreviewPdfUrl(null)}>
         <DialogContent className="max-w-4xl h-[90vh] flex flex-col p-0">
@@ -319,36 +302,34 @@ export default function ExpensesTab() {
               Revisa el borrador de tu reporte antes de guardarlo.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex-1">
+          <div className="flex-1 bg-slate-200 p-4">
             {previewPdfUrl && (
-              <iframe src={previewPdfUrl} className="w-full h-full" title="PDF Preview" />
+              <iframe src={previewPdfUrl} className="w-full h-full shadow-md rounded-lg" title="PDF Preview" />
             )}
           </div>
         </DialogContent>
       </Dialog>
 
       {/* SECCIÓN 1: CABECERA DEL PARTE */}
-      <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
+      <section className="bg-white p-6 md:p-8 rounded-3xl shadow-sm space-y-6">
         <div className="flex items-center gap-3 mb-2">
           <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center"><FileText size={20} /></div>
-          <h2 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Reporte de Gastos por Cliente</h2>
+          <h2 className="text-base font-bold text-slate-800 uppercase tracking-wider">Reporte de Gastos por Cliente</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select onValueChange={setSelectedClientId} value={selectedClientId}>
-                <SelectTrigger className="w-full p-4 rounded-2xl flex items-center justify-start gap-2 font-bold text-sm bg-slate-50 border-none h-auto">
-                    <Building size={16} />
-                    <SelectValue placeholder="Seleccionar Cliente..." />
-                </SelectTrigger>
-                <SelectContent>
-                    {clients.map(client => (
-                        <SelectItem key={client.id} value={client.id}>{client.nombre}</SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
+            <div className="relative">
+                <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                <Input 
+                    value={clientName}
+                    onChange={(e) => setClientName(e.target.value)}
+                    placeholder="Seleccionar o escribir cliente..."
+                    className="w-full h-auto p-4 pl-12 rounded-xl bg-slate-50 border-transparent focus:border-amber-500 focus:ring-amber-500 font-semibold"
+                />
+            </div>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant={"outline"} className="w-full p-4 rounded-2xl flex items-center justify-start gap-2 font-bold text-sm bg-slate-50 border-none h-auto">
-                    <CalendarIcon size={16} /> {format(reportDate, "PPP", { locale: es })}
+                <Button variant={"outline"} className="w-full h-auto p-4 rounded-xl flex items-center justify-start gap-3 font-semibold text-slate-700 bg-slate-50 border-transparent hover:border-slate-200">
+                    <CalendarIcon size={16} className="text-slate-400" /> {format(reportDate, "PPP", { locale: es })}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
@@ -356,30 +337,47 @@ export default function ExpensesTab() {
               </PopoverContent>
             </Popover>
         </div>
-         <div className='p-4 rounded-2xl bg-slate-50 flex items-center gap-2 font-bold text-sm text-slate-500'>
+         <div className='p-4 rounded-xl bg-slate-50 flex items-center gap-3 text-sm font-semibold text-slate-500'>
                 <User size={16} /> Inspector: {user?.email || 'Cargando...'}
             </div>
       </section>
 
-      {/* SECCIÓN 3: GASTOS ASOCIADOS --- */}
-      <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
-        <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter"><Receipt size={18} className="text-blue-500"/> Gastos y Viáticos</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-2xl">
-            <input value={currentGasto.monto} onChange={e => setCurrentGasto({...currentGasto, monto: e.target.value})} type="number" placeholder="Monto (€)" className="p-3 rounded-lg border-none font-bold" />
-            <select value={currentGasto.rubro} onChange={e => setCurrentGasto({...currentGasto, rubro: e.target.value})} className="p-3 rounded-lg border-none font-bold">
-                {['Alimentación', 'Combustible', 'Peajes', 'Hospedaje', 'Repuestos', 'Otros'].map(r => <option key={r} value={r}>{r}</option>)}
-            </select>
-            <input value={currentGasto.descripcion} onChange={e => setCurrentGasto({...currentGasto, descripcion: e.target.value})} type="text" placeholder="Descripción del gasto" className="p-3 rounded-lg border-none font-bold col-span-full" />
-            <select value={currentGasto.forma_pago} onChange={e => setCurrentGasto({...currentGasto, forma_pago: e.target.value})} className="p-3 rounded-lg border-none font-bold">
-                <option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option>
-            </select>
+      {/* SECCIÓN 2: GASTOS ASOCIADOS */}
+      <section className="bg-white p-6 md:p-8 rounded-3xl shadow-sm space-y-6">
+        <h3 className="font-bold text-slate-800 flex items-center gap-2 uppercase text-sm tracking-wider"><Receipt size={18} className="text-blue-500"/> Gastos y Viáticos</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Input value={currentGasto.monto} onChange={e => setCurrentGasto({...currentGasto, monto: e.target.value})} type="number" placeholder="Monto (€)" className="p-4 h-auto rounded-lg bg-slate-50 border-transparent font-semibold" />
+            
+            <Select value={currentGasto.rubro} onValueChange={value => setCurrentGasto({...currentGasto, rubro: value})}>
+              <SelectTrigger className="p-4 h-auto rounded-lg bg-slate-50 border-transparent font-semibold"><SelectValue/></SelectTrigger>
+              <SelectContent>
+                {['Alimentación', 'Combustible', 'Peajes', 'Hospedaje', 'Repuestos', 'Otros'].map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+              </SelectContent>
+            </Select>
+
+            <Input value={currentGasto.descripcion} onChange={e => setCurrentGasto({...currentGasto, descripcion: e.target.value})} type="text" placeholder="Descripción del gasto" className="p-4 h-auto rounded-lg bg-slate-50 border-transparent font-semibold md:col-span-2" />
+            
+             <Select value={currentGasto.forma_pago} onValueChange={value => setCurrentGasto({...currentGasto, forma_pago: value})}>
+                <SelectTrigger className="p-4 h-auto rounded-lg bg-slate-50 border-transparent font-semibold"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="Efectivo">Efectivo</SelectItem>
+                    <SelectItem value="Tarjeta">Tarjeta</SelectItem>
+                    <SelectItem value="Transferencia">Transferencia</SelectItem>
+                </SelectContent>
+            </Select>
+            
             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
-            <button onClick={() => fileInputRef.current?.click()} className={`p-3 rounded-lg font-bold flex items-center justify-center gap-2 ${currentGasto.comprobanteFile ? 'bg-emerald-100 text-emerald-700' : 'bg-white text-slate-500'}`}>
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="p-4 h-auto rounded-lg font-semibold flex items-center justify-center gap-2 bg-slate-50 border-transparent hover:bg-slate-100">
                 <Camera size={16}/> {currentGasto.comprobanteFile ? 'Foto OK' : 'Comprobante'}
-            </button>
-            <button onClick={handleAddGasto} className="p-3 rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center gap-2 col-span-full"><Plus size={16}/>Añadir Gasto</button>
+            </Button>
+            
+            <Button onClick={handleAddGasto} className="p-4 h-auto rounded-lg bg-blue-600 text-white font-bold flex items-center justify-center gap-2 md:col-span-2 hover:bg-blue-700">
+                <Plus size={16}/>Añadir Gasto
+            </Button>
         </div>
-        <div className="space-y-2">
+        
+        <div className="space-y-2 pt-4 border-t">
             {gastos.map((g, i) => (
                 <div key={i} className="flex items-center justify-between bg-slate-50 p-3 rounded-lg">
                     <div className="flex items-center gap-3">
@@ -391,38 +389,38 @@ export default function ExpensesTab() {
                     </div>
                     <div className="flex items-center gap-3">
                         <span className="font-bold text-slate-800">{g.monto.toFixed(2)}€</span>
-                        <button onClick={() => setGastos(gastos.filter((_, idx) => i !== idx))} className="p-2 text-red-500 hover:bg-red-100 rounded-full"><Trash2 size={16}/></button>
+                        <Button variant="ghost" size="icon" onClick={() => setGastos(gastos.filter((_, idx) => i !== idx))} className="text-red-500 hover:bg-red-100 rounded-full h-8 w-8"><Trash2 size={16}/></Button>
                     </div>
                 </div>
             ))}
-            {gastos.length === 0 && <p className="text-center text-xs text-slate-400 font-bold py-4">No hay gastos añadidos a este parte.</p>}
+            {gastos.length === 0 && <p className="text-center text-xs text-slate-400 font-semibold py-4">No hay gastos añadidos a este parte.</p>}
         </div>
          {gastos.length > 0 && 
-                <div className="text-right font-black text-blue-600 bg-blue-50 p-3 rounded-lg">
+                <div className="text-right font-bold text-blue-600 bg-blue-50 p-3 rounded-lg">
                     TOTAL GASTOS: {totalGastos.toFixed(2)} €
                 </div>
             }
       </section>
 
-      {/* SECCIÓN 4: FIRMA DEL TÉCNICO */}
-      <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-6">
-        <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tighter"><ClipboardSignature size={18} className="text-blue-500"/> Firma de Conformidad</h3>
+      {/* SECCIÓN 3: FIRMA DEL TÉCNICO */}
+      <section className="bg-white p-6 md:p-8 rounded-3xl shadow-sm space-y-4">
+        <h3 className="font-bold text-slate-800 flex items-center gap-2 uppercase text-sm tracking-wider"><ClipboardSignature size={18} className="text-blue-500"/> Firma de Conformidad</h3>
         <div className="space-y-2">
             <canvas ref={signatureCanvasRef} width={600} height={200} className="w-full bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl cursor-crosshair touch-none" />
-            <button onClick={clearCanvas} className="text-xs text-red-500 font-bold">Limpiar Firma</button>
+            <button onClick={clearCanvas} className="text-xs text-red-500 font-bold hover:underline">Limpiar Firma</button>
         </div>
       </section>
 
-      {/* ACCIÓN FINAL */}
+      {/* SECCIÓN 4: ACCIONES */}
       <div className="flex flex-col md:flex-row gap-4">
-        <button onClick={handlePreviewPDF} disabled={loading} className="w-full p-8 bg-white text-slate-900 border-2 border-slate-200 rounded-[2.5rem] font-bold text-lg shadow-lg flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50">
+        <Button onClick={handlePreviewPDF} disabled={loading} variant="outline" className="w-full p-8 rounded-3xl font-bold text-lg shadow-lg flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 bg-white hover:bg-slate-50">
             <FileSearch size={22} />
             VISTA PREVIA
-        </button>
-        <button onClick={handleSaveParte} disabled={loading} className="w-full p-8 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50">
+        </Button>
+        <Button onClick={handleSaveParte} disabled={loading} className="w-full p-8 bg-slate-900 text-white rounded-3xl font-bold text-xl shadow-2xl flex items-center justify-center gap-4 active:scale-95 transition-all disabled:opacity-50 hover:bg-slate-800">
           {loading ? <Loader2 className="animate-spin text-blue-500" /> : <Upload className="text-blue-500" />}
-          {loading ? 'GUARDANDO Y SINCRONIZANDO...' : 'FINALIZAR Y SUBIR REPORTE'}
-        </button>
+          {loading ? 'GUARDANDO...' : 'FINALIZAR Y SUBIR REPORTE'}
+        </Button>
       </div>
     </div>
   );
