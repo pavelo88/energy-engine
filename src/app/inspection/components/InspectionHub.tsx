@@ -43,8 +43,7 @@ export default function InspectionHub({ onSelectInspectionType }: HubProps) {
   const [error, setError] = useState('');
   const db = useFirestore();
 
-    const handleLoadInspection = async (type: string) => {    if (!inspectionId.trim() || !db) {
-      onSelectInspectionType(type, null);
+    const handleLoadInspection = async (type: "albaran" | "informe-tecnico" | "hoja-revision" | "revision-basica") => {      onSelectInspectionType(type, null);
       return;
     }
 
