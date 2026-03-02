@@ -1,54 +1,43 @@
 'use client';
 
 import { useState } from 'react';
-import { FileText, ShieldCheck, Clipboard, File, HardDrive, ArrowRight, Loader2 } from 'lucide-react';
-import { useFirestore } from '@/firebase';
+import { 
+  FileText, 
+  Settings, 
+  ClipboardCheck,
+  Search,
+  HardDrive,
+  Loader2,
+  ArrowRight,
+  ClipboardList
+} from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
-// --- PROPS DE LA INTERFAZ ---
-interface HubProps {
-  onSelectInspectionType: (type: 'albaran' | 'informe-tecnico' | 'hoja-revision' | 'revision-basica', data?: any) => void;
-}
+type ReportType = 'albaran' | 'informe-tecnico' | 'hoja-revision' | 'revision-basica';
 
-const reportTypes = [ 
-  {
-    id: 'albaran',
-    title: 'Albarán de Trabajo',
-    desc: 'Documento para firma del cliente con el resumen de la intervención.',
-    icon: FileText,
-  },
-  {
-    id: 'informe-tecnico',
-    title: 'Informe Técnico',
-    desc: 'Reporte técnico detallado con mediciones y observaciones.',
-    icon: ShieldCheck,
-  },
-  {
-    id: 'hoja-revision',
-    title: 'Hoja de Revisión',
-    desc: 'Checklist completo para uso interno y auditorías (según imagen).',
-    icon: Clipboard,
-  },
-  {
-    id: 'revision-basica',
-    title: 'Revisión Básica',
-    desc: 'Versión reducida para motores pequeños sin componentes complejos.',
-    icon: File,
-  },
-];
-
-export default function InspectionHub({ onSelectInspectionType }: HubProps) {
+export default function InspectionHub({ onSelectInspectionType }: { onSelectInspectionType: (type: ReportType, data?: any) => void }) {
   const [inspectionId, setInspectionId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const db = useFirestore();
 
-    const handleLoadInspection = async (type: "albaran" | "informe-tecnico" | "hoja-revision" | "revision-basica") => {      onSelectInspectionType(type, null);
+  const reportTypes = [
+    { id: 'albaran' as ReportType, title: 'Albarán', icon: FileText, desc: 'Registro de materiales y servicios' },
+    { id: 'informe-tecnico' as ReportType, title: 'Informe Técnico', icon: Settings, desc: 'Reporte detallado de intervenciones' },
+    { id: 'hoja-revision' as ReportType, title: 'Hoja de Revisión', icon: ClipboardCheck, desc: 'Checklist completo de mantenimiento' },
+    { id: 'revision-basica' as ReportType, title: 'Revisión Básica', icon: ClipboardList, desc: 'Checklist rápido sin filtros/correas' },
+  ];
+
+  const handleLoadInspection = async (type: ReportType) => {
+    if (!inspectionId.trim() || !db) {
+      onSelectInspectionType(type, null);
       return;
     }
 
     setLoading(true);
     setError('');
+    
     try {
       const docRef = doc(db, 'trabajos', inspectionId.trim());
       const docSnap = await getDoc(docRef);
@@ -56,16 +45,17 @@ export default function InspectionHub({ onSelectInspectionType }: HubProps) {
       if (docSnap.exists()) {
         onSelectInspectionType(type, docSnap.data());
       } else {
-        setError('No se encontró ninguna inspección con ese ID.');
+        setError('No se encontró el trabajo ID: ' + inspectionId);
+        onSelectInspectionType(type, null);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setError('Error al buscar la inspección.');
+      setError('Error al cargar datos');
+      onSelectInspectionType(type, null);
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 w-full max-w-4xl mx-auto">
