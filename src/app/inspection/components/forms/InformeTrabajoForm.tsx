@@ -105,7 +105,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
     
     const rawText = report.reportContent || '';
     const textOptions = {
-        align: 'center' as const, // User request for testing
+        align: 'justify' as const, 
         lineHeightFactor: 1.5,
     };
     
@@ -132,7 +132,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
           const isTitle = line.trim().endsWith(':') && line.trim().toUpperCase() === line.trim();
           doc.setFont('helvetica', isTitle ? 'bold' : 'normal');
           
-          doc.text(line, pageWidth / 2, currentY, textOptions);
+          doc.text(line, leftMargin, currentY, textOptions);
           currentY += lineHeight;
         });
 
