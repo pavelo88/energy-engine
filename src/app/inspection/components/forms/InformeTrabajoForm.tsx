@@ -10,7 +10,7 @@ import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SignaturePad from '../SignaturePad';
 
-const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "text", placeholder = '' }) => (
+const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "text", placeholder = '' }: any) => (
   <div className="space-y-1 w-full text-left">
     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <div className="relative group">
@@ -26,23 +26,22 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
   </div>
 ));
 
-export const generatePDF = (report, inspectorName, reportId) => {
+export const generatePDF = (report: any, inspectorName: string, reportId: string | null) => {
     const doc = new jsPDF();
     const finalID = reportId || 'BORRADOR';
     const darkColor = '#0f172a';
     const pageHeight = doc.internal.pageSize.height;
     const pageWidth = doc.internal.pageSize.width;
     
-    // Margins
+    // Márgenes
     const leftMargin = 30;
     const rightMargin = 30;
     const bottomMargin = 30;
+    const topMargin = 40; // Margen superior para cuando salta de página
     const contentWidth = pageWidth - leftMargin - rightMargin;
 
-    let currentPage = 1;
-
+    // --- FUNCIONES DE DIBUJO ---
     const drawHeader = () => {
-      // The header should not respect the margins
       doc.setFillColor(darkColor);
       doc.rect(0, 0, pageWidth, 28, 'F');
       doc.setTextColor('#FFFFFF');
@@ -56,17 +55,16 @@ export const generatePDF = (report, inspectorName, reportId) => {
     };
 
     const drawFooter = (pageNumber: number, totalPages: number) => {
-        // The footer should not respect the margins
         doc.setFontSize(8);
         doc.setTextColor(100);
-        doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+        doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - rightMargin, pageHeight - 10, { align: 'right' });
         doc.setFillColor(darkColor);
         doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
     };
-    
-    drawHeader();
+
     let currentY = 40;
 
+    // 1. Título
     const title = `INFORME TÉCNICO Nº: ${finalID}`;
     const titleWidth = doc.getStringUnitWidth(title) * doc.getFontSize() / doc.internal.scaleFactor;
     const titleX = (pageWidth - titleWidth) / 2;
@@ -77,6 +75,7 @@ export const generatePDF = (report, inspectorName, reportId) => {
     doc.text(title, titleX, currentY);
     currentY += 10;
     
+    // 2. Tabla de Datos
     autoTable(doc, {
         startY: currentY,
         body: [
@@ -93,70 +92,48 @@ export const generatePDF = (report, inspectorName, reportId) => {
 
     currentY = (doc as any).lastAutoTable.finalY + 10;
     
-    doc.setTextColor(darkColor);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text("Descripción de la incidencia", leftMargin, currentY);
-    currentY += 8;
+    // 3. Renderizado del Texto (con justificado y títulos en negrita)
+    const blocks = (report.reportContent || '').split('\n\n');
 
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(darkColor);
-    
-    const rawText = report.reportContent || '';
-    const textOptions = {
-        align: 'justify' as const, 
-        lineHeightFactor: 1.5,
-    };
-    
-    const paragraphs = rawText.split('\n\n'); 
-    const lineHeight = doc.getTextDimensions('M').h * textOptions.lineHeightFactor;
-
-    paragraphs.forEach((paragraph, pIndex) => {
-      const cleanedParagraph = paragraph.replace(/\n/g, ' ').trim();
-      
-      if (cleanedParagraph) {
-        const lines = doc.splitTextToSize(cleanedParagraph, contentWidth);
-        
-        lines.forEach((line: string) => {
-          if (currentY + lineHeight > pageHeight - bottomMargin) {
+    blocks.forEach((block: string) => {
+        if (currentY > pageHeight - bottomMargin) { // Salto de página manual si es necesario
             doc.addPage();
-            currentPage++;
-            drawHeader();
-            currentY = 40; 
-            doc.setTextColor(darkColor);
+            currentY = topMargin;
+        }
+
+        const cleanedBlock = block.replace(/\n/g, ' ').trim();
+        const isTitle = cleanedBlock.endsWith(':') && cleanedBlock.toUpperCase() === cleanedBlock;
+
+        if (isTitle) {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(9);
+            autoTable(doc, {
+                startY: currentY,
+                body: [[cleanedBlock]],
+                theme: 'plain',
+                styles: { fontSize: 9, cellPadding: 0, fontStyle: 'bold' },
+                margin: { left: leftMargin, right: rightMargin },
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 3; // Menos espacio después de un título
+        } else if (cleanedBlock) {
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(9);
-          }
-          
-          const isTitle = line.trim().endsWith(':') && line.trim().toUpperCase() === line.trim();
-          doc.setFont('helvetica', isTitle ? 'bold' : 'normal');
-          
-          doc.text(line, leftMargin, currentY, textOptions);
-          currentY += lineHeight;
-        });
-
-        if (pIndex < paragraphs.length - 1) {
-          currentY += lineHeight * 0.5;
-          if (currentY + lineHeight > pageHeight - bottomMargin) {
-             doc.addPage();
-             currentPage++;
-             drawHeader();
-             currentY = 40;
-             doc.setTextColor(darkColor);
-             doc.setFont('helvetica', 'normal');
-             doc.setFontSize(9);
-          }
+            autoTable(doc, {
+                startY: currentY,
+                body: [[cleanedBlock]],
+                theme: 'plain',
+                styles: { fontSize: 9, halign: 'justify', cellPadding: 0 },
+                margin: { left: leftMargin, right: rightMargin },
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 5; // Espacio entre párrafos
         }
-      }
     });
 
+    // 4. Bloque de Firma
     const signatureBlockHeight = 45;
     if (currentY + signatureBlockHeight > pageHeight - bottomMargin) {
       doc.addPage();
-      currentPage++;
-      drawHeader();
-      currentY = 40;
+      currentY = topMargin;
     }
     
     currentY += 20;
@@ -165,12 +142,15 @@ export const generatePDF = (report, inspectorName, reportId) => {
         doc.addImage(report.inspectorSignatureUrl, 'PNG', leftMargin, currentY, 60, 25);
     }
     doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
     doc.text(`Firmado: ${inspectorName}`, leftMargin, currentY + 32);
     doc.text(`A ${new Date(report.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: 'long', year: 'numeric' })}`, leftMargin, currentY + 39);
 
+    // 5. Dibujar Encabezado y Pie de Página en TODAS las páginas
     const pageCount = (doc as any).internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
+        drawHeader();
         drawFooter(i, pageCount);
     }
 
@@ -249,7 +229,7 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
   }, [aiData]);
 
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -323,12 +303,12 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
       <section className="bg-white p-8 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
          <h3 className="font-black text-slate-400 text-xs uppercase tracking-[0.2em]">Datos de Identificación</h3>
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <StableInput label="Motor" icon={Settings} value={formData.motor} onChange={v => handleInputChange('motor', v)}/>
-            <StableInput label="Modelo" icon={Type} value={formData.modelo} onChange={v => handleInputChange('modelo', v)}/>
-            <StableInput label="Nº de motor" icon={Type} value={formData.n_motor} onChange={v => handleInputChange('n_motor', v)}/>
-            <StableInput label="Grupo" icon={Settings} value={formData.grupo} onChange={v => handleInputChange('grupo', v)}/>
+            <StableInput label="Motor" icon={Settings} value={formData.motor} onChange={(v: string) => handleInputChange('motor', v)}/>
+            <StableInput label="Modelo" icon={Type} value={formData.modelo} onChange={(v: string) => handleInputChange('modelo', v)}/>
+            <StableInput label="Nº de motor" icon={Type} value={formData.n_motor} onChange={(v: string) => handleInputChange('n_motor', v)}/>
+            <StableInput label="Grupo" icon={Settings} value={formData.grupo} onChange={(v: string) => handleInputChange('grupo', v)}/>
             <div className="md:col-span-2">
-                <StableInput label="Instalación" icon={MapPin} value={formData.instalacion} onChange={v => handleInputChange('instalacion', v)}/>
+                <StableInput label="Instalación" icon={MapPin} value={formData.instalacion} onChange={(v: string) => handleInputChange('instalacion', v)}/>
             </div>
           </div>
       </section>
