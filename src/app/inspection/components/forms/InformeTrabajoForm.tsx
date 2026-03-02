@@ -294,8 +294,8 @@ export default function InformeTecnicoForm({ initialData, aiData }: { initialDat
   const handleSave = async () => {
     if (!db || !user || !inspectorSignature) return alert("La firma del inspector es obligatoria.");
     setSaving(true);
-    const year = new Date().getFullYear();
-    const sequential = Date.now().toString().slice(-4).padStart(4, '0');
+    const year = new Date().getFullYear().toString().slice(-2);
+    const sequential = Date.now().toString().slice(-4);
     const docId = `IT-${year}-${sequential}`;
 
     try {

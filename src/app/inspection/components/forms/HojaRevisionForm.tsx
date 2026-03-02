@@ -396,8 +396,8 @@ export default function HojaRevisionForm({ initialData, aiData }: { initialData?
     if (isSaved) return;
 
     setSaving(true);
-    const year = new Date().getFullYear();
-    const sequential = Date.now().toString().slice(-4).padStart(4, '0');
+    const year = new Date().getFullYear().toString().slice(-2);
+    const sequential = Date.now().toString().slice(-4);
     const docId = `REV-${year}-${sequential}`;
     try {
       const docData = { 
@@ -449,6 +449,11 @@ export default function HojaRevisionForm({ initialData, aiData }: { initialData?
                     <StableInput label="Instalación" icon={MapPin} value={formData.instalacion} onChange={v => handleInputChange('instalacion', v)}/>
                     <StableInput label="Dirección" icon={MapPin} value={formData.direccion} onChange={v => handleInputChange('direccion', v)}/>
                     <StableInput label="Fecha Revisión" icon={Calendar} type="date" value={formData.fecha_revision} onChange={v => handleInputChange('fecha_revision', v)}/>
+                    <StableInput label="Motor" icon={Settings} value={formData.motor} onChange={v => handleInputChange('motor', v)}/>
+                    <StableInput label="Modelo" icon={Type} value={formData.modelo} onChange={v => handleInputChange('modelo', v)}/>
+                    <StableInput label="Nº Motor" icon={Hash} value={formData.n_motor} onChange={v => handleInputChange('n_motor', v)}/>
+                    <StableInput label="Nº Grupo" icon={Hash} value={formData.n_grupo} onChange={v => handleInputChange('n_grupo', v)}/>
+                    <StableInput label="Potencia" icon={Zap} value={formData.potencia} onChange={v => handleInputChange('potencia', v)}/>
                     <div className="lg:col-span-4">
                         <button 
                             onClick={handleCaptureLocation} 
@@ -460,11 +465,6 @@ export default function HojaRevisionForm({ initialData, aiData }: { initialData?
                             <span>{formData.location ? `${formData.location.lat.toFixed(4)}, ${formData.location.lon.toFixed(4)}` : 'Capturar Ubicación'}</span>
                         </button>
                     </div>
-                    <StableInput label="Motor" icon={Settings} value={formData.motor} onChange={v => handleInputChange('motor', v)}/>
-                    <StableInput label="Modelo" icon={Type} value={formData.modelo} onChange={v => handleInputChange('modelo', v)}/>
-                    <StableInput label="Nº Motor" icon={Hash} value={formData.n_motor} onChange={v => handleInputChange('n_motor', v)}/>
-                    <StableInput label="Nº Grupo" icon={Hash} value={formData.n_grupo} onChange={v => handleInputChange('n_grupo', v)}/>
-                    <StableInput label="Potencia" icon={Zap} value={formData.potencia} onChange={v => handleInputChange('potencia', v)}/>
                 </div>
             </section>
             

@@ -462,8 +462,8 @@ export default function AlbaranForm({ initialData, aiData }: { initialData?: any
     }
     
     setSaving(true);
-    const year = new Date().getFullYear();
-    const sequential = Date.now().toString().slice(-4).padStart(4, '0');
+    const year = new Date().getFullYear().toString().slice(-2);
+    const sequential = Date.now().toString().slice(-4);
     const docId = `ALB-${year}-${sequential}`;
 
     try {
@@ -525,15 +525,6 @@ export default function AlbaranForm({ initialData, aiData }: { initialData?: any
             </div>
             <div className="lg:col-span-2 space-y-3">
                <StableInput label="Fecha" icon={Calendar} type="date" value={formData.fecha} onChange={v => handleInputChange('fecha', v)}/>
-                <button 
-                    onClick={handleCaptureLocation} 
-                    disabled={locationStatus === 'loading'} 
-                    className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 flex items-center justify-center gap-3 font-bold text-slate-700 shadow-sm text-sm hover:border-amber-500 transition-colors disabled:opacity-50"
-                >
-                    {locationStatus === 'loading' && <Loader2 className="animate-spin text-amber-500" size={16}/>}
-                    {locationStatus !== 'loading' && (formData.location ? <CheckCircle2 className="text-green-500" size={16}/> : <MapPin className="text-slate-400" size={16}/>)}
-                    <span>{formData.location ? `${formData.location.lat.toFixed(4)}, ${formData.location.lon.toFixed(4)}` : 'Capturar Ubicación'}</span>
-                </button>
                <StableInput label="Técnicos" icon={User} value={formData.tecnicos} onChange={v => handleInputChange('tecnicos', v)}/>
                <StableInput label="H. Asistencia" icon={Clock} value={formData.h_asistencia} onChange={v => handleInputChange('h_asistencia', v)}/>
                <StableInput label="Tipo de Servicio" icon={Type} value={formData.tipo_servicio} onChange={v => handleInputChange('tipo_servicio', v)}/>
@@ -546,6 +537,17 @@ export default function AlbaranForm({ initialData, aiData }: { initialData?: any
                  </label>
                  {formData.media_dieta && <StableInput label="Cantidad" type="number" value={formData.media_dieta_cantidad} onChange={v => handleInputChange('media_dieta_cantidad', v)}/>}
                </div>
+            </div>
+            <div className="lg:col-span-4">
+              <button 
+                  onClick={handleCaptureLocation} 
+                  disabled={locationStatus === 'loading'} 
+                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 flex items-center justify-center gap-3 font-bold text-slate-700 shadow-sm text-sm hover:border-amber-500 transition-colors disabled:opacity-50"
+              >
+                  {locationStatus === 'loading' && <Loader2 className="animate-spin text-amber-500" size={16}/>}
+                  {locationStatus !== 'loading' && (formData.location ? <CheckCircle2 className="text-green-500" size={16}/> : <MapPin className="text-slate-400" size={16}/>)}
+                  <span>{formData.location ? `${formData.location.lat.toFixed(4)}, ${formData.location.lon.toFixed(4)}` : 'Capturar Ubicación'}</span>
+              </button>
             </div>
          </div>
       </section>
