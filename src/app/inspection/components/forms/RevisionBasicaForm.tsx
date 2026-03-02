@@ -2,21 +2,28 @@
 import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
-import { Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Wind, Gauge, Thermometer, Droplets, Battery, Zap, Mic } from 'lucide-react';
+import { Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Wind, Gauge, Thermometer, Droplets, Battery, Zap, Wrench } from 'lucide-react';
 import { ProcessDictationOutput } from '@/ai/flows/process-dictation-flow';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import SignaturePad from '../SignaturePad';
-import { CHECKLIST_SECTIONS, INITIAL_FORM_DATA } from '../../lib/form-constants';
+import { INITIAL_FORM_DATA } from '../../lib/form-constants';
 
+// 1. Checklist específico y reducido para "Revisión Básica" (Sin filtros ni correas)
+const BASIC_REVISION_CHECKLIST = {
+  "INSPECCIÓN EN EL MOTOR": [
+    "Nivel de lubricante",
+    "Indicador nivel refrigerante",
+    "Tubo de escape",
+    "Circuito de refrigeración",
+    "Circuito de lubricación",
+    "Baterías",
+    "Motor de arranque"
+  ]
+};
 
-// The sections to show in the basic revision
-const BASIC_REVISION_SECTIONS = Object.entries(CHECKLIST_SECTIONS).filter(
-  ([sectionName]) => sectionName !== "INSPECCION EN EL ALTERNADOR" && sectionName !== "INSPECCION EQUIPO ELECTRICO"
-);
-
-const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "text", placeholder = '' }) => (
+const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "text", placeholder = '' }: any) => (
   <div className="space-y-1 w-full text-left">
     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">{label}</label>
     <div className="relative group">
@@ -29,7 +36,7 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
   </div>
 ));
 
-const LoadTestInput = React.memo(({ label, value, onChange }) => (
+const LoadTestInput = React.memo(({ label, value, onChange }: any) => (
     <div className="flex flex-col items-center gap-1">
         <label className="text-[9px] font-black text-slate-500 w-full text-center">{label}</label>
         <input 
@@ -39,121 +46,264 @@ const LoadTestInput = React.memo(({ label, value, onChange }) => (
     </div>
 ));
 
-export const generatePDF = (report, inspectorName, reportId) => {
+export const generatePDF = (report: any, inspectorName: string, reportId: string | null) => {
     const doc = new jsPDF();
     const finalID = reportId || 'BORRADOR';
     const darkColor = '#0f172a';
-    
-    // Header
-    doc.setFillColor(darkColor);
-    doc.rect(0, 0, 210, 28, 'F');
-    doc.setTextColor('#FFFFFF');
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text("ENERGY ENGINE", 15, 18);
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", 205, 12, { align: 'right' });
-    doc.text("info@energyengine.es | +34 925 15 43 54", 205, 18, { align: 'right' });
+    const pageWidth = doc.internal.pageSize.width;
+    const pageHeight = doc.internal.pageSize.height;
 
-    // Main Title
+    // Márgenes Globales estrictos
+    const leftMargin = 15;
+    const rightMargin = 15;
+    const topMargin = 40;
+    const bottomMargin = 30;
+    const contentWidth = pageWidth - leftMargin - rightMargin;
+    const globalMargin = { top: topMargin, bottom: bottomMargin, left: leftMargin, right: rightMargin };
+
+    let currentY = topMargin;
+
+    // 1. Título Principal
     doc.setTextColor(darkColor);
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(`REVISIÓN BÁSICA - Nº: ${finalID}`, 15, 38);
+    doc.text(`REVISIÓN BÁSICA - Nº: ${finalID}`, leftMargin, currentY);
+    currentY += 6;
 
-    // Client/Motor Data Table
+    // 2. Tabla de Datos Generales
     autoTable(doc, {
-        startY: 42,
+        startY: currentY,
         body: [
-            [{content: 'CLIENTE', styles: {fontStyle: 'bold'}}, report.cliente, {content: 'FECHA REVISION:', styles: {fontStyle: 'bold'}}, report.fecha_revision],
-            [{content: 'MOTOR', styles: {fontStyle: 'bold'}}, report.motor, {content: 'POTENCIA', styles: {fontStyle: 'bold'}}, report.potencia],
-            [{content: 'MODELO', styles: {fontStyle: 'bold'}}, report.modelo, '', ''],
-            [{content: 'Nº MOTOR', styles: {fontStyle: 'bold'}}, report.n_motor, '', ''],
-            [{content: 'Nº GRUPO', styles: {fontStyle: 'bold'}}, report.n_grupo, '', ''],
-            [{content: 'INSTALACION', styles: {fontStyle: 'bold'}}, report.instalacion, '', ''],
-            [{content: 'DIRECCION', styles: {fontStyle: 'bold'}}, report.direccion, '', ''],
+            [{ content: 'CLIENTE:', styles: { fontStyle: 'bold', cellWidth: 35 } }, { content: report.cliente || '', colSpan: 3 }],
+            [{ content: 'INSTALACIÓN:', styles: { fontStyle: 'bold' } }, { content: report.instalacion || '', colSpan: 3 }],
+            [{ content: 'DIRECCIÓN:', styles: { fontStyle: 'bold' } }, { content: report.direccion || '', colSpan: 3 }],
+            [{ content: 'FECHA REVISIÓN:', styles: { fontStyle: 'bold' } }, report.fecha_revision || '', { content: 'POTENCIA:', styles: { fontStyle: 'bold', cellWidth: 30 } }, report.potencia || ''],
+            [{ content: 'MOTOR:', styles: { fontStyle: 'bold' } }, report.motor || '', { content: 'Nº MOTOR:', styles: { fontStyle: 'bold' } }, report.n_motor || ''],
+            [{ content: 'MODELO:', styles: { fontStyle: 'bold' } }, report.modelo || '', { content: 'Nº GRUPO:', styles: { fontStyle: 'bold' } }, report.n_grupo || ''],
         ],
-        theme: 'grid', styles: {fontSize: 8, cellPadding: 1.5},
-        headStyles: { fillColor: darkColor }
+        theme: 'grid', 
+        styles: { fontSize: 8, cellPadding: 2 },
+        margin: globalMargin
     });
 
-    let lastY = (doc as any).lastAutoTable.finalY + 4;
+    currentY = (doc as any).lastAutoTable.finalY + 6;
 
-    // Checklist Table
+    // 3. Tabla Checklist (Reducida)
+    const colWidth = 22; 
     autoTable(doc, {
-        startY: lastY,
-        head: [['', 'OK', 'DEFECT', 'AVERIA', 'CAMBIO']],
-        body: BASIC_REVISION_SECTIONS.flatMap(([section, items]) => {
-            const sectionRows: any[] = [[{ content: section, colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f1f5f9', textColor: '#000' }}]];
+        startY: currentY,
+        head: [['INSPECCIÓN / ESTADO', 'OK', 'DEFECTUOSO', 'AVERIADO', 'CAMBIO']],
+        body: Object.entries(BASIC_REVISION_CHECKLIST).flatMap(([section, items]) => {
+            const sectionRows: any[] = [[{ content: section, colSpan: 5, styles: { fontStyle: 'bold', fillColor: '#f1f5f9', textColor: '#000', halign: 'left' }}]];
             (items as string[]).forEach(item => {
                 sectionRows.push([
                     item,
-                    report.checklist[item] === 'OK' ? 'X' : '',
-                    report.checklist[item] === 'DEFECT' ? 'X' : '',
-                    report.checklist[item] === 'AVERIA' ? 'X' : '',
-                    report.checklist[item] === 'CAMBIO' ? 'X' : '',
+                    report.checklist?.[item] === 'OK' ? 'X' : '',
+                    report.checklist?.[item] === 'DEFECT' ? 'X' : '',
+                    report.checklist?.[item] === 'AVERIA' ? 'X' : '',
+                    report.checklist?.[item] === 'CAMBIO' ? 'X' : '',
                 ]);
             });
             return sectionRows;
         }),
-        theme: 'grid', styles: { fontSize: 7, cellPadding: 1.5, halign: 'center' },
+        theme: 'grid', 
+        styles: { fontSize: 7, cellPadding: 1.5, halign: 'center' },
         headStyles: { fillColor: darkColor, textColor: '#fff', halign: 'center' },
-        columnStyles: { 0: { halign: 'left' } }
+        columnStyles: { 
+            0: { halign: 'left' },
+            1: { cellWidth: colWidth },
+            2: { cellWidth: colWidth },
+            3: { cellWidth: colWidth },
+            4: { cellWidth: colWidth }
+        },
+        margin: globalMargin
     });
 
-    lastY = (doc as any).lastAutoTable.finalY + 5;
-    
-    if (lastY > 260) doc.addPage();
-    lastY = lastY > 260 ? 20 : lastY;
+    currentY = (doc as any).lastAutoTable.finalY + 6;
 
-    // Test Data & Observations
+    if (currentY + 50 > pageHeight - bottomMargin) {
+        doc.addPage();
+        currentY = topMargin;
+    }
+
+    // 4. Tabla de Recambios (Nueva)
     autoTable(doc, {
-        startY: lastY,
+        startY: currentY,
+        head: [['RECAMBIOS Y MATERIALES', 'REFERENCIA / CANTIDAD']],
         body: [
-            [{ content: 'DATOS DE PRUEBAS', styles: { fontStyle: 'bold' }}, { content: 'VALORES', styles: { fontStyle: 'bold' }}],
-            ['Horas de funcionamiento', report.datos_pruebas.horas],
-            ['Presión aceite', report.datos_pruebas.presion],
-            ['Temperatura en bloque motor', report.datos_pruebas.temperatura],
-            ['Nivel de deposito de combustible', report.datos_pruebas.nivel_combustible],
-            ['Tensión en el alternador', report.datos_pruebas.tension_alternador],
-            ['Frecuencia', report.datos_pruebas.frecuencia],
-            ['Carga de baterías', report.datos_pruebas.carga_baterias],
-            [{ content: 'PRUEBAS CON CARGA', colSpan: 2, styles: { fontStyle: 'bold', fillColor: '#f1f5f9' }}],
-            [{ content: `Tensión: RS: ${report.pruebas_carga.tension_rs} ST: ${report.pruebas_carga.tension_st} RT: ${report.pruebas_carga.tension_rt}`, colSpan: 2 }],
-            [{ content: `Intensidad: R: ${report.pruebas_carga.intensidad_r} S: ${report.pruebas_carga.intensidad_s} T: ${report.pruebas_carga.intensidad_t}`, colSpan: 2 }],
-            [{ content: `Potencia: ${report.pruebas_carga.potencia_kw} kW`, colSpan: 2 }],
-            [{ content: 'OBSERVACIONES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: '#f1f5f9' }}],
-            [{ content: report.observaciones, colSpan: 2, styles: { minCellHeight: 20 } }],
+            ['F.A. (Filtro de Aceite)', report.recambios?.fa || ''],
+            ['F.C. (Filtro de Combustible)', report.recambios?.fc || ''],
+            ['F.AR. (Filtro de Aire)', report.recambios?.far || ''],
+            ['F.AG. (Filtro de Agua)', report.recambios?.fag || ''],
+            ['L.AC. (Litros de Aceite)', report.recambios?.lac || ''],
+            ['L.ANT. (Litros de Anticongelante)', report.recambios?.lant || ''],
+            ['BAT. (Baterías)', report.recambios?.bat || ''],
+            ['REST. (Resto / Otros)', report.recambios?.rest || ''],
         ],
-        theme: 'grid', styles: { fontSize: 8, cellPadding: 2 }
+        theme: 'grid', 
+        styles: { fontSize: 8, cellPadding: 2 },
+        headStyles: { fillColor: darkColor, textColor: '#fff' },
+        columnStyles: { 0: { fontStyle: 'bold', cellWidth: 60 } },
+        margin: globalMargin
     });
 
-    lastY = (doc as any).lastAutoTable.finalY;
+    currentY = (doc as any).lastAutoTable.finalY + 6;
 
-    // Signature
-    const signatureY = lastY + 5 > 250 ? 250 : lastY + 5;
+    if (currentY + 60 > pageHeight - bottomMargin) {
+        doc.addPage();
+        currentY = topMargin;
+    }
+
+    // 5. Tabla de Pruebas
+    autoTable(doc, {
+        startY: currentY,
+        body: [
+            [{ content: 'DATOS DE PRUEBAS', styles: { fontStyle: 'bold', fillColor: darkColor, textColor: '#fff' }}, { content: 'VALORES', styles: { fontStyle: 'bold', fillColor: darkColor, textColor: '#fff' }}],
+            ['Horas de funcionamiento', report.datos_pruebas?.horas || ''],
+            ['Presión aceite', report.datos_pruebas?.presion || ''],
+            ['Temperatura en bloque motor', report.datos_pruebas?.temperatura || ''],
+            ['Nivel de deposito de combustible', report.datos_pruebas?.nivel_combustible || ''],
+            ['Tensión en el alternador', report.datos_pruebas?.tension_alternador || ''],
+            ['Frecuencia', report.datos_pruebas?.frecuencia || ''],
+            ['Carga de baterías', report.datos_pruebas?.carga_baterias || ''],
+            [{ content: 'PRUEBAS CON CARGA', colSpan: 2, styles: { fontStyle: 'bold', fillColor: '#f1f5f9' }}],
+            [{ content: `Tensión: RS: ${report.pruebas_carga?.tension_rs || ''}   ST: ${report.pruebas_carga?.tension_st || ''}   RT: ${report.pruebas_carga?.tension_rt || ''}`, colSpan: 2 }],
+            [{ content: `Intensidad: R: ${report.pruebas_carga?.intensidad_r || ''}   S: ${report.pruebas_carga?.intensidad_s || ''}   T: ${report.pruebas_carga?.intensidad_t || ''}`, colSpan: 2 }],
+            [{ content: `Potencia: ${report.pruebas_carga?.potencia_kw || ''} kW`, colSpan: 2 }],
+        ],
+        theme: 'grid', 
+        styles: { fontSize: 8, cellPadding: 2 },
+        margin: globalMargin
+    });
+
+    currentY = (doc as any).lastAutoTable.finalY + 8;
+
+    // 6. OBSERVACIONES (Con Justificado y Salto de Página)
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(darkColor);
+    
+    if (currentY + 15 > pageHeight - bottomMargin) {
+        doc.addPage();
+        currentY = topMargin;
+    }
+    
+    doc.text("OBSERVACIONES", leftMargin, currentY);
+    currentY += 4;
+
+    const rawText = report.observaciones || '';
+    const blocks = rawText.split('\n');
+
+    blocks.forEach((block: string) => {
+        const text = block.trim();
+        if (!text) {
+            currentY += 3;
+            return;
+        }
+
+        const isTitle = text.endsWith(':') && text.toUpperCase() === text;
+
+        if (isTitle) {
+            if (currentY + 15 > pageHeight - bottomMargin) {
+                doc.addPage();
+                currentY = topMargin;
+            }
+            doc.setFontSize(9);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(darkColor);
+            doc.text(text, leftMargin, currentY);
+            currentY += 6;
+        } else {
+            autoTable(doc, {
+                startY: currentY,
+                margin: globalMargin,
+                body: [[text]],
+                theme: 'plain',
+                styles: {
+                    font: 'helvetica',
+                    fontSize: 9,
+                    cellPadding: 0,
+                    halign: 'justify',
+                    textColor: darkColor
+                },
+                columnStyles: { 0: { cellWidth: contentWidth } }
+            });
+            currentY = (doc as any).lastAutoTable.finalY + 4;
+        }
+    });
+
+    currentY += 8;
+
+    // 7. FIRMAS
+    const signatureBlockHeight = 45;
+    if (currentY + signatureBlockHeight > pageHeight - bottomMargin) {
+        doc.addPage();
+        currentY = topMargin;
+    }
+
     doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
     
-    if (report.clientSignatureUrl) doc.addImage(report.clientSignatureUrl, 'PNG', 115, signatureY, 60, 25);
-    doc.line(115, signatureY + 25, 185, signatureY + 25);
-    doc.text("Conforme cliente:", 115, signatureY + 30);
-    doc.text(report.recibidoPor, 115, signatureY + 35);
+    if (report.inspectorSignatureUrl) {
+        doc.addImage(report.inspectorSignatureUrl, 'PNG', 25, currentY, 60, 25);
+    }
+    doc.line(25, currentY + 25, 85, currentY + 25);
+    doc.text("Firma técnico:", 25, currentY + 30);
+    doc.text(inspectorName || '', 25, currentY + 35);
 
-    if (report.inspectorSignatureUrl) doc.addImage(report.inspectorSignatureUrl, 'PNG', 15, signatureY, 60, 25);
-    doc.line(15, signatureY + 25, 85, signatureY + 25);
-    doc.text("Firma técnico:", 15, signatureY + 30);
-    doc.text(inspectorName, 15, signatureY + 35);
+    if (report.clientSignatureUrl) {
+        doc.addImage(report.clientSignatureUrl, 'PNG', 125, currentY, 60, 25);
+    }
+    doc.line(125, currentY + 25, 185, currentY + 25);
+    doc.text("Conforme cliente:", 125, currentY + 30);
+    doc.text(report.recibidoPor || '', 125, currentY + 35);
     
+    // 8. ENCABEZADOS Y PIES DE PÁGINA GLOBALES
+    const drawHeader = () => {
+        doc.setFillColor(darkColor);
+        doc.rect(0, 0, pageWidth, 28, 'F');
+        doc.setTextColor('#FFFFFF');
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text("ENERGY ENGINE", 15, 18);
+        
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.text("C. Miguel López Bravo, 6, 45313 Yepes, Toledo", pageWidth - 15, 12, { align: 'right' });
+        doc.text("info@energyengine.es | +34 925 15 43 54", pageWidth - 15, 18, { align: 'right' });
+    };
+
+    const drawFooter = (pageNumber: number, totalPages: number) => {
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(100);
+        doc.text(`Página ${pageNumber} de ${totalPages}`, pageWidth - 15, pageHeight - 10, { align: 'right' });
+        doc.setFillColor(darkColor);
+        doc.rect(0, pageHeight - 5, pageWidth, 5, 'F');
+    };
+
+    const totalPages = (doc as any).internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        drawHeader();
+        drawFooter(i, totalPages);
+    }
+
     return doc;
-  };
+};
 
 export default function RevisionBasicaForm({ initialData, aiData }: { initialData?: any, aiData?: ProcessDictationOutput | null }) {
   const { user } = useUser();
   const db = useFirestore();
   const [inspectorName, setInspectorName] = useState('');
   
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
+  // Extendemos INITIAL_FORM_DATA para incluir los recambios
+  const [formData, setFormData] = useState({
+      ...INITIAL_FORM_DATA,
+      recambios: {
+          fa: '', fc: '', far: '', fag: '', lac: '', lant: '', bat: '', rest: ''
+      }
+  });
   
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState<string | null>(null);
@@ -174,7 +324,6 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
 
   useEffect(() => {
     if (initialData) {
-      // Deep merge initialData with formData
       setFormData(prev => ({
           ...prev,
           cliente: initialData.clienteNombre || prev.cliente,
@@ -190,17 +339,35 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
     }
   }, [initialData]);
 
-  // Effect to process incoming AI data from global dictation
   useEffect(() => {
     if (aiData) {
       setFormData(prev => {
           const newChecklist = { ...prev.checklist, ...aiData.checklist_updates };
           if (aiData.all_ok) {
-            Object.values(CHECKLIST_SECTIONS).flat().forEach(item => {
-              if (!newChecklist[item]) {
-                newChecklist[item] = 'OK';
-              }
+            Object.values(BASIC_REVISION_CHECKLIST).flat().forEach(item => {
+              if (!newChecklist[item]) newChecklist[item] = 'OK';
             });
+          }
+
+          const recambiosUpdates = { ...prev.recambios };
+          const checklistUpdates = aiData.checklist_updates || {};
+          const recambiosMapping: { [key: string]: keyof typeof recambiosUpdates } = {
+              'Filtro de aceite': 'fa',
+              'Filtro de combustible': 'fc',
+              'Filtro de aire': 'far',
+              'Filtro de agua': 'fag',
+              'Aceite': 'lac',
+              'Anticongelante': 'lant',
+              'Baterías': 'bat'
+          };
+
+          for (const [item, status] of Object.entries(checklistUpdates)) {
+              if (recambiosMapping[item] && (status === 'CMB' || status === 'CAMBIO')) {
+                  const formKey = recambiosMapping[item];
+                  if (!recambiosUpdates[formKey]) { // Only update if empty
+                      recambiosUpdates[formKey] = 'Cambiado';
+                  }
+              }
           }
 
           return {
@@ -216,6 +383,7 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
             recibidoPor: aiData.identidad.recibe || prev.recibidoPor,
             observaciones: aiData.observations_summary || prev.observaciones,
             checklist: newChecklist,
+            recambios: recambiosUpdates,
             datos_pruebas: {
               horas: aiData.mediciones_generales.horas || prev.datos_pruebas.horas,
               presion: aiData.mediciones_generales.presion || prev.datos_pruebas.presion,
@@ -239,15 +407,15 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
     }
   }, [aiData]);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({...prev, [field]: value}));
   };
   
-  const handleNestedChange = (section, field, value) => {
-    setFormData(prev => ({ ...prev, [section]: { ...prev[section], [field]: value } }));
+  const handleNestedChange = (section: string, field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [section]: { ...(prev as any)[section], [field]: value } }));
   };
 
-  const handleChecklistChange = (item, status) => {
+  const handleChecklistChange = (item: string, status: string) => {
     setFormData(prev => ({ ...prev, checklist: { ...prev.checklist, [item]: status } }));
   };
   
@@ -319,20 +487,20 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
             <section className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
                 <h3 className="font-bold text-slate-500">Datos Generales</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <StableInput label="Cliente" icon={Users} value={formData.cliente} onChange={v => handleInputChange('cliente', v)}/>
-                    <StableInput label="Instalación" icon={MapPin} value={formData.instalacion} onChange={v => handleInputChange('instalacion', v)}/>
-                    <StableInput label="Dirección" icon={MapPin} value={formData.direccion} onChange={v => handleInputChange('direccion', v)}/>
-                    <StableInput label="Fecha Revisión" icon={Calendar} type="date" value={formData.fecha_revision} onChange={v => handleInputChange('fecha_revision', v)}/>
-                    <StableInput label="Motor" icon={Settings} value={formData.motor} onChange={v => handleInputChange('motor', v)}/>
-                    <StableInput label="Modelo" icon={Type} value={formData.modelo} onChange={v => handleInputChange('modelo', v)}/>
-                    <StableInput label="Nº Motor" icon={Hash} value={formData.n_motor} onChange={v => handleInputChange('n_motor', v)}/>
-                    <StableInput label="Nº Grupo" icon={Hash} value={formData.n_grupo} onChange={v => handleInputChange('n_grupo', v)}/>
-                    <StableInput label="Potencia" icon={Zap} value={formData.potencia} onChange={v => handleInputChange('potencia', v)}/>
+                    <StableInput label="Cliente" icon={Users} value={formData.cliente} onChange={(v: string) => handleInputChange('cliente', v)}/>
+                    <StableInput label="Instalación" icon={MapPin} value={formData.instalacion} onChange={(v: string) => handleInputChange('instalacion', v)}/>
+                    <StableInput label="Dirección" icon={MapPin} value={formData.direccion} onChange={(v: string) => handleInputChange('direccion', v)}/>
+                    <StableInput label="Fecha Revisión" icon={Calendar} type="date" value={formData.fecha_revision} onChange={(v: string) => handleInputChange('fecha_revision', v)}/>
+                    <StableInput label="Motor" icon={Settings} value={formData.motor} onChange={(v: string) => handleInputChange('motor', v)}/>
+                    <StableInput label="Modelo" icon={Type} value={formData.modelo} onChange={(v: string) => handleInputChange('modelo', v)}/>
+                    <StableInput label="Nº Motor" icon={Hash} value={formData.n_motor} onChange={(v: string) => handleInputChange('n_motor', v)}/>
+                    <StableInput label="Nº Grupo" icon={Hash} value={formData.n_grupo} onChange={(v: string) => handleInputChange('n_grupo', v)}/>
+                    <StableInput label="Potencia" icon={Zap} value={formData.potencia} onChange={(v: string) => handleInputChange('potencia', v)}/>
                 </div>
             </section>
             
             {/* --- CHECKLISTS --- */}
-            {BASIC_REVISION_SECTIONS.map(([section, items]) => (
+            {Object.entries(BASIC_REVISION_CHECKLIST).map(([section, items]) => (
                 <section key={section} className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm space-y-4 border border-slate-100">
                     <h3 className="font-bold text-slate-500">{section}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
@@ -350,26 +518,41 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
                 </section>
             ))}
 
+            {/* --- RECAMBIOS Y MATERIALES --- */}
+            <section className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
+                <h3 className="font-bold text-slate-500">Recambios y Materiales</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <StableInput icon={Wrench} label="F.A. (Filtro Aceite)" value={formData.recambios.fa} onChange={(v: string) => handleNestedChange('recambios', 'fa', v)} />
+                    <StableInput icon={Wrench} label="F.C. (Filtro Combustible)" value={formData.recambios.fc} onChange={(v: string) => handleNestedChange('recambios', 'fc', v)} />
+                    <StableInput icon={Wrench} label="F.AR. (Filtro Aire)" value={formData.recambios.far} onChange={(v: string) => handleNestedChange('recambios', 'far', v)} />
+                    <StableInput icon={Wrench} label="F.AG. (Filtro Agua)" value={formData.recambios.fag} onChange={(v: string) => handleNestedChange('recambios', 'fag', v)} />
+                    <StableInput icon={Droplets} label="L.AC. (Litros Aceite)" value={formData.recambios.lac} onChange={(v: string) => handleNestedChange('recambios', 'lac', v)} />
+                    <StableInput icon={Droplets} label="L.ANT. (Litros Anticong.)" value={formData.recambios.lant} onChange={(v: string) => handleNestedChange('recambios', 'lant', v)} />
+                    <StableInput icon={Battery} label="BAT. (Baterías)" value={formData.recambios.bat} onChange={(v: string) => handleNestedChange('recambios', 'bat', v)} />
+                    <StableInput icon={Wrench} label="REST. (Otros)" value={formData.recambios.rest} onChange={(v: string) => handleNestedChange('recambios', 'rest', v)} />
+                </div>
+            </section>
+
             {/* --- PRUEBAS --- */}
             <section className="bg-white p-6 md:p-10 rounded-[2rem] shadow-sm space-y-6 border border-slate-100">
                 <h3 className="font-bold text-slate-500">Datos de Pruebas y Carga</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <StableInput icon={Clock} label="Horas" value={formData.datos_pruebas.horas} onChange={v => handleNestedChange('datos_pruebas', 'horas', v)} />
-                    <StableInput icon={Gauge} label="Presión Aceite" value={formData.datos_pruebas.presion} onChange={v => handleNestedChange('datos_pruebas', 'presion', v)} />
-                    <StableInput icon={Thermometer} label="Temperatura" value={formData.datos_pruebas.temperatura} onChange={v => handleNestedChange('datos_pruebas', 'temperatura', v)} />
-                    <StableInput icon={Droplets} label="Nivel Combustible" value={formData.datos_pruebas.nivel_combustible} onChange={v => handleNestedChange('datos_pruebas', 'nivel_combustible', v)} />
-                    <StableInput icon={Zap} label="Tensión Alternador" value={formData.datos_pruebas.tension_alternador} onChange={v => handleNestedChange('datos_pruebas', 'tension_alternador', v)} />
-                    <StableInput icon={Wind} label="Frecuencia" value={formData.datos_pruebas.frecuencia} onChange={v => handleNestedChange('datos_pruebas', 'frecuencia', v)} />
-                    <StableInput icon={Battery} label="Carga Baterías" value={formData.datos_pruebas.carga_baterias} onChange={v => handleNestedChange('datos_pruebas', 'carga_baterias', v)} />
+                    <StableInput icon={Clock} label="Horas" value={formData.datos_pruebas.horas} onChange={(v: string) => handleNestedChange('datos_pruebas', 'horas', v)} />
+                    <StableInput icon={Gauge} label="Presión Aceite" value={formData.datos_pruebas.presion} onChange={(v: string) => handleNestedChange('datos_pruebas', 'presion', v)} />
+                    <StableInput icon={Thermometer} label="Temperatura" value={formData.datos_pruebas.temperatura} onChange={(v: string) => handleNestedChange('datos_pruebas', 'temperatura', v)} />
+                    <StableInput icon={Droplets} label="Nivel Combustible" value={formData.datos_pruebas.nivel_combustible} onChange={(v: string) => handleNestedChange('datos_pruebas', 'nivel_combustible', v)} />
+                    <StableInput icon={Zap} label="Tensión Alternador" value={formData.datos_pruebas.tension_alternador} onChange={(v: string) => handleNestedChange('datos_pruebas', 'tension_alternador', v)} />
+                    <StableInput icon={Wind} label="Frecuencia" value={formData.datos_pruebas.frecuencia} onChange={(v: string) => handleNestedChange('datos_pruebas', 'frecuencia', v)} />
+                    <StableInput icon={Battery} label="Carga Baterías" value={formData.datos_pruebas.carga_baterias} onChange={(v: string) => handleNestedChange('datos_pruebas', 'carga_baterias', v)} />
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t mt-4">
-                    <LoadTestInput label="Tensión RS" value={formData.pruebas_carga.tension_rs} onChange={v => handleNestedChange('pruebas_carga', 'tension_rs', v)} />
-                    <LoadTestInput label="Tensión ST" value={formData.pruebas_carga.tension_st} onChange={v => handleNestedChange('pruebas_carga', 'tension_st', v)} />
-                    <LoadTestInput label="Tensión RT" value={formData.pruebas_carga.tension_rt} onChange={v => handleNestedChange('pruebas_carga', 'tension_rt', v)} />
-                    <LoadTestInput label="Intensidad R" value={formData.pruebas_carga.intensidad_r} onChange={v => handleNestedChange('pruebas_carga', 'intensidad_r', v)} />
-                    <LoadTestInput label="Intensidad S" value={formData.pruebas_carga.intensidad_s} onChange={v => handleNestedChange('pruebas_carga', 'intensidad_s', v)} />
-                    <LoadTestInput label="Intensidad T" value={formData.pruebas_carga.intensidad_t} onChange={v => handleNestedChange('pruebas_carga', 'intensidad_t', v)} />
-                    <LoadTestInput label="Potencia kW" value={formData.pruebas_carga.potencia_kw} onChange={v => handleNestedChange('pruebas_carga', 'potencia_kw', v)} />
+                    <LoadTestInput label="Tensión RS" value={formData.pruebas_carga.tension_rs} onChange={(v: string) => handleNestedChange('pruebas_carga', 'tension_rs', v)} />
+                    <LoadTestInput label="Tensión ST" value={formData.pruebas_carga.tension_st} onChange={(v: string) => handleNestedChange('pruebas_carga', 'tension_st', v)} />
+                    <LoadTestInput label="Tensión RT" value={formData.pruebas_carga.tension_rt} onChange={(v: string) => handleNestedChange('pruebas_carga', 'tension_rt', v)} />
+                    <LoadTestInput label="Intensidad R" value={formData.pruebas_carga.intensidad_r} onChange={(v: string) => handleNestedChange('pruebas_carga', 'intensidad_r', v)} />
+                    <LoadTestInput label="Intensidad S" value={formData.pruebas_carga.intensidad_s} onChange={(v: string) => handleNestedChange('pruebas_carga', 'intensidad_s', v)} />
+                    <LoadTestInput label="Intensidad T" value={formData.pruebas_carga.intensidad_t} onChange={(v: string) => handleNestedChange('pruebas_carga', 'intensidad_t', v)} />
+                    <LoadTestInput label="Potencia kW" value={formData.pruebas_carga.potencia_kw} onChange={(v: string) => handleNestedChange('pruebas_carga', 'potencia_kw', v)} />
                 </div>
             </section>
 
@@ -385,7 +568,7 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
                     <div>
                         <SignaturePad title="Firma del Cliente" onSignatureEnd={setClientSignature} />
                         <div className="mt-2">
-                        <StableInput label="" icon={User} value={formData.recibidoPor} onChange={v => handleInputChange('recibidoPor', v)} placeholder="Nombre del receptor"/>
+                        <StableInput label="" icon={User} value={formData.recibidoPor} onChange={(v: string) => handleInputChange('recibidoPor', v)} placeholder="Nombre del receptor"/>
                         </div>
                     </div>
                 </div>
