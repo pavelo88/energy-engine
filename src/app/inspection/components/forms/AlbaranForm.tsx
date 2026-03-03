@@ -3,7 +3,8 @@ import React, { useState, useEffect } from 'react';
 import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { Wand2, Loader2, Save, FileSearch, Printer, CheckCircle2, User, Users, MapPin, Settings, Type, Hash, Calendar, Clock, Car, Euro, Zap, Thermometer, Battery, Droplets, Wind, Gauge, Mic } from 'lucide-react';
-import { enhanceTechnicalRequest, ProcessDictationOutput } from '@/ai/flows/enhance-technical-request-flow';
+import { enhanceTechnicalRequest } from '@/ai/flows/enhance-technical-request-flow';
+import { ProcessDictationOutput } from '@/ai/flows/process-dictation-flow';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -18,7 +19,7 @@ const StableInput = React.memo(({ label, value, onChange, icon: Icon, type = "te
       <input 
         type={type}
         value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: any) => onChange(e.target.value)}
         placeholder={placeholder}
         className={`w-full bg-slate-50 border-2 border-slate-100 rounded-xl p-3 ${Icon ? 'pl-11' : ''} outline-none focus:border-amber-500 focus:bg-white transition-all font-bold text-slate-700 shadow-sm text-sm`}
       />
@@ -33,7 +34,7 @@ const LoadTestInput = React.memo(({ label, value, onChange }: any) => (
         <input 
             type="text" 
             value={value || ''} 
-            onChange={e => onChange(e.target.value)}
+            onChange={(e: any) => onChange(e.target.value)}
             className="w-full bg-slate-100 border-2 border-slate-200 rounded-lg p-2 outline-none focus:border-amber-500 focus:bg-white transition-all font-bold text-slate-700 shadow-sm text-sm text-center"
         />
     </div>
