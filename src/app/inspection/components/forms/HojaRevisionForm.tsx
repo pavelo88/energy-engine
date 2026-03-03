@@ -257,8 +257,8 @@ export default function HojaRevisionForm({ initialData, aiData }: { initialData?
   const db = useFirestore();
   const [inspectorName, setInspectorName] = useState('');
   
-  const [formData, setFormData] = useState(INITIAL_FORM_DATA);
-  
+  const [formData, setFormData] = useState<any>(INITIAL_FORM_DATA);
+    
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
   const [clientSignature, setClientSignature] = useState<string | null>(null);
 

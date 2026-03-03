@@ -296,11 +296,11 @@ export default function RevisionBasicaForm({ initialData, aiData }: { initialDat
   const [inspectorName, setInspectorName] = useState('');
   
   // Extendemos INITIAL_FORM_DATA para incluir los recambios
-  const [formData, setFormData] = useState({
-      ...INITIAL_FORM_DATA,
-      recambios: {
-          fa: '', fc: '', far: '', fag: '', lac: '', lant: '', bat: '', rest: ''
-      }
+  const [formData, setFormData] = useState<any>({
+    ...INITIAL_FORM_DATA,
+    recambios: {
+        fa: '', fc: '', far: '', fag: '', lac: '', lant: '', bat: '', rest: ''
+    }
   });
   
   const [inspectorSignature, setInspectorSignature] = useState<string | null>(null);
