@@ -291,7 +291,7 @@ const InspectionPageContent = () => {
         onBack={activeInspectionForm ? handleBackToHub : () => handleNavigate(TABS.MENU)}
         isOnline={isOnline}
         onInstall={handleInstallClick}
-        canInstall={!!installPrompt}
+        canInstall={true}
       />
       <div className="flex-grow">
         {renderContent()}

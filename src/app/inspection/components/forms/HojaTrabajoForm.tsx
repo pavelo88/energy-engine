@@ -473,16 +473,13 @@ export default function HojaTrabajoForm({ initialData, aiData }: { initialData?:
     }
     
     setSaving(true);
-    const year = new Date().getFullYear().toString().slice(-2);
-    const sequential = Date.now().toString().slice(-6).padStart(6, '0');
-    const docId = `HT-${year}-${sequential}`;
-
+    const formType = 'hoja-trabajo';
     try {
        // AUTO-CREATE CLIENT
         const clientesRef = collection(db, "clientes");
-        const q = query(clientesRef, where("nombre", "==", formData.cliente.trim()));
-        const querySnapshot = await getDocs(q);
-        if (querySnapshot.empty && formData.cliente.trim().length > 0) {
+        const qCliente = query(clientesRef, where("nombre", "==", formData.cliente.trim()));
+        const clienteSnapshot = await getDocs(qCliente);
+        if (clienteSnapshot.empty && formData.cliente.trim().length > 0) {
             await addDoc(clientesRef, {
                 nombre: formData.cliente.trim(),
                 direccion: formData.instalacion || '',
@@ -490,6 +487,14 @@ export default function HojaTrabajoForm({ initialData, aiData }: { initialData?:
                 telefono: ''
             });
         }
+      
+      // GENERATE SEQUENTIAL ID
+      const trabajosRef = collection(db, 'trabajos');
+      const qTrabajos = query(trabajosRef, where('formType', '==', formType));
+      const trabajosSnapshot = await getDocs(qTrabajos);
+      const sequentialNumber = (trabajosSnapshot.size + 1).toString().padStart(3, '0');
+      const year = new Date().getFullYear();
+      const docId = `HT-${year}-${sequentialNumber}`;
 
        const storage = getStorage();
       const imageUrls = await Promise.all(
@@ -509,9 +514,8 @@ export default function HojaTrabajoForm({ initialData, aiData }: { initialData?:
         tecnicoId: user.uid,
         tecnicoNombre: inspectorName,
         fecha_guardado: Timestamp.now(),
-        id_albaran: docId, // legacy id
         id: docId,
-        formType: 'hoja-trabajo',
+        formType: formType,
         estado: 'Completado',
       };
 
