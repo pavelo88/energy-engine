@@ -46,7 +46,11 @@ export default function JobsPage() {
       setClients(snapshot.docs.map(doc => ({ id: doc.id, nombre: doc.data().nombre })));
     });
     
-    const qJobs = query(collection(db, 'trabajos'), where('formType', 'in', ['job', undefined]));
+    // CORRECCIÓN: La cláusula `in` no soporta `undefined`. Usamos `not-in` para excluir los tipos de informes
+    // y obtener solo los trabajos manuales (formType: 'job') y los trabajos históricos (sin formType).
+    const reportFormTypes = ['hoja-trabajo', 'informe-tecnico', 'informe-revision', 'revision-basica', 'informe-simplificado'];
+    const qJobs = query(collection(db, 'trabajos'), where('formType', 'not-in', reportFormTypes));
+
     const unsubJobs = onSnapshot(qJobs, snapshot => {
       const jobList = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -249,5 +253,3 @@ export default function JobsPage() {
     </div>
   );
 }
-
-    
