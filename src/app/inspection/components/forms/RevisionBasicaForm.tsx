@@ -103,7 +103,7 @@ export const generatePDF = (report: any, inspectorName: string, reportId: string
         }),
         theme: 'grid',
         didParseCell: function (data) {
-          const item = data.row.raw[0];
+          const item = (data.row.raw as any[])[0];
           const status = report.checklist?.[item as string];
           if (status === 'DEFECTUOSO') {
             data.cell.styles.fillColor = '#fee2e2'; // red-100

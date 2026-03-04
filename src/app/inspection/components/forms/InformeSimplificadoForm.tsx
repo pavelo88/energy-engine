@@ -100,7 +100,7 @@ export const generatePDF = (report: any, inspectorName: string, reportId: string
         ]),
         theme: 'grid',
         didParseCell: function (data) {
-          const item = data.row.raw[0] as string;
+          const item = (data.row.raw as any[])[0] as string;
           const status = report.recambios_checklist?.[item];
           if (status === 'DEFECTUOSO') data.cell.styles.fillColor = '#fee2e2';
           if (status === 'CAMBIO') data.cell.styles.fillColor = '#dcfce7';
@@ -398,9 +398,7 @@ export default function InformeSimplificadoForm({ initialData, aiData }: { initi
     }
 
     setSaving(true);
-    const year = new Date().getFullYear().toString().slice(-2);
-    const sequential = Date.now().toString().slice(-6).padStart(6, '0');
-    const docId = `IS-${year}-${sequential}`;
+    
     try {
         // AUTO-CREATE CLIENT
         const clientesRef = collection(db, "clientes");
@@ -416,6 +414,13 @@ export default function InformeSimplificadoForm({ initialData, aiData }: { initi
         }
 
         const storage = getStorage();
+        const year = new Date().getFullYear();
+        const trabajosRef = collection(db, 'trabajos');
+        const qTrabajos = query(trabajosRef, where('formType', '==', 'informe-simplificado'));
+        const trabajosSnapshot = await getDocs(qTrabajos);
+        const sequentialNumber = (trabajosSnapshot.size + 1).toString().padStart(3, '0');
+        const docId = `IS-${year}-${sequentialNumber}`;
+
         const imageUrls = await Promise.all(
             images.map(async (image) => {
             const imageRef = ref(storage, `informes/${docId}/${image.name}`);
