@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   Save, Loader2, User, Euro, Trash2, Plus, 
-  FileText, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, FileSearch, Building, Clock, AlertTriangle
+  FileText, ClipboardSignature, Upload, Camera, Calendar as CalendarIcon, FileSearch, Building, Clock, AlertTriangle, MapPin, CheckCircle2
 } from 'lucide-react';
 import { useFirestore, useUser } from '@/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL, uploadString } from 'firebase/storage';
@@ -46,7 +46,9 @@ export default function RegistroJornadaForm() {
 
   const [reportDate, setReportDate] = useState<Date>(new Date());
   const [observacionesDiarias, setObservacionesDiarias] = useState('');
-  
+  const [ubicacionPrincipal, setUbicacionPrincipal] = useState<{ lat: number, lon: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
   // Estado para las horas
   const [horas, setHoras] = useState({
       normales: '',
@@ -114,6 +116,26 @@ export default function RegistroJornadaForm() {
     }
   };
 
+    const handleCaptureLocation = () => {
+    if (!navigator.geolocation) {
+      alert('La geolocalización no es soportada por tu navegador.');
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUbicacionPrincipal({ lat: latitude, lon: longitude });
+        setLocationStatus('success');
+      },
+      () => {
+        alert('No se pudo obtener la ubicación. Revisa los permisos del navegador.');
+        setLocationStatus('error');
+      }
+    );
+  };
+
   // --- LÓGICA DEL FORMULARIO ---
   const handleHorasChange = (field: string, value: string) => {
       setHoras((prev: any) => ({...prev, [field]: value}));
@@ -163,6 +185,7 @@ export default function RegistroJornadaForm() {
         body: [
             [{ content: 'TÉCNICO:', styles: { fontStyle: 'bold', cellWidth: 30 } }, { content: data.inspectorNombre || 'No especificado', colSpan: 3 }],
             [{ content: 'FECHA:', styles: { fontStyle: 'bold' } }, format(data.fecha, 'dd/MM/yyyy'), { content: 'DÍA DE LA SEMANA:', styles: { fontStyle: 'bold', cellWidth: 40 } }, format(data.fecha, 'EEEE', { locale: es }).toUpperCase()],
+            [{ content: 'UBICACIÓN PRINCIPAL:', styles: { fontStyle: 'bold', cellWidth: 40 } }, { content: data.ubicacionPrincipal ? `${data.ubicacionPrincipal.lat.toFixed(4)}, ${data.ubicacionPrincipal.lon.toFixed(4)}` : 'No registrada', colSpan: 3 }],
         ],
         theme: 'grid', 
         styles: { fontSize: 9, cellPadding: 3 },
@@ -305,6 +328,7 @@ export default function RegistroJornadaForm() {
     const parteDataForPreview = {
         inspectorNombre: user.displayName || user.email,
         fecha: reportDate,
+        ubicacionPrincipal: ubicacionPrincipal,
         horas: horas,
         observaciones: observacionesDiarias,
         gastos: gastos,
@@ -329,6 +353,7 @@ export default function RegistroJornadaForm() {
     if (!user || !db || !storage) return alert("Error de autenticación o servicios no disponibles.");
     if (!horas.normales) return alert("Por favor, introduce al menos las horas normales trabajadas.");
     if (!signature) return alert("La firma del técnico es obligatoria para validar la jornada.");
+    if (!ubicacionPrincipal) return alert("La ubicación principal es obligatoria para iniciar la jornada.");
 
     setLoading(true);
     try {
@@ -355,6 +380,7 @@ export default function RegistroJornadaForm() {
             inspectorId: user.uid,
             inspectorNombre: user.displayName || user.email,
             fecha: reportDate,
+            ubicacionPrincipal: ubicacionPrincipal,
             horas: horas,
             observaciones: observacionesDiarias,
             montoTotalGastos: totalGastos,
@@ -381,6 +407,8 @@ export default function RegistroJornadaForm() {
         setObservacionesDiarias('');
         setGastos([]);
         clearCanvas();
+        setUbicacionPrincipal(null);
+        setLocationStatus('idle');
 
     } catch (e: any) {
         console.error("Error al guardar el parte diario: ", e);
@@ -432,6 +460,17 @@ export default function RegistroJornadaForm() {
                 <Calendar mode="single" selected={reportDate} onSelect={(date) => date && setReportDate(date)} initialFocus/>
               </PopoverContent>
             </Popover>
+             <div className="md:col-span-2">
+              <button 
+                  onClick={handleCaptureLocation} 
+                  disabled={locationStatus === 'loading'} 
+                  className={`w-full bg-slate-50 border-2 rounded-xl p-3 flex items-center justify-center gap-3 font-bold shadow-sm text-sm transition-colors disabled:opacity-50 ${ubicacionPrincipal ? 'border-green-500 text-green-600' : 'border-slate-100 text-slate-700 hover:border-indigo-500'}`}
+              >
+                  {locationStatus === 'loading' && <Loader2 className="animate-spin text-indigo-500" size={16}/>}
+                  {locationStatus !== 'loading' && (ubicacionPrincipal ? <CheckCircle2 size={16}/> : <MapPin size={16}/>)}
+                  <span>{ubicacionPrincipal ? `Ubicación Capturada: ${ubicacionPrincipal.lat.toFixed(4)}, ${ubicacionPrincipal.lon.toFixed(4)}` : 'INICIAR JORNADA (Capturar Ubicación)'}</span>
+              </button>
+            </div>
         </div>
       </section>
 

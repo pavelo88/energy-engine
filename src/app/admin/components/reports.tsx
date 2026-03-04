@@ -13,7 +13,7 @@ import { generatePDF as generateInformeRevisionPDF } from '@/app/inspection/comp
 import { generatePDF as generateInformeTecnicoPDF } from '@/app/inspection/components/forms/InformeTrabajoForm';
 import { generatePDF as generateRevisionBasicaPDF } from '@/app/inspection/components/forms/RevisionBasicaForm';
 // Asumimos que también existirá un generador para InformeSimplificadoForm
-// import { generatePDF as generateInformeSimplificadoPDF } from '@/app/inspection/components/forms/InformeSimplificadoForm';
+import { generatePDF as generateInformeSimplificadoPDF } from '@/app/inspection/components/forms/InformeSimplificadoForm';
 
 
 interface Report {
@@ -73,9 +73,9 @@ export default function ReportsPage() {
             case 'informe-tecnico':
                 doc = generateInformeTecnicoPDF(report, report.tecnicoNombre, report.id_informe);
                 break;
-            // case 'informe-simplificado':
-            //     doc = generateInformeSimplificadoPDF(report, report.tecnicoNombre, report.id);
-            //     break;
+            case 'informe-simplificado':
+                doc = generateInformeSimplificadoPDF(report, report.tecnicoNombre, report.id);
+                break;
             default:
                 alert('Este tipo de documento no tiene un formato de PDF para reimprimir.');
                 return;
