@@ -53,7 +53,9 @@ const InspectionPageContent = () => {
     setHasMounted(true);
     
     const handleInstallPrompt = (e: Event) => {
+        // Prevent the mini-infobar from appearing on mobile
         e.preventDefault();
+        // Stash the event so it can be triggered later.
         setInstallPrompt(e);
     };
 
