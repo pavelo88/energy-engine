@@ -124,7 +124,7 @@ export default function Contact() {
                   ].map((social, i) => {
                     const Icon = social.icon;
                     return (
-                      <Button key={i} variant="ghost" size="icon" asChild className="rounded-full text-muted-foreground">
+                      <Button key={i} variant="ghost" size="icon" asChild className="rounded-full text-muted-foreground hover:text-primary">
                         <Link href={social.href} target="_blank"><Icon size={20}/></Link>
                       </Button>
                     )
@@ -132,7 +132,7 @@ export default function Contact() {
                 </div>
             </div>
             <div className="flex-grow rounded-md overflow-hidden relative group border">
-              <iframe src={contactInfo.mapUrl} className="w-full h-[calc(100%+30px)] -mb-[30px] map-filter transition-all duration-700" allowFullScreen loading="lazy"></iframe>
+              <iframe src={contactInfo.mapUrl} className="w-full h-full transition-all duration-700" allowFullScreen loading="lazy"></iframe>
             </div>
             <div className="flex items-start gap-4 pt-4 text-muted-foreground">
               <p className="text-xs font-bold uppercase tracking-widest leading-relaxed">{contactInfo.address}</p>
